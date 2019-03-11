@@ -1,0 +1,8 @@
+SERVICE_SCRIPT=/etc/init.d/FAHClient
+
+
+# Stop the service
+$SERVICE_SCRIPT stop || true
+
+# Uninstall init.d script
+/sbin/chkconfig --del FAHClient

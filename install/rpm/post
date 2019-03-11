@@ -1,0 +1,34 @@
+CLIENT_USER=fahclient
+CLIENT_HOME=/var/lib/fahclient
+CLIENT_ETC=/etc/fahclient
+CLIENT_NAME="Folding@home Client"
+SERVICE_SCRIPT=/etc/init.d/FAHClient
+CONFIG=/etc/fahclient/config.xml
+SAMPLE=/usr/share/doc/fahclient/sample-config.xml
+
+
+# Stop the service if it's started
+test -f $SERVICE_SCRIPT || $SERVICE_SCRIPT stop || true
+
+# Create directories
+test -d $CLIENT_HOME || mkdir $CLIENT_HOME
+test -d $CLIENT_ETC || mkdir $CLIENT_ETC
+
+# Add user if it does not exist
+getent passwd $CLIENT_USER >/dev/null || \
+    useradd -r -d $CLIENT_HOME -s /sbin/nologin -c "$CLIENT_NAME" $CLIENT_USER
+
+# Make sure there is a config.xml
+test -f $CONFIG || cp $SAMPLE $CONFIG
+
+# Adjust file and directory permissions
+for dir in "$CLIENT_HOME" "$CLIENT_ETC"; do
+    chown -R $CLIENT_USER "$dir"
+    find "$dir" -exec chmod ug+rw,o+r '{}' \;
+done
+
+# Install init.d script
+/sbin/chkconfig --levels 2345 FAHClient on
+
+# Start the service
+$SERVICE_SCRIPT start || true

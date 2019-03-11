@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<installer-script minSpecVersion="1">
+  <pkg-ref id="%(pkg_id)s"/>
+  <title>%(summary)s</title>
+  <options customize="never" hostArchitectures="i386" rootVolumeOnly="true"/>
+  <welcome file="Welcome.rtf"/>
+  <license file="License.rtf"/>
+  <choices-outline>
+    <line choice="default"><line choice="choice0"/></line>
+  </choices-outline>
+  <choice id="default"/>
+  <choice id="choice0" visible="false">
+    <pkg-ref id="%(pkg_id)s"/>
+  </choice>
+  <pkg-ref auth="Root" id="%(pkg_id)s">%(package_name)s.pkg</pkg-ref>
+</installer-script>

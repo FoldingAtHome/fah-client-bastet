@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ "$1" != "--delayed-action" ]; then
+  "$0" --delayed-action "$@" &
+  exit 0
+fi
+
+shift
+
+# sleep is needed for some reason for OSX 10.8 to wait properly
+# the control and viewer onquit scripts work fine without it
+sleep 1
+
+# Wait up to 1 minute for Installer.app to quit
+I=0
+while $(ps axww|grep -v grep|grep Installer.app >/dev/null 2>&1); do
+  sleep 1
+  let I+=1
+  if [ $I -ge 60 ]; then break; fi
+done
+
+# give client time to start before web control page is opened
+if [ $I -lt 2 ]; then sleep 2; fi
+
+# do action
+"$@"
+

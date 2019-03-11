@@ -1,0 +1,5 @@
+#include "resource.h"
+
+IDI_NORMAL   ICON "normal.ico"
+IDI_INACTIVE ICON "inactive.ico"
+IDI_FAILURE  ICON "failure.ico"

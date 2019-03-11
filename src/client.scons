@@ -1,0 +1,39 @@
+import glob
+
+Import('*')
+
+env.Append(CPPPATH = ['#/src'])
+
+subdirs = ['', 'gui', 'gui/win32', 'gui/osx']
+
+# Source
+src = []
+for dir in subdirs:
+    src += Glob('fah/client/' + dir + '/*.cpp')
+
+
+# Resources
+res = env.Resources('resources.cpp', ['#/src/resources'])
+resLib = env.Library('fahclient-resources', res)
+Precious(resLib)
+
+if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+    win32Res = [env.RES('fah/client/gui/win32/SysTray.rc')]
+else: win32Res = []
+
+
+# Build lib
+lib = env.Library('fahclient', src)
+
+
+# Build Info
+info = env.BuildInfo('build_info.cpp', [])
+AlwaysBuild(info)
+
+
+# FAHClient
+prog = env.Program('#/fah-client',
+                   ['client.cpp', info, lib, resLib] + win32Res);
+
+pair = (prog, lib)
+Return('pair')

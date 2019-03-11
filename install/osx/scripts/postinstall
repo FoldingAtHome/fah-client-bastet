@@ -1,0 +1,61 @@
+#!/bin/bash -e
+#
+# Scripts: preinstall, preupgrade, postflight, postupgrade, postinstall
+#
+# Arguments passed by installer:
+#   $1: full path to the installation package
+#   $2: full path to the installation destination
+#   $3: mountpoint of the destination volume
+#   $4: root directory "/" for the current System folder
+#
+# Environment variables available to a postflight executable:
+#   $INSTALLER_TEMP: scratch area used by Installer for temporary work file
+#   $PACKAGE_PATH: full path to the installation package; should be same as $1
+#   $RECEIPT_PATH: full path to directory containing the file being executed
+#   $SCRIPT_NAME: name of the file being executed
+#   $TMPDIR: if set, a path to a location on a writable destination volume
+#
+# $PACKAGE_PATH is not available in preflight
+# $RECEIPT_PATH is not available in preflight or preinstall
+# $SCRIPT_NAME is not available in preflight or preinstall
+
+# Setup run directory
+RUN_DIR="/Library/Application Support/FAHClient"
+if [ ! -d "$RUN_DIR" ]; then mkdir -p "$RUN_DIR"; fi
+chmod -R u+rwX,go-w "$RUN_DIR"
+chown -R nobody:nobody "$RUN_DIR"
+
+PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
+
+# Apply #1103 workaround if OSX 10.9+
+PLISTBUDDY=/usr/libexec/PlistBuddy
+OS_MAJOR="`sw_vers -productVersion | cut -f2 -d.`"
+if [ "$OS_MAJOR" -ge 12 ]; then
+  # OSX 10.12+
+  $PLISTBUDDY -c "Add :ProcessType string 'Interactive'" "$PLIST"
+  $PLISTBUDDY -c "Add :SessionCreate bool true" "$PLIST"
+elif [ "$OS_MAJOR" -ge 9 ]; then
+  # OSX 10.9 thru 10.11
+  $PLISTBUDDY -c "Add :ProgramArguments: string '--respawn'" "$PLIST"
+fi
+
+# remove old client and wrapper
+[ -f /usr/bin/FAHClient ] && rm -f /usr/bin/FAHClient
+[ -f /usr/bin/FAHCoreWrapper ] && rm -f /usr/bin/FAHCoreWrapper
+
+# Start service
+chmod 0644 "$PLIST"
+launchctl load -w "$PLIST"
+
+# Don't launch GUI if CLI install
+[ "$COMMAND_LINE_INSTALL" == "1" ] && exit 0
+
+# open in user's default web browser
+SUDO=""
+if [ "$SUDO_USER" != "" ]; then
+  SUDO="sudo -u $SUDO_USER"
+elif [ "$USER" != "" ]; then
+  SUDO="sudo -u $USER"
+fi
+SCRIPTS="$(dirname "$0")"
+"$SCRIPTS"/onquit $SUDO open https://console.foldingathome.org/

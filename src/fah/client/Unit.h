@@ -1,0 +1,58 @@
+/******************************************************************************\
+
+                  This file is part of the Folding@home Client.
+
+           The fahclient runs Folding@home protein folding simulations.
+                    Copyright (c) 2001-2019, foldingathome.org
+                               All rights reserved.
+
+       This program is free software; you can redistribute it and/or modify
+       it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or
+                       (at your option) any later version.
+
+         This program is distributed in the hope that it will be useful,
+          but WITHOUT ANY WARRANTY; without even the implied warranty of
+          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                   GNU General Public License for more details.
+
+     You should have received a copy of the GNU General Public License along
+     with this program; if not, write to the Free Software Foundation, Inc.,
+           51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+                  For information regarding this software email:
+                                 Joseph Coffland
+                          joseph@cauldrondevelopment.com
+
+\******************************************************************************/
+
+#pragma once
+
+#include "UnitState.h"
+
+#include <cbang/json/Value.h>
+#include <cbang/event/Scheduler.h>
+#include <cbang/event/Request.h>
+
+
+namespace FAH {
+  namespace Client {
+    class App;
+
+    class Unit : public cb::Event::Scheduler<Unit>, public UnitState::Enum {
+      App &app;
+      cb::JSON::ValuePtr assignment;
+      UnitState state = UNIT_DOWNLOAD;
+
+    public:
+      Unit(App &app, const cb::JSON::ValuePtr &assignment);
+
+      void downloadResponse(cb::Event::Request *req, int err);
+      void download();
+
+      void getCore();
+      void run();
+      void upload();
+    };
+  }
+}

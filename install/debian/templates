@@ -1,0 +1,31 @@
+Template: fahclient/user
+Type: string
+Default: Anonymous
+Description: Folding@home User Name:
+
+Template: fahclient/team
+Type: string
+Default: 0
+Description: Folding@home Team Number:
+ 0 for no team.
+
+Template: fahclient/passkey
+Type: string
+Default:
+Description: Folding@home Passkey:
+ Passkey is optional.
+
+Template: fahclient/power
+Type: select
+Choices: light, medium, full
+Default: medium
+Description: How much of your system resources should be used initially?
+   light      - Recommended for laptops.
+   medium     - Higher performance setting recommended for most desktops.
+   full       - Contribute as much as possible.
+
+
+Template: fahclient/autostart
+Type: boolean
+Default: true
+Description: Should FAHClient be automatically started?
