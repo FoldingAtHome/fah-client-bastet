@@ -28,10 +28,9 @@
 
 #pragma once
 
-#include "ComputeState.h"
+#include "SlotState.h"
 
-#include <cbang/json/Serializable.h>
-#include <cbang/json/Value.h>
+#include <cbang/json/Observable.h>
 
 #include <cbang/gpu/CUDALibrary.h>
 #include <cbang/gpu/OpenCLLibrary.h>
@@ -41,77 +40,73 @@
 #include <cbang/event/Scheduler.h>
 
 #include <cbang/pci/PCIInfo.h>
+#include <cbang/enum/ProcessPriority.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
     class Unit;
+    class Core;
 
-    class ComputeResource :
-      public cb::JSON::Serializable,
-      public cb::Event::Scheduler<ComputeResource>,
-      public ComputeState::Enum {
+    class Slot :
+      public cb::JSON::ObservableDict,
+      public cb::Event::Scheduler<Slot>,
+      public SlotState::Enum {
       App &app;
       std::string id;
-      cb::JSON::ValuePtr data;
-      ComputeState state;
+      SlotState state;
 
-      unsigned currentAS = 0;
+      uint16_t nonce;
       std::vector<cb::SmartPointer<Unit> > units;
 
-      ComputeResource(App &app, const std::string &id,
-                      const cb::JSON::ValuePtr &data,
-                      ComputeState state);
+      Slot(App &app, const std::string &id, const cb::JSON::ValuePtr &data,
+           SlotState state);
 
     public:
-      ComputeResource(App &app, unsigned index, unsigned cpus);
-      ComputeResource(App &app, const cb::GPU &gpu, const cb::PCIDevice &pci);
-      ComputeResource(App &app, const std::string &id,
-                      const cb::JSON::ValuePtr &data);
+      Slot(App &app, unsigned index, unsigned cpus);
+      Slot(App &app, const cb::GPU &gpu, const cb::PCIDevice &pci);
+      Slot(App &app, const std::string &id, const cb::JSON::ValuePtr &data);
 
-      bool isEnabled() const {return state != COMPUTE_DISABLE;}
-      ComputeState getState() const {return state;}
-      void setState(ComputeState state);
+      bool isEnabled() const {return state != SLOT_DISABLE;}
+      SlotState getState() const {return state;}
+      void setState(SlotState state);
+      double getCheckpoint() const;
+      unsigned getCPUUsage() const;
+      cb::ProcessPriority getCorePriority() const;
 
       std::string getID() const {return id;}
       bool isGPU() const {return id[0] == 'g';}
 
-      const cb::JSON::Value &get(const char *name) const
-        {return *data->get(name);}
+      uint32_t getCPUs() const {return getU32("cpus", 1);}
 
-      uint32_t getCPUs() const {return data->getU32("cpus", 1);}
-
-      uint16_t getVendorID() const {return get("pci").getU16("vendor");}
-      uint16_t getDeviceID() const {return get("pci").getU16("device");}
-      uint16_t getBusID() const {return get("pci").getU16("bus");}
-      uint16_t getSlotID() const {return get("pci").getU16("slot");}
+      uint16_t getPCIVendor() const {return get("pci")->getU16("vendor");}
+      uint16_t getPCIDevice() const {return get("pci")->getU16("device");}
+      uint16_t getPCIBus() const {return get("pci")->getU16("bus");}
+      uint16_t getPCISlot() const {return get("pci")->getU16("slot");}
 
       const std::string &getGPUType() const
-        {return get("gpu").getString("type");}
-      uint16_t getGPUSpecies() const {return get("gpu").getU16("species");}
+        {return get("gpu")->getString("type");}
 
-      const std::string &getDriver(const char *name) const
-        {return get(name).getString("driver");}
-      const std::string &getCompute(const char *name) const
-        {return get(name).getString("compute");}
+      const std::string &getDriver(const std::string &name) const
+        {return get(name)->getString("driver");}
+      const std::string &getCompute(const std::string &name) const
+        {return get(name)->getString("compute");}
+      uint32_t getPlatformIndex(const std::string &name) const
+        {return get(name)->getU32("platform");}
+      uint32_t getDeviceIndex(const std::string &name) const
+        {return get(name)->getU32("device");}
 
       void set(const cb::PCIDevice &pci);
       void set(const cb::GPU &gpu);
       void set(const std::string &name, const cb::ComputeDevice &cd);
 
-      void writeAssign(cb::JSON::Sink &sink);
+      void add(const cb::SmartPointer<Unit> &unit);
+      void writeRequest(cb::JSON::Sink &sink);
 
-      void start();
+      void next();
+      void load();
       void save();
-
-      // cb::JSON::Serializable
-      void write(cb::JSON::Sink &sink) const {data->write(sink);}
-
-    protected:
-      void assignNextAS();
-      void assignResponse(cb::Event::Request *req, int err);
-      void assign();
     };
   }
 }

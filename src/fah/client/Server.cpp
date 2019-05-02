@@ -28,9 +28,10 @@
 
 #include "Server.h"
 #include "App.h"
-#include "ComputeResources.h"
+#include "Slots.h"
 
 #include <cbang/log/Logger.h>
+#include <cbang/event/Base.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -75,8 +76,6 @@ void Server::infoCB(Event::Request &req, const JSON::ValuePtr &msg,
   sink.insertDict("config");
   sink.insert("user", config.getString("user", "anonymous"));
   sink.insert("team", config.getInteger("team", 0));
-  if (config.has("passkey"))
-    sink.insert("passkey", config.getString("passkey"));
   sink.insert("cause", config.getString("cause", "any"));
   sink.insert("power", config.getString("power", "medium"));
   sink.insertBoolean("paused", config.getBoolean("paused", false));
@@ -84,8 +83,44 @@ void Server::infoCB(Event::Request &req, const JSON::ValuePtr &msg,
   sink.insertBoolean("on-idle", config.getBoolean("on-idle", true));
   sink.endDict();
 
-  sink.beginInsert("resources");
-  app.getComputeResources().write(sink);
+  sink.beginInsert("slots");
+  app.getSlots().write(sink);
 
   sink.endDict();
+}
+
+
+
+void Server::broadcast(const JSON::ValuePtr &msg) {
+  for (auto it = clients.begin(); it != clients.end();) {
+    auto &ws = **it;
+
+    if (!ws.isConnected()) it = clients.erase(it);
+    else {
+      if (ws.isActive()) {
+        if (ws.getMessagesSent()) ws.send(*msg);
+        else ws.send(*this);
+      }
+
+      it++;
+    }
+  }
+}
+
+
+SmartPointer<Event::Request>
+Server::createRequest(Event::RequestMethod method, const URI &uri,
+                      const Version &version) {
+  if (method == HTTP_GET && uri.getPath() == "/api/websocket") {
+    clients.push_back(new Event::JSONWebsocket(method, uri, version));
+    return clients.back();
+  }
+
+  return Event::WebServer::createRequest(method, uri, version);
+}
+
+
+void Server::notify(list<JSON::ValuePtr> &change) {
+  SmartPointer<JSON::List> list = new JSON::List(change.begin(), change.end());
+  broadcast(list);
 }

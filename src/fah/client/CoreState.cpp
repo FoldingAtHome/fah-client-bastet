@@ -26,26 +26,6 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_UNIT_STATE_H
-#define FAH_UNIT_STATE_H
-
-#define CBANG_ENUM_NAME UnitState
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 5
-#include <cbang/enum/MakeEnumeration.def>
-
-#endif // FAH_UNIT_STATE_H
-#else // CBANG_ENUM
-
-CBANG_ENUM(UNIT_ASSIGN)
-CBANG_ENUM(UNIT_DOWNLOAD)
-CBANG_ENUM(UNIT_CORE)
-CBANG_ENUM(UNIT_RUN)
-CBANG_ENUM(UNIT_UPLOAD)
-CBANG_ENUM(UNIT_CLEAN)
-CBANG_ENUM(UNIT_DONE)
-
-#endif // CBANG_ENUM
+#define CBANG_ENUM_IMPL
+#include "CoreState.h"
+#include <cbang/enum/MakeEnumerationImpl.def>

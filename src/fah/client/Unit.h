@@ -30,29 +30,74 @@
 
 #include "UnitState.h"
 
+#include <cbang/json/Serializable.h>
 #include <cbang/json/Value.h>
+
+#include <cbang/event/Enum.h>
 #include <cbang/event/Scheduler.h>
 #include <cbang/event/Request.h>
+
+#include <cbang/os/Subprocess.h>
+#include <cbang/os/Thread.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
+    class Slot;
+    class Core;
 
-    class Unit : public cb::Event::Scheduler<Unit>, public UnitState::Enum {
+    class Unit :
+      public cb::Event::Scheduler<Unit>, public cb::Event::Enum,
+      public UnitState::Enum {
       App &app;
-      cb::JSON::ValuePtr assignment;
-      UnitState state = UNIT_DOWNLOAD;
+      Slot &slot;
+      cb::SmartPointer<Core> core;
+
+      cb::JSON::ValuePtr data;
+      cb::JSON::ValuePtr wuData;
+      std::string id;
+      UnitState state;
+      unsigned currentAS = 0;
+
+      double progress = 0;
+
+      cb::SmartPointer<cb::Subprocess> process;
+      cb::SmartPointer<cb::Thread> logCopier;
 
     public:
-      Unit(App &app, const cb::JSON::ValuePtr &assignment);
+      Unit(App &app, Slot &slot);
+      Unit(App &app, Slot &slot, const cb::JSON::ValuePtr &data);
+      ~Unit();
 
-      void downloadResponse(cb::Event::Request *req, int err);
-      void download();
+      const std::string &getID() const {return id;}
+      std::string getLogPrefix() const;
+      std::string getDirectory() const {return "work/" + id;}
+      UnitState getState() const {return state;}
+      std::string getWSBaseURL() const;
+      uint64_t getDeadline() const;
+      bool isExpired() const;
 
+      void next();
+
+    protected:
       void getCore();
       void run();
+      void monitor();
+      void dump();
+      void clean();
+
+      void save();
+      void remove();
+
+      void assignNextAS();
+      void assignResponse(const cb::JSON::ValuePtr &data);
+      void assign();
+      void downloadResponse(const cb::JSON::ValuePtr &data);
+      void download();
+      void uploadResponse(const cb::JSON::ValuePtr &data);
       void upload();
+      void response(cb::Event::Request &req);
     };
   }
 }

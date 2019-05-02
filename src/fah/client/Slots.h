@@ -26,26 +26,47 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_UNIT_STATE_H
-#define FAH_UNIT_STATE_H
+#pragma once
 
-#define CBANG_ENUM_NAME UnitState
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 5
-#include <cbang/enum/MakeEnumeration.def>
+#include "Slot.h"
 
-#endif // FAH_UNIT_STATE_H
-#else // CBANG_ENUM
+#include <cbang/gpu/GPUIndex.h>
+#include <cbang/json/Observable.h>
+#include <cbang/event/Scheduler.h>
 
-CBANG_ENUM(UNIT_ASSIGN)
-CBANG_ENUM(UNIT_DOWNLOAD)
-CBANG_ENUM(UNIT_CORE)
-CBANG_ENUM(UNIT_RUN)
-CBANG_ENUM(UNIT_UPLOAD)
-CBANG_ENUM(UNIT_CLEAN)
-CBANG_ENUM(UNIT_DONE)
+#include <map>
 
-#endif // CBANG_ENUM
+
+namespace FAH {
+  namespace Client {
+    class App;
+    class Core;
+
+    class Slots :
+      public cb::JSON::ObservableDict,
+      public cb::Event::Scheduler<Slots> {
+      App &app;
+
+      cb::GPUIndex gpuIndex;
+      int64_t lastGPUsFail;
+
+    public:
+      Slots(App &app);
+
+      void add(const cb::SmartPointer<Slot> &slot);
+
+      void load();
+      void save();
+      void update();
+
+      // From cb::Event::Scheduler
+      cb::Event::Base &getEventBase();
+
+    protected:
+      void gpusLoad(const cb::JSON::Value &gpus);
+      void gpusResponse(cb::Event::Request &req);
+      void gpusGet();
+      void detect();
+    };
+  }
+}

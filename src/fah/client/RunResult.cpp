@@ -10,5 +10,5 @@
 \******************************************************************************/
 
 #define CBANG_ENUM_IMPL
-#include "ComputeState.h"
+#include "RunResult.h"
 #include <cbang/enum/MakeEnumerationImpl.def>

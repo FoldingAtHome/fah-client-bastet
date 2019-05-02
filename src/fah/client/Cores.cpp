@@ -26,26 +26,28 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_UNIT_STATE_H
-#define FAH_UNIT_STATE_H
+#include "Cores.h"
 
-#define CBANG_ENUM_NAME UnitState
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 5
-#include <cbang/enum/MakeEnumeration.def>
+#include "App.h"
 
-#endif // FAH_UNIT_STATE_H
-#else // CBANG_ENUM
+#include <cbang/log/Logger.h>
+#include <cbang/event/Event.h>
+#include <cbang/os/SystemUtilities.h>
 
-CBANG_ENUM(UNIT_ASSIGN)
-CBANG_ENUM(UNIT_DOWNLOAD)
-CBANG_ENUM(UNIT_CORE)
-CBANG_ENUM(UNIT_RUN)
-CBANG_ENUM(UNIT_UPLOAD)
-CBANG_ENUM(UNIT_CLEAN)
-CBANG_ENUM(UNIT_DONE)
+using namespace FAH::Client;
+using namespace cb;
+using namespace std;
 
-#endif // CBANG_ENUM
+
+Cores::Cores(App &app) : app(app) {}
+
+
+const SmartPointer<Core> &Cores::get(const JSON::ValuePtr &data) {
+  string url = data->getString("url");
+
+  auto it = cores.find(url);
+  if (it == cores.end())
+    it = cores.insert(cores_t::value_type(url, new Core(app, data))).first;
+
+  return it->second;
+}

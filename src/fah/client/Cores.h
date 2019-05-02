@@ -26,26 +26,23 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_UNIT_STATE_H
-#define FAH_UNIT_STATE_H
+#pragma once
 
-#define CBANG_ENUM_NAME UnitState
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 5
-#include <cbang/enum/MakeEnumeration.def>
+#include "Core.h"
 
-#endif // FAH_UNIT_STATE_H
-#else // CBANG_ENUM
+namespace FAH {
+  namespace Client {
+    class App;
 
-CBANG_ENUM(UNIT_ASSIGN)
-CBANG_ENUM(UNIT_DOWNLOAD)
-CBANG_ENUM(UNIT_CORE)
-CBANG_ENUM(UNIT_RUN)
-CBANG_ENUM(UNIT_UPLOAD)
-CBANG_ENUM(UNIT_CLEAN)
-CBANG_ENUM(UNIT_DONE)
+    class Cores {
+      App &app;
+      typedef std::map<std::string, cb::SmartPointer<Core> > cores_t;
+      cores_t cores;
 
-#endif // CBANG_ENUM
+    public:
+      Cores(App &app);
+
+      const cb::SmartPointer<Core> &get(const cb::JSON::ValuePtr &data);
+    };
+  }
+}

@@ -28,7 +28,8 @@
 
 #include "App.h"
 #include "Server.h"
-#include "ComputeResources.h"
+#include "Slots.h"
+#include "Cores.h"
 
 #include <cbang/Catch.h>
 #include <cbang/event/Event.h>
@@ -39,10 +40,15 @@
 #include <cbang/net/URI.h>
 #include <cbang/json/Sink.h>
 #include <cbang/Info.h>
+#include <cbang/util/Resource.h>
+#include <cbang/net/Base64.h>
 
+#include <cbang/openssl/SSL.h>
 #include <cbang/openssl/SSLContext.h>
 #include <cbang/openssl/KeyGenPacifier.h>
 #include <cbang/openssl/Digest.h>
+#include <cbang/openssl/CertificateStore.h>
+#include <cbang/openssl/CertificateStoreContext.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -51,6 +57,7 @@ using namespace std;
 namespace FAH {
   namespace Client {
     namespace BuildInfo {void addBuildInfo(const char *category);}
+    extern const DirectoryResource resource0;
   }
 }
 
@@ -58,7 +65,7 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), dns(base),
   client(base, dns, new SSLContext), server(new Server(*this)),
-  resources(new ComputeResources(*this)) {
+  slots(new Slots(*this)), cores(new Cores(*this)) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -80,6 +87,7 @@ App::App() :
               )->setDefault(false);
   options.add("assignment-servers")
     ->setDefault("assign1.foldingathome.org assign2.foldingathome.org");
+  options.add("ws-port")->setDefault(80);
   options.popCategory();
 
   // Configure log
@@ -93,6 +101,21 @@ App::App() :
   // Handle exit signal
   base.newSignal(SIGINT, this, &App::signalEvent)->add();
   base.newSignal(SIGTERM, this, &App::signalEvent)->add();
+
+  // Add custom certificate extension
+  SSL::createObject("1.2.3.4.70.64.72", "fahKeyUsage",
+                    "Folding@home Key Usage");
+  Certificate::addExtensionAlias("fahKeyUsage", "nsComment");
+
+  // Load Certificate Authority
+  const Resource *caRes = FAH::Client::resource0.find("ca.pem");
+  if (!caRes) THROW("Could not find root certificate resource");
+  caCert = caRes->toString();
+
+  // Connect JSON::Observables
+  server->insert("slots", SmartPointer<JSON::Value>::Phony(slots));
+
+  // TODO get CRL from F@H periodically
 }
 
 
@@ -116,6 +139,60 @@ DB::NameValueTable &App::getDB(const string name) {
   }
 
   return *it->second;
+}
+
+
+void App::validate(const Certificate &cert,
+                   const Certificate &intermediate) const {
+  CertificateChain chain;
+  chain.add(intermediate);
+  CertificateStore store;
+  store.add(caCert);
+  CertificateStoreContext(store, cert, chain).verify();
+}
+
+
+void App::validate(const Certificate &cert) const {validate(cert, cert);}
+
+
+bool App::hasFAHKeyUsage(const Certificate &cert, const string &usage) const {
+  vector<string> tokens;
+  String::tokenize(cert.getExtension("fahKeyUsage", ""), tokens);
+
+  for (unsigned i = 0; i < tokens.size(); i++)
+    if (tokens[i] == usage) return true;
+
+  return false;
+}
+
+
+void App::check(const string &certificate, const string &intermediate,
+                const string &signature, const string &hash,
+                const string &usage) {
+  // Check certificate
+  Certificate cert(certificate);
+  if (intermediate.empty()) validate(cert);
+  else validate(cert, intermediate);
+
+  // Check FAH key usage
+  vector<string> tokens;
+  String::tokenize(usage, tokens, "|");
+  bool valid = false;
+  for (unsigned i = 0; i < tokens.size() && !valid; i++)
+    if (hasFAHKeyUsage(cert, tokens[i])) valid = true;
+  if (!valid) THROW("Certificate not valid for F@H key usage " << usage);
+
+  // Check signature
+  cert.getPublicKey()->verify(signature, hash);
+}
+
+
+void App::checkBase64SHA256(const string &certificate,
+                            const string &intermediate,
+                            const string &sig64, const string &data,
+                            const string &usage) {
+  check(certificate, intermediate, Base64().decode(sig64),
+        Digest::hash(data, "sha256"), usage);
 }
 
 
@@ -189,10 +266,7 @@ void App::loadID() {
   key.readPrivate(config.getString("key"));
 
   // Generate ID from key
-  Digest sha256("sha256");
-  sha256.update(key.getPublic().toBinString());
-  id = sha256.toBase64();
-
+  id = Digest::base64(key.getPublic().toBinString(), "sha256");
   LOG_INFO(3, "id = " << id);
 }
 
@@ -231,7 +305,7 @@ void App::run() {
   base.dispatch();
 
   // Save
-  resources->save();
+  slots->save();
 
   LOG_INFO(1, "Clean exit");
 }

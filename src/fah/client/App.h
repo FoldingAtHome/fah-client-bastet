@@ -38,6 +38,9 @@
 #include <cbang/db/NameValueTable.h>
 
 #include <cbang/openssl/KeyPair.h>
+#include <cbang/openssl/Certificate.h>
+#include <cbang/openssl/CertificateChain.h>
+
 #include <cbang/net/IPAddress.h>
 
 
@@ -50,12 +53,15 @@ namespace cb {
 namespace FAH {
   namespace Client {
     class Server;
-    class ComputeResources;
+    class Slots;
+    class Cores;
 
     class App : public cb::Application {
       cb::Event::Base base;
       cb::Event::DNSBase dns;
       cb::Event::Client client;
+
+      cb::Certificate caCert;
 
       cb::DB::Database db;
       typedef std::map<std::string, cb::SmartPointer<cb::DB::NameValueTable> >
@@ -63,7 +69,8 @@ namespace FAH {
       tables_t tables;
 
       cb::SmartPointer<Server> server;
-      cb::SmartPointer<ComputeResources> resources;
+      cb::SmartPointer<Slots> slots;
+      cb::SmartPointer<Cores> cores;
 
       cb::KeyPair key;
       std::string id;
@@ -81,7 +88,23 @@ namespace FAH {
       cb::DB::NameValueTable &getDB(const std::string name);
 
       Server &getServer() {return *server;}
-      ComputeResources &getComputeResources() {return *resources;}
+      Slots &getSlots() {return *slots;}
+      Cores &getCores() {return *cores;}
+
+      const cb::KeyPair &getKey() const {return key;}
+      void validate(const cb::Certificate &cert,
+                    const cb::Certificate &intermediate) const;
+      void validate(const cb::Certificate &cert) const;
+      bool hasFAHKeyUsage(const cb::Certificate &cert,
+                          const std::string &usage) const;
+      void check(const std::string &certificate,
+                 const std::string &intermediate,
+                 const std::string &signature, const std::string &hash,
+                 const std::string &usage);
+      void checkBase64SHA256(const std::string &certificate,
+                             const std::string &intermediate,
+                             const std::string &sig64, const std::string &data,
+                             const std::string &usage);
 
       const std::string &getID() const {return id;}
       const std::vector<cb::IPAddress> &getServers() const {return servers;}

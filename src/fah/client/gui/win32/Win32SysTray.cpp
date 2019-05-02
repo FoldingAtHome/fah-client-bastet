@@ -142,12 +142,12 @@ void Win32SysTray::init() {
   wcex.lpszClassName = className;
 
   if (RegisterClassEx(&wcex) == 0)
-    THROWS("Failed to register window class: " << SysError());
+    THROW("Failed to register window class: " << SysError());
 
   // Create the systray window and hide it
   hWnd = CreateWindow(className, className, 0, 0, 0, 400, 600, 0, 0,
                       hInstance, 0);
-  if (!hWnd) THROWS("Failed to create systray window: " << SysError());
+  if (!hWnd) THROW("Failed to create systray window: " << SysError());
   ShowWindow(hWnd, SW_HIDE);
 
   // Create Systray Icon
@@ -177,7 +177,7 @@ void Win32SysTray::init() {
 
   // Add it
   if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
-    THROWS("Failed to register systray icon: " << SysError());
+    THROW("Failed to register systray icon: " << SysError());
 
   // Register for PM away mode events
   typedef HPOWERNOTIFY (WINAPI *func_t)(HANDLE, LPCGUID, DWORD);

@@ -29,16 +29,22 @@
 #pragma once
 
 #include <cbang/event/WebServer.h>
+#include <cbang/event/JSONWebsocket.h>
+
 #include <cbang/json/Value.h>
 #include <cbang/openssl/SSLContext.h>
+
+#include <list>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class Server : public cb::Event::WebServer {
+    class Server : public cb::Event::WebServer, public cb::JSON::ObservableDict {
       App &app;
+
+      std::list<cb::SmartPointer<cb::Event::JSONWebsocket> > clients;
 
     public:
       Server(App &app);
@@ -46,6 +52,16 @@ namespace FAH {
       bool corsCB(cb::Event::Request &req);
       void infoCB(cb::Event::Request &req, const cb::JSON::ValuePtr &msg,
                   cb::JSON::Sink &sink);
+
+      void broadcast(const cb::JSON::ValuePtr &msg);
+
+      // From cb::Event::WebServer
+      cb::SmartPointer<cb::Event::Request> createRequest
+      (cb::Event::RequestMethod method, const cb::URI &uri,
+       const cb::Version &version);
+
+      // From cb::JSON::Value
+      void notify(std::list<cb::JSON::ValuePtr> &change);
     };
   }
 }

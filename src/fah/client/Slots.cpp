@@ -26,10 +26,10 @@
 
 \******************************************************************************/
 
-#include "ComputeResources.h"
+#include "Slots.h"
 
 #include "App.h"
-#include "ComputeResource.h"
+#include "Slot.h"
 
 #include <cbang/String.h>
 #include <cbang/Catch.h>
@@ -49,98 +49,73 @@ namespace {
   const unsigned gpusUpdateFreq = Time::SEC_PER_DAY * 5;
 
 
-  template <typename LIB, typename Resources>
-  void match(Resources &resources, const std::string &name) {
+  template <typename LIB>
+  void match(Slots &slots, const std::string &name) {
     set<string> matched;
     auto &lib = LIB::instance();
 
     for (auto it = lib.begin(); it != lib.end(); it++)
-      for (auto it2 = resources.begin(); it2 != resources.end(); it2++) {
-        auto &resource = *it2->second;
-        if (!resource.isGPU()) continue;
+      for (unsigned i = 0; i < slots.size(); i++) {
+        auto &slot = *slots.get(i).cast<Slot>();
+        if (!slot.isGPU()) continue;
 
-        if (resource.getBusID() != it->pciBus ||
-            resource.getSlotID() != it->pciSlot ||
-            matched.find(resource.getID()) != matched.end()) continue;
+        if (slot.getPCIBus() != it->pciBus ||
+            slot.getPCISlot() != it->pciSlot ||
+            matched.find(slot.getID()) != matched.end()) continue;
 
-        matched.insert(resource.getID());
-        resource.set(name, *it);
+        matched.insert(slot.getID());
+        slot.set(name, *it);
       }
   }
 }
 
 
-ComputeResources::ComputeResources(App &app) :
-  Event::Scheduler<ComputeResources>(app.getEventBase()), app(app),
+Slots::Slots(App &app) :
+  Event::Scheduler<Slots>(app.getEventBase()), app(app),
   lastGPUsFail(0) {
-  schedule(&ComputeResources::gpusGet);
+  schedule(&Slots::gpusGet);
 }
 
 
-void ComputeResources::add(const SmartPointer<ComputeResource> &resource) {
-  resources[resource->getID()] = resource;
+void Slots::add(const SmartPointer<Slot> &slot) {
+  slot->load();
+  insert(slot->getID(), slot);
 }
 
 
-bool ComputeResources::has(const string &id) const {
-  return resources.find(id) != resources.end();
-}
-
-
-ComputeResource &ComputeResources::get(const string &id) {
-  auto it = resources.find(id);
-  if (it == resources.end()) THROWS("Compute resource " << id << " not found");
-  return *it->second;
-}
-
-
-void ComputeResources::load() {
-  auto &db = app.getDB("resources");
-
-  db.foreach(
+void Slots::load() {
+  app.getDB("slots").foreach(
     [this] (const string &id, const string &data) {
-      LOG_INFO(3, "Loading compute resource " << id);
-      add(new ComputeResource(app, id, JSON::Reader::parseString(data)));
+      LOG_INFO(3, "Loading compute slot " << id);
+       add(new Slot(app, id, JSON::Reader::parseString(data)));
     });
 }
 
 
-void ComputeResources::save() {
-  for (auto it = resources.begin(); it != resources.end(); it++)
-    it->second->save();
+void Slots::save() {
+  for (unsigned i = 0; i < size(); i++)
+    get(i).cast<Slot>()->save();
 }
 
 
-void ComputeResources::start() {
-  for (auto it = resources.begin(); it != resources.end(); it++)
-    it->second->start();
+void Slots::update() {
+  for (unsigned i = 0; i < size(); i++)
+    get(i).cast<Slot>()->next();
 }
 
 
-void ComputeResources::write(JSON::Sink &sink) const {
-  sink.beginDict();
-
-  for (auto it = resources.begin(); it != resources.end(); it++) {
-    sink.beginInsert(it->first);
-    it->second->write(sink);
-  }
-
-  sink.endDict();
-}
-
-
-void ComputeResources::gpusLoad(const JSON::Value &gpus) {
+void Slots::gpusLoad(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
   load();
   detect();
-  start();
+  update();
 }
 
 
-void ComputeResources::gpusResponse(cb::Event::Request *req, int err) {
-  if (req && !err)
+void Slots::gpusResponse(Event::Request &req) {
+  if (req.isOk())
     try {
-      auto gpus = req->getInputJSON();
+      auto gpus = req.getInputJSON();
       gpusLoad(*gpus);
       *SystemUtilities::oopen("gpus.json") << *gpus;
       lastGPUsFail = 0;
@@ -152,11 +127,11 @@ void ComputeResources::gpusResponse(cb::Event::Request *req, int err) {
   // Exponential backoff, try at least once per day
   unsigned secs = lastGPUsFail ? 2 * (Time::now() - lastGPUsFail) : 5;
   lastGPUsFail = Time::now();
-  schedule(&ComputeResources::gpusGet, min(Time::SEC_PER_DAY, secs));
+  schedule(&Slots::gpusGet, min(Time::SEC_PER_DAY, secs));
 }
 
 
-void ComputeResources::gpusGet() {
+void Slots::gpusGet() {
   // Try to load cached gpus.json
   const string filename = "gpus.json";
 
@@ -171,37 +146,37 @@ void ComputeResources::gpusGet() {
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
   app.getClient().call(uri, Event::RequestMethod::HTTP_GET,
-                       this, &ComputeResources::gpusResponse)->send();
+                       this, &Slots::gpusResponse)->send();
 }
 
 
-void ComputeResources::detect() {
+void Slots::detect() {
   // Enumerate PCI bus
-  set<string> found;
+  std::set<string> found;
   auto &info = PCIInfo::instance();
   for (auto it = info.begin(); it != info.end(); it++) {
     const GPU &gpu = gpuIndex.find(it->getVendorID(), it->getDeviceID());
     if (!gpu.getType()) continue;
 
-    SmartPointer<ComputeResource> resource = new ComputeResource(app, gpu, *it);
-    found.insert(resource->getID());
-    if (has(resource->getID())) continue;
-    LOG_INFO(3, "Adding new compute resource " << resource->getID());
-    add(resource);
+    SmartPointer<Slot> slot = new Slot(app, gpu, *it);
+    found.insert(slot->getID());
+    if (has(slot->getID())) continue;
+    LOG_INFO(3, "Adding new compute slot " << slot->getID());
+    add(slot);
   }
 
   // Delete GPUs that are gone
-  for (auto it = resources.begin(); it != resources.end(); it++) {
-    auto &resource = *it->second;
-    if (resource.isGPU() && found.find(resource.getID()) == found.end()) {
-      LOG_INFO(3, "Deleting missing compute resource " << resource.getID());
-      resource.setState(ComputeState::COMPUTE_DELETE);
+  for (unsigned i = 0; i < size(); i++) {
+    auto &slot = *get(i).cast<Slot>();
+    if (slot.isGPU() && found.find(slot.getID()) == found.end()) {
+      LOG_INFO(3, "Deleting missing compute slot " << slot.getID());
+      slot.setState(SlotState::SLOT_DELETE);
     }
   }
 
   // Match with detected compute devices
-  match<CUDALibrary>(resources, "cuda");
-  match<OpenCLLibrary>(resources, "opencl");
+  match<CUDALibrary>(*this, "cuda");
+  match<OpenCLLibrary>(*this, "opencl");
 
   // Get CPUs available
   auto &config = app.getDB("config");
@@ -209,12 +184,12 @@ void ComputeResources::detect() {
   int maxCPUs = config.getInteger("max-cpus", 0);
   if (maxCPUs && maxCPUs < cpus) cpus = maxCPUs;
 
-  // Allocate CPU resources
+  // Allocate CPU slots
   bool haveCPU = false;
-  for (auto it = resources.begin(); !haveCPU && it != resources.end(); it++) {
-    auto &resource = *it->second;
-    cpus -= resource.getCPUs();
-    if (!resource.isGPU()) haveCPU = true;
+  for (unsigned i = 0; !haveCPU && i < size(); i++) {
+    auto &slot = *get(i).cast<Slot>();
+    cpus -= slot.getCPUs();
+    if (!slot.isGPU()) haveCPU = true;
   }
 
   if (!haveCPU) {
@@ -222,17 +197,17 @@ void ComputeResources::detect() {
     const int maxCPUsPerSlot = 32;
 
     while (0 < cpus) {
-      SmartPointer<ComputeResource> resource =
-        new ComputeResource(app, index++, min(maxCPUsPerSlot, cpus));
-      resource->setState(ComputeState::COMPUTE_IDLE);
+      SmartPointer<Slot> slot =
+        new Slot(app, index++, min(maxCPUsPerSlot, cpus));
+      slot->setState(SlotState::SLOT_IDLE);
       cpus -= maxCPUsPerSlot;
-      LOG_INFO(3, "Adding new compute resource " << resource->getID());
-      add(resource);
+      LOG_INFO(3, "Adding new compute slot " << slot->getID());
+      add(slot);
     }
   }
 
-  LOG_INFO(3, "resources = " << *this);
+  LOG_INFO(3, "slots = " << *this);
 
   // Schedule next update
-  schedule(&ComputeResources::gpusGet, gpusUpdateFreq);
+  schedule(&Slots::gpusGet, gpusUpdateFreq);
 }

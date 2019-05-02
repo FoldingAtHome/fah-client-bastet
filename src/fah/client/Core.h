@@ -28,53 +28,52 @@
 
 #pragma once
 
-#include "ComputeResource.h"
+#include "CoreState.h"
 
-#include <cbang/gpu/GPUIndex.h>
 #include <cbang/json/Value.h>
+#include <cbang/openssl/Certificate.h>
+
+#include <cbang/event/Request.h>
+#include <cbang/event/Enum.h>
 #include <cbang/event/Scheduler.h>
 
-#include <map>
+#include <functional>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class ComputeResources :
-      public cb::JSON::Serializable,
-      public cb::Event::Scheduler<ComputeResources> {
+    class Core :
+      public cb::Event::Scheduler<Core>, public CoreState::Enum,
+      public cb::Event::Enum {
       App &app;
+      cb::JSON::ValuePtr data;
+      CoreState state = CORE_INIT;
 
-      cb::GPUIndex gpuIndex;
-      int64_t lastGPUsFail;
+      std::string cert;
+      std::string sig;
 
-      typedef std::map<std::string, cb::SmartPointer<ComputeResource> >
-      resources_t;
-      resources_t resources;
+      std::vector<std::function<void ()> > notifyCBs;
 
     public:
-      ComputeResources(App &app);
+      Core(App &app, const cb::JSON::ValuePtr &data);
 
-      void add(const cb::SmartPointer<ComputeResource> &resource);
-      bool has(const std::string &id) const;
-      ComputeResource &get(const std::string &id);
+      std::string getURL() const;
+      uint8_t getType() const;
+      std::string getPath() const;
+      std::string getFilename() const;
 
-      void load();
-      void save();
-      void start();
+      void notify(std::function<void ()> cb);
 
-      // From cb::JSON::Serializable
-      void write(cb::JSON::Sink &sink) const;
-
-      // From cb::Event::Scheduler
-      cb::Event::Base &getEventBase();
+      void next();
 
     protected:
-      void gpusLoad(const cb::JSON::Value &gpus);
-      void gpusResponse(cb::Event::Request *req, int err);
-      void gpusGet();
-      void detect();
+      void ready();
+      void load();
+      void downloadResponse(const std::string &pkg);
+      void download(const std::string &url);
+      void response(cb::Event::Request &req);
     };
   }
 }
