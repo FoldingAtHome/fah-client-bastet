@@ -28,60 +28,25 @@
 
 #pragma once
 
-#include "CoreState.h"
-
-#include <cbang/json/Value.h>
-#include <cbang/openssl/Certificate.h>
-
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
-#include <cbang/event/Scheduler.h>
-
-#include <functional>
+#include <cbang/json/Observable.h>
+#include <cbang/enum/ProcessPriority.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
+    class Config : public cb::JSON::ObservableDict {
       App &app;
-      cb::JSON::ValuePtr data;
-      CoreState state = CORE_INIT;
-
-      std::string cert;
-      std::string sig;
 
     public:
-      typedef std::function<void (unsigned, int)> progress_cb_t;
+      Config(App &app);
 
-    private:
-      std::vector<progress_cb_t> progressCBs;
+      void init();
 
-    public:
-      Core(App &app, const cb::JSON::ValuePtr &data);
-
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
-
-      std::string getURL() const;
-      uint8_t getType() const;
-      std::string getPath() const;
-      std::string getFilename() const;
-
-      void addProgressCallback(progress_cb_t cb);
-
-      void next();
-
-    protected:
-      void ready();
-      void load();
-      void downloadResponse(const std::string &pkg);
-      void download(const std::string &url);
-      void response(cb::Event::Request &req);
+      uint32_t getCPUs() const;
+      cb::ProcessPriority getCorePriority();
+      cb::JSON::ValuePtr getGPU(const std::string &id);
     };
   }
 }

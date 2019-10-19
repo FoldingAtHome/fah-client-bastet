@@ -28,60 +28,24 @@
 
 #pragma once
 
-#include "CoreState.h"
-
-#include <cbang/json/Value.h>
-#include <cbang/openssl/Certificate.h>
-
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
-#include <cbang/event/Scheduler.h>
-
-#include <functional>
+#include "Unit.h"
 
 
 namespace FAH {
   namespace Client {
-    class App;
-
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
+    class Units : public cb::JSON::ObservableList,
+                  public cb::Event::Scheduler<Units> {
       App &app;
-      cb::JSON::ValuePtr data;
-      CoreState state = CORE_INIT;
-
-      std::string cert;
-      std::string sig;
 
     public:
-      typedef std::function<void (unsigned, int)> progress_cb_t;
+      Units(App &app);
 
-    private:
-      std::vector<progress_cb_t> progressCBs;
+      void add(const cb::SmartPointer<Unit> &unit);
+      void setPause(bool pause, const std::string unitID = std::string());
 
-    public:
-      Core(App &app, const cb::JSON::ValuePtr &data);
-
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
-
-      std::string getURL() const;
-      uint8_t getType() const;
-      std::string getPath() const;
-      std::string getFilename() const;
-
-      void addProgressCallback(progress_cb_t cb);
-
-      void next();
-
-    protected:
-      void ready();
+      void update();
       void load();
-      void downloadResponse(const std::string &pkg);
-      void download(const std::string &url);
-      void response(cb::Event::Request &req);
+      void save();
     };
   }
 }

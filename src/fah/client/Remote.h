@@ -26,6 +26,31 @@
 
 \******************************************************************************/
 
-#define CBANG_ENUM_IMPL
-#include "SlotState.h"
-#include <cbang/enum/MakeEnumerationImpl.def>
+#pragma once
+
+#include <cbang/event/JSONWebsocket.h>
+
+
+namespace FAH {
+  namespace Client {
+    class App;
+
+
+    class Remote : public cb::Event::JSONWebsocket {
+      App &app;
+
+    public:
+      Remote(App &app, cb::Event::RequestMethod method, const cb::URI &uri,
+             const cb::Version &version);
+
+      // From cb::Event::JSONWebsocket
+      void onMessage(const cb::JSON::ValuePtr &msg);
+
+      // From cb::Event::Websocket
+      void onOpen();
+
+      // From cb::Event::Request
+      void onComplete();
+    };
+  }
+}

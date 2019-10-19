@@ -29,7 +29,7 @@
 #include "Core.h"
 
 #include "App.h"
-#include "Slots.h"
+#include "GPUResources.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
@@ -66,9 +66,9 @@ string Core::getFilename() const {
 }
 
 
-void Core::notify(function<void ()> cb) {
-  if (state == CORE_READY || state == CORE_INVALID) cb();
-  else notifyCBs.push_back(cb);
+void Core::addProgressCallback(progress_cb_t cb) {
+  if (state == CORE_READY || state == CORE_INVALID) cb(1, 1);
+  else progressCBs.push_back(cb);
 }
 
 
@@ -88,10 +88,8 @@ void Core::next() {
 
 void Core::ready() {
   state = CORE_READY;
-
-  // Notify
-  for (unsigned i = 0; i < notifyCBs.size(); i++) notifyCBs[i]();
-  notifyCBs.clear();
+  for (unsigned i = 0; i < progressCBs.size(); i++) progressCBs[i](1, 1);
+  progressCBs.clear(); // Release callbacks
 }
 
 
@@ -104,7 +102,11 @@ void Core::load() {
       if (getURL() != data->getString("url"))
         THROW("Core in DB does not match " << *data);
 
-      LOG_INFO(1, "Loaded " << data->getString("path"));
+      string path = data->getString("path");
+      if (!SystemUtilities::exists(path))
+        THROW("Core " << path << " not found on disk");
+
+      LOG_INFO(1, "Loaded " << path);
       schedule(&Core::ready);
       return;
     }
@@ -183,7 +185,18 @@ void Core::downloadResponse(const string &pkg) {
 
 
 void Core::download(const string &url) {
-  app.getClient().call(url, HTTP_GET, this, &Core::response)->send();
+  LOG_INFO(1, "Downloading " << url);
+
+  // Monitor download progress
+  auto progressCB =
+    [this] (unsigned bytes, int total) {
+      for (unsigned i = 0; i < progressCBs.size(); i++)
+        progressCBs[i](bytes, total);
+    };
+
+  auto pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
+  pr->setProgressCallback(progressCB);
+  pr->send();
 }
 
 

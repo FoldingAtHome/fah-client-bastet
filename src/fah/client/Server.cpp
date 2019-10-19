@@ -28,10 +28,10 @@
 
 #include "Server.h"
 #include "App.h"
-#include "Slots.h"
+#include "Remote.h"
+#include "Config.h"
 
 #include <cbang/log/Logger.h>
-#include <cbang/event/Base.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -40,12 +40,10 @@ using namespace std;
 
 Server::Server(App &app) :
   Event::WebServer(app.getOptions(), app.getEventBase()), app(app) {
-  app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
+  app.getOptions()["http-addresses"].setDefault("127.0.0.1:7397");
 
   addMember(this, &Server::corsCB);
-  addMember(HTTP_GET, "/api/info", this, &Server::infoCB);
 }
-
 
 
 bool Server::corsCB(Event::Request &req) {
@@ -66,45 +64,22 @@ bool Server::corsCB(Event::Request &req) {
 }
 
 
-void Server::infoCB(Event::Request &req, const JSON::ValuePtr &msg,
-                    JSON::Sink &sink) {
-  sink.beginDict();
+void Server::broadcast(const JSON::ValuePtr &msg) {
+  LOG_DEBUG(5, __func__ << ' ' << *msg);
 
-  app.writeSystemInfo(sink);
-
-  auto &config = app.getDB("config");
-  sink.insertDict("config");
-  sink.insert("user", config.getString("user", "anonymous"));
-  sink.insert("team", config.getInteger("team", 0));
-  sink.insert("cause", config.getString("cause", "any"));
-  sink.insert("power", config.getString("power", "medium"));
-  sink.insertBoolean("paused", config.getBoolean("paused", false));
-  sink.insert("max-cpus", config.getInteger("max-cpus", 0));
-  sink.insertBoolean("on-idle", config.getBoolean("on-idle", true));
-  sink.endDict();
-
-  sink.beginInsert("slots");
-  app.getSlots().write(sink);
-
-  sink.endDict();
+  for (auto it = clients.begin(); it != clients.end(); it++) {
+    auto &ws = **it;
+    if (ws.isActive()) ws.send(*msg);
+  }
 }
 
 
-
-void Server::broadcast(const JSON::ValuePtr &msg) {
-  for (auto it = clients.begin(); it != clients.end();) {
-    auto &ws = **it;
-
-    if (!ws.isConnected()) it = clients.erase(it);
-    else {
-      if (ws.isActive()) {
-        if (ws.getMessagesSent()) ws.send(*msg);
-        else ws.send(*this);
-      }
-
-      it++;
+void Server::remove(Remote &remote) {
+  for (auto it = clients.begin(); it != clients.end(); it++)
+    if (*it == &remote) {
+      clients.erase(it);
+      break;
     }
-  }
 }
 
 
@@ -112,7 +87,7 @@ SmartPointer<Event::Request>
 Server::createRequest(Event::RequestMethod method, const URI &uri,
                       const Version &version) {
   if (method == HTTP_GET && uri.getPath() == "/api/websocket") {
-    clients.push_back(new Event::JSONWebsocket(method, uri, version));
+    clients.push_back(new Remote(app, method, uri, version));
     return clients.back();
   }
 
@@ -123,4 +98,8 @@ Server::createRequest(Event::RequestMethod method, const URI &uri,
 void Server::notify(list<JSON::ValuePtr> &change) {
   SmartPointer<JSON::List> list = new JSON::List(change.begin(), change.end());
   broadcast(list);
+
+  // Automatically save changes to config
+  if (!change.empty() && change.front()->getString() == "config")
+    app.getDB("config").set("config", app.getConfig());
 }

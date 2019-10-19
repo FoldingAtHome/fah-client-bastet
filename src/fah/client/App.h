@@ -42,6 +42,7 @@
 #include <cbang/openssl/CertificateChain.h>
 
 #include <cbang/net/IPAddress.h>
+#include <cbang/enum/ProcessPriority.h>
 
 
 namespace cb {
@@ -53,8 +54,10 @@ namespace cb {
 namespace FAH {
   namespace Client {
     class Server;
-    class Slots;
+    class GPUResources;
+    class Units;
     class Cores;
+    class Config;
 
     class App : public cb::Application {
       cb::Event::Base base;
@@ -69,12 +72,15 @@ namespace FAH {
       tables_t tables;
 
       cb::SmartPointer<Server> server;
-      cb::SmartPointer<Slots> slots;
+      cb::SmartPointer<GPUResources> gpus;
+      cb::SmartPointer<Units> units;
       cb::SmartPointer<Cores> cores;
+      cb::SmartPointer<Config> config;
+      cb::SmartPointer<cb::JSON::Value> info;
 
       cb::KeyPair key;
-      std::string id;
       std::vector<cb::IPAddress> servers;
+      unsigned nextAS = 0;
 
     public:
       App();
@@ -88,8 +94,11 @@ namespace FAH {
       cb::DB::NameValueTable &getDB(const std::string name);
 
       Server &getServer() {return *server;}
-      Slots &getSlots() {return *slots;}
+      GPUResources &getGPUs() {return *gpus;}
+      Units &getUnits() {return *units;}
       Cores &getCores() {return *cores;}
+      Config &getConfig() {return *config;}
+      cb::JSON::Value &getInfo() const {return *info;}
 
       const cb::KeyPair &getKey() const {return key;}
       void validate(const cb::Certificate &cert,
@@ -106,15 +115,11 @@ namespace FAH {
                              const std::string &sig64, const std::string &data,
                              const std::string &usage);
 
-      const std::string &getID() const {return id;}
-      const std::vector<cb::IPAddress> &getServers() const {return servers;}
-
-      const char *getCPU() const;
+      const cb::IPAddress &getNextAS();
       const char *getOS() const;
+      const char *getCPU() const;
 
-      void writeSystemInfo(cb::JSON::Sink &sink);
-
-      void loadID();
+      void loadConfig();
       void loadServers();
 
       // From cb::Application

@@ -26,25 +26,61 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_SLOT_STATE_H
-#define FAH_SLOT_STATE_H
+#include "Config.h"
+#include "App.h"
 
-#define CBANG_ENUM_NAME SlotState
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 5
-#include <cbang/enum/MakeEnumeration.def>
+#include <cbang/Catch.h>
+#include <cbang/json/Reader.h>
+#include <cbang/os/SystemInfo.h>
 
-#endif // FAH_SLOT_STATE_H
-#else // CBANG_ENUM
+using namespace FAH::Client;
+using namespace cb;
+using namespace std;
 
-CBANG_ENUM(SLOT_DISABLE)
-CBANG_ENUM(SLOT_DELETE)
-CBANG_ENUM(SLOT_IDLE)
-CBANG_ENUM(SLOT_RUN)
-CBANG_ENUM(SLOT_FINISH)
-CBANG_ENUM(SLOT_PAUSE)
 
-#endif // CBANG_ENUM
+Config::Config(App &app) : app(app) {
+  // Defaults
+  insert("checkpoint", 15);
+  insertBoolean("on_idle", true);
+  insert("cause", "any");
+  insert("cpus", SystemInfo::instance().getCPUCount() - 1);
+  insert("options", "");
+  insertDict("gpus");
+}
+
+
+void Config::init() {
+  // Load saved data
+  auto &db = app.getDB("config");
+
+  try {
+    if (db.has("config"))
+      merge(*JSON::Reader::parseString(db.getString("config")));
+  } CATCH_ERROR;
+}
+
+
+uint32_t Config::getCPUs() const {
+  int32_t maxCPUs = SystemInfo::instance().getCPUCount();
+  int32_t cpus = getU32("cpus", maxCPUs);
+  return maxCPUs < cpus ? maxCPUs : cpus;
+}
+
+
+ProcessPriority Config::getCorePriority() {
+  return ProcessPriority::parse(getString("priority", "idle"));
+}
+
+
+JSON::ValuePtr Config::getGPU(const string &id) {
+  auto &gpus = *get("gpus");
+
+  if (!gpus.has(id)) {
+    JSON::ValuePtr gpu = new JSON::Dict;
+    gpu->insert("options", "");
+    gpu->insertBoolean("enabled", false);
+    gpus.insert(id, gpu);
+  }
+
+  return gpus.get(id);
+}

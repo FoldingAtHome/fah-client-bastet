@@ -40,20 +40,22 @@
 namespace FAH {
   namespace Client {
     class App;
+    class Remote;
 
-    class Server : public cb::Event::WebServer, public cb::JSON::ObservableDict {
+    class Server :
+      public cb::Event::WebServer,
+      public cb::JSON::ObservableDict {
       App &app;
 
-      std::list<cb::SmartPointer<cb::Event::JSONWebsocket> > clients;
+      std::list<cb::SmartPointer<Remote> > clients;
 
     public:
       Server(App &app);
 
       bool corsCB(cb::Event::Request &req);
-      void infoCB(cb::Event::Request &req, const cb::JSON::ValuePtr &msg,
-                  cb::JSON::Sink &sink);
-
       void broadcast(const cb::JSON::ValuePtr &msg);
+
+      void remove(Remote &remote);
 
       // From cb::Event::WebServer
       cb::SmartPointer<cb::Event::Request> createRequest

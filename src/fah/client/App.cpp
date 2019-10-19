@@ -28,8 +28,10 @@
 
 #include "App.h"
 #include "Server.h"
-#include "Slots.h"
+#include "GPUResources.h"
+#include "Units.h"
 #include "Cores.h"
+#include "Config.h"
 
 #include <cbang/Catch.h>
 #include <cbang/event/Event.h>
@@ -65,7 +67,8 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), dns(base),
   client(base, dns, new SSLContext), server(new Server(*this)),
-  slots(new Slots(*this)), cores(new Cores(*this)) {
+  gpus(new GPUResources(*this)), units(new Units(*this)),
+  cores(new Cores(*this)), config(new Config(*this)), info(new JSON::Dict) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -86,7 +89,9 @@ App::App() :
   options.add("debug-libevent", "Enable verbose libevent debugging"
               )->setDefault(false);
   options.add("assignment-servers")
-    ->setDefault("assign1.foldingathome.org assign2.foldingathome.org");
+    ->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
+                 "assign3.foldingathome.org assign4.foldingathome.org "
+                 "assign5.foldingathome.org assign6.foldingathome.org");
   options.add("ws-port")->setDefault(80);
   options.popCategory();
 
@@ -95,6 +100,7 @@ App::App() :
   options["log"].setDefault("log.txt");
   options["log-no-info-header"].setDefault(true);
   options["log-thread-prefix"].setDefault(true);
+  options["log-short-level"].setDefault(true);
   options["log-rotate-max"].setDefault(16);
   options["log-date-periodically"].setDefault(Time::SEC_PER_HOUR * 6);
 
@@ -111,9 +117,6 @@ App::App() :
   const Resource *caRes = FAH::Client::resource0.find("ca.pem");
   if (!caRes) THROW("Could not find root certificate resource");
   caCert = caRes->toString();
-
-  // Connect JSON::Observables
-  server->insert("slots", SmartPointer<JSON::Value>::Phony(slots));
 
   // TODO get CRL from F@H periodically
 }
@@ -196,9 +199,10 @@ void App::checkBase64SHA256(const string &certificate,
 }
 
 
-const char *App::getCPU() const {
-  // These are currently the only CPUs we support
-  return sizeof(void *) == 4 ? "x86" : "amd64";
+const IPAddress &App::getNextAS() {
+  if (servers.empty()) THROW("No AS");
+  if (servers.size() <= nextAS) nextAS = 0;
+  return servers[nextAS++];
 }
 
 
@@ -227,34 +231,20 @@ const char *App::getOS() const {
 }
 
 
-void App::writeSystemInfo(JSON::Sink &sink) {
-  auto &info = SystemInfo::instance();
-
-  sink.insert("version",     getVersion().toString());
-  sink.insert("id",          getID());
-  sink.insert("memory",      info.getFreeMemory());
-  sink.insertBoolean("idle", false); // TODO get system idle state
-
-  sink.insertDict("cpu");
-  sink.insert("type",     getCPU());
-  sink.insert("vendor",   info.getCPUVendor());
-  sink.insert("cores",    info.getCPUCount());
-  sink.insert("family",   info.getCPUFamily());
-  sink.insert("model",    info.getCPUModel());
-  sink.insert("stepping", info.getCPUStepping());
-  sink.insert("extended", info.getCPUExtendedFeatures());
-  sink.insert("features", info.getCPUFeatures());
-  sink.insert("80000001", info.getCPUFeatures80000001());
-  sink.endDict();
-
-  sink.insertDict("os");
-  sink.insert("type",      getOS());
-  sink.insert("version",   info.getOSVersion().toString());
-  sink.endDict();
+const char *App::getCPU() const {
+  // These are currently the only CPUs we support
+  return sizeof(void *) == 4 ? "x86" : "amd64";
 }
 
 
-void App::loadID() {
+void App::loadConfig() {
+  // Info
+  info->insert("version", getVersion().toString());
+  info->insert("os", getOS());
+  info->insert("cpu", getCPU());
+  info->insert("cpus", SystemInfo::instance().getCPUCount());
+  info->insert("gpus", gpus);
+
   auto &config = getDB("config");
 
   // Generate key
@@ -266,7 +256,8 @@ void App::loadID() {
   key.readPrivate(config.getString("key"));
 
   // Generate ID from key
-  id = Digest::base64(key.getPublic().toBinString(), "sha256");
+  string id = Digest::base64(key.getPublic().toBinString(), "sha256");
+  info->insert("id", id);
   LOG_INFO(3, "id = " << id);
 }
 
@@ -294,8 +285,14 @@ void App::run() {
 
   // Initialize
   server->init();
-  loadID();
+  config->init();
+  loadConfig();
   loadServers();
+
+  // Connect JSON::Observables
+  server->insert("units",  units);
+  server->insert("config", config);
+  server->insert("info",   info);
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
@@ -303,9 +300,6 @@ void App::run() {
 
   // Event loop
   base.dispatch();
-
-  // Save
-  slots->save();
 
   LOG_INFO(1, "Clean exit");
 }

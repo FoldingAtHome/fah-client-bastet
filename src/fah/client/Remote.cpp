@@ -26,62 +26,36 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "Remote.h"
 
-#include "CoreState.h"
+#include "App.h"
+#include "Server.h"
+#include "Units.h"
+#include "Config.h"
 
-#include <cbang/json/Value.h>
-#include <cbang/openssl/Certificate.h>
+#include <cbang/log/Logger.h>
 
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
-#include <cbang/event/Scheduler.h>
-
-#include <functional>
+using namespace FAH::Client;
+using namespace cb;
+using namespace std;
 
 
-namespace FAH {
-  namespace Client {
-    class App;
+Remote::Remote(App &app, Event::RequestMethod method, const URI &uri,
+               const Version &version) :
+  Event::JSONWebsocket(method, uri, version), app(app) {}
 
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
-      App &app;
-      cb::JSON::ValuePtr data;
-      CoreState state = CORE_INIT;
 
-      std::string cert;
-      std::string sig;
+void Remote::onMessage(const JSON::ValuePtr &msg) {
+  LOG_DEBUG(3, "msg: " << *msg);
 
-    public:
-      typedef std::function<void (unsigned, int)> progress_cb_t;
+  string cmd = msg->getString("cmd", "");
+  string unit = msg->getString("unit", "");
 
-    private:
-      std::vector<progress_cb_t> progressCBs;
-
-    public:
-      Core(App &app, const cb::JSON::ValuePtr &data);
-
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
-
-      std::string getURL() const;
-      uint8_t getType() const;
-      std::string getPath() const;
-      std::string getFilename() const;
-
-      void addProgressCallback(progress_cb_t cb);
-
-      void next();
-
-    protected:
-      void ready();
-      void load();
-      void downloadResponse(const std::string &pkg);
-      void download(const std::string &url);
-      void response(cb::Event::Request &req);
-    };
-  }
+  if (cmd == "pause") app.getUnits().setPause(true, unit);
+  if (cmd == "unpause") app.getUnits().setPause(false, unit);
+  if (cmd == "config") app.getConfig().merge(*msg->get("config"));
 }
+
+
+void Remote::onOpen() {send(app.getServer());}
+void Remote::onComplete() {app.getServer().remove(*this);}

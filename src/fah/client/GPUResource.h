@@ -28,60 +28,46 @@
 
 #pragma once
 
-#include "CoreState.h"
+#include <cbang/json/Observable.h>
 
-#include <cbang/json/Value.h>
-#include <cbang/openssl/Certificate.h>
+#include <cbang/gpu/CUDALibrary.h>
+#include <cbang/gpu/OpenCLLibrary.h>
+#include <cbang/gpu/GPU.h>
 
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
-#include <cbang/event/Scheduler.h>
-
-#include <functional>
+#include <cbang/pci/PCIInfo.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
+    class GPUResource : public cb::JSON::ObservableDict {
       App &app;
-      cb::JSON::ValuePtr data;
-      CoreState state = CORE_INIT;
 
-      std::string cert;
-      std::string sig;
+      std::string id;
 
-    public:
-      typedef std::function<void (unsigned, int)> progress_cb_t;
+      cb::GPU gpu;
+      cb::PCIDevice pci;
+      cb::ComputeDevice cuda;
+      cb::ComputeDevice opencl;
 
-    private:
-      std::vector<progress_cb_t> progressCBs;
+      cb::JSON::ValuePtr config;
 
     public:
-      Core(App &app, const cb::JSON::ValuePtr &data);
+      GPUResource(App &app, const cb::GPU &gpu, const cb::PCIDevice &pci);
 
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
+      const std::string &getID() const {return id;}
 
-      std::string getURL() const;
-      uint8_t getType() const;
-      std::string getPath() const;
-      std::string getFilename() const;
+      bool isEnabled() const;
 
-      void addProgressCallback(progress_cb_t cb);
+      const cb::GPU &getGPU() const {return gpu;}
+      const cb::PCIDevice &getPCI() const {return pci;}
+      const cb::ComputeDevice &getCUDA() const {return cuda;}
+      const cb::ComputeDevice &getOpenCL() const {return opencl;}
 
-      void next();
+      void set(const std::string &name, const cb::ComputeDevice &cd);
 
-    protected:
-      void ready();
-      void load();
-      void downloadResponse(const std::string &pkg);
-      void download(const std::string &url);
-      void response(cb::Event::Request &req);
+      void writeRequest(cb::JSON::Sink &sink) const;
     };
   }
 }

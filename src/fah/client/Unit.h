@@ -30,8 +30,7 @@
 
 #include "UnitState.h"
 
-#include <cbang/json/Serializable.h>
-#include <cbang/json/Value.h>
+#include <cbang/json/Observable.h>
 
 #include <cbang/event/Enum.h>
 #include <cbang/event/Scheduler.h>
@@ -44,36 +43,46 @@
 namespace FAH {
   namespace Client {
     class App;
-    class Slot;
+    class GPUResource;
     class Core;
 
     class Unit :
-      public cb::Event::Scheduler<Unit>, public cb::Event::Enum,
+      public cb::JSON::ObservableDict,
+      public cb::Event::Scheduler<Unit>,
+      public cb::Event::Enum,
       public UnitState::Enum {
       App &app;
-      Slot &slot;
-      cb::SmartPointer<Core> core;
+
+      std::string id;
 
       cb::JSON::ValuePtr data;
-      cb::JSON::ValuePtr wuData;
-      std::string id;
-      UnitState state;
-      unsigned currentAS = 0;
+      cb::SmartPointer<Core> core;
 
-      double progress = 0;
+      unsigned viewerFrame = 0;
 
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
+      Unit(App &app);
+
     public:
-      Unit(App &app, Slot &slot);
-      Unit(App &app, Slot &slot, const cb::JSON::ValuePtr &data);
+      Unit(App &app, uint32_t cpus, const std::set<std::string> &gpus);
+      Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
       const std::string &getID() const {return id;}
+
+      void setState(UnitState state);
+      UnitState getState() const;
+
+      bool isPaused() const;
+      void setPause(bool pause);
+
+      uint32_t getCPUs() const {return getU32("cpus");}
+      const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
+
       std::string getLogPrefix() const;
       std::string getDirectory() const {return "work/" + id;}
-      UnitState getState() const {return state;}
       std::string getWSBaseURL() const;
       uint64_t getDeadline() const;
       bool isExpired() const;
@@ -81,8 +90,14 @@ namespace FAH {
       void next();
 
     protected:
+      void setProgress(unsigned complete, int total);
       void getCore();
       void run();
+      void readInfo();
+      void readViewerTop();
+      void readViewerFrame();
+      void readResults();
+      bool finalizeRun();
       void monitor();
       void dump();
       void clean();
@@ -90,8 +105,10 @@ namespace FAH {
       void save();
       void remove();
 
-      void assignNextAS();
       void assignResponse(const cb::JSON::ValuePtr &data);
+      void writeProjectRestrictions(cb::JSON::Sink &sink,
+                                    const cb::JSON::ValuePtr &project);
+      void writeRequest(cb::JSON::Sink &sink);
       void assign();
       void downloadResponse(const cb::JSON::ValuePtr &data);
       void download();

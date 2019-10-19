@@ -28,60 +28,34 @@
 
 #pragma once
 
-#include "CoreState.h"
+#include "GPUResource.h"
 
-#include <cbang/json/Value.h>
-#include <cbang/openssl/Certificate.h>
-
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
+#include <cbang/gpu/GPUIndex.h>
 #include <cbang/event/Scheduler.h>
-
-#include <functional>
+#include <cbang/event/Request.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
+    class Unit;
 
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
+    class GPUResources :
+      public cb::JSON::ObservableDict,
+      public cb::Event::Scheduler<GPUResources> {
       App &app;
-      cb::JSON::ValuePtr data;
-      CoreState state = CORE_INIT;
 
-      std::string cert;
-      std::string sig;
+      cb::GPUIndex gpuIndex;
+      int64_t lastGPUsFail;
 
     public:
-      typedef std::function<void (unsigned, int)> progress_cb_t;
-
-    private:
-      std::vector<progress_cb_t> progressCBs;
-
-    public:
-      Core(App &app, const cb::JSON::ValuePtr &data);
-
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
-
-      std::string getURL() const;
-      uint8_t getType() const;
-      std::string getPath() const;
-      std::string getFilename() const;
-
-      void addProgressCallback(progress_cb_t cb);
-
-      void next();
+      GPUResources(App &app);
 
     protected:
-      void ready();
-      void load();
-      void downloadResponse(const std::string &pkg);
-      void download(const std::string &url);
+      void load(const cb::JSON::Value &gpus);
       void response(cb::Event::Request &req);
+      void update();
+      void detect();
     };
   }
 }

@@ -28,45 +28,18 @@
 
 #pragma once
 
-#include "Slot.h"
-
-#include <cbang/gpu/GPUIndex.h>
 #include <cbang/json/Observable.h>
-#include <cbang/event/Scheduler.h>
-
-#include <map>
 
 
 namespace FAH {
   namespace Client {
-    class App;
-    class Core;
-
-    class Slots :
-      public cb::JSON::ObservableDict,
-      public cb::Event::Scheduler<Slots> {
-      App &app;
-
-      cb::GPUIndex gpuIndex;
-      int64_t lastGPUsFail;
+    class ProjectConfig {
+      const cb::JSON::Value &config;
 
     public:
-      Slots(App &app);
+      ProjectConfig(const cb::JSON::Value &config) : config(config) {}
 
-      void add(const cb::SmartPointer<Slot> &slot);
-
-      void load();
-      void save();
-      void update();
-
-      // From cb::Event::Scheduler
-      cb::Event::Base &getEventBase();
-
-    protected:
-      void gpusLoad(const cb::JSON::Value &gpus);
-      void gpusResponse(cb::Event::Request &req);
-      void gpusGet();
-      void detect();
+      void writeRequest(cb::JSON::Sink &sink) const;
     };
   }
 }
