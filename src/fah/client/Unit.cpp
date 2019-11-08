@@ -389,7 +389,7 @@ bool Unit::finalizeRun() {
 #ifdef _WIN32
   if (0xc000000 <= code)
     LOG_WARNING("Core exited with Windows unhandled exception code "
-                String::printf("0x%08x", (unsigned)code)
+                << String::printf("0x%08x", (unsigned)code)
                 << ".  See https://bit.ly/2CXgWkZ for more information.");
 #endif
 
