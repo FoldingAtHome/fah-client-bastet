@@ -28,16 +28,14 @@
 
 #define WM_SYSTRAYMSG      102
 #define ID_USER_SYSTRAY    103
-#define ID_USER_WEBCONTROL  104
-#define ID_USER_VIEWER     105
-#define ID_USER_CONTROL    106
-#define ID_USER_PAUSE      107
-#define ID_USER_IDLE       109
-#define ID_USER_LIGHT      110
-#define ID_USER_MEDIUM     111
-#define ID_USER_FULL       112
-#define ID_USER_ABOUT      113
-#define ID_USER_EXIT       114
-#define IDI_NORMAL         115
-#define IDI_INACTIVE       116
-#define IDI_FAILURE        117
+#define ID_USER_WEBCONTROL 104
+#define ID_USER_PAUSE      105
+#define ID_USER_IDLE       106
+#define ID_USER_LIGHT      107
+#define ID_USER_MEDIUM     108
+#define ID_USER_FULL       109
+#define ID_USER_ABOUT      110
+#define ID_USER_EXIT       111
+#define IDI_NORMAL         112
+#define IDI_INACTIVE       113
+#define IDI_FAILURE        114

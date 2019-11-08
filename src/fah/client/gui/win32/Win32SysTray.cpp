@@ -31,13 +31,10 @@
 #include "Win32SysTray.h"
 
 #include <fah/client/App.h>
-#include <fah/client/slot/SlotManager.h>
 
 #include <cbang/Exception.h>
 #include <cbang/SStream.h>
 #include <cbang/Catch.h>
-#include <cbang/util/SmartLock.h>
-#include <cbang/util/SmartUnlock.h>
 #include <cbang/os/SysError.h>
 #include <cbang/os/Subprocess.h>
 #include <cbang/os/SystemUtilities.h>
@@ -192,10 +189,6 @@ void Win32SysTray::init() {
 
 LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
                                  LPARAM lParam) {
-  SmartLock lock(&app);
-
-  SlotManager &slotMan = app.getSlotManager();
-
   switch (message) {
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
@@ -212,7 +205,7 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
       else if (pbs.PowerSetting == guid_monitor_power_on)
         displayOff = !*((DWORD *)pbs.Data);
 
-      app.setIdle(inAwayMode || displayOff);
+      // TODO set idle: app.setIdle(inAwayMode || displayOff);
       return 0;
     }
     break;
@@ -231,26 +224,21 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
         LOG_ERROR("Failed to open Web control: " << SysError());
       return 0;
 
-    case ID_USER_VIEWER: run_cmd("FAHViewer"); return 0;
-    case ID_USER_CONTROL: run_cmd("FAHControl"); return 0;
-
     case ID_USER_PAUSE:
-      slotMan.setPaused(!slotMan.isPaused());
-      app.setConfigured();
+      // TODO Toggle pause
+      // app.setConfigured();
       return 0;
 
     case ID_USER_IDLE:
-      slotMan.setIdle(!slotMan.getIdle());
-      app.setConfigured();
+      // TODO Toggle idle
+      // app.setConfigured();
       return 0;
 
     case ID_USER_LIGHT:
     case ID_USER_MEDIUM:
     case ID_USER_FULL: {
-      unsigned level =
-        PowerLevel::PLEVEL_LIGHT + LOWORD(wParam) - ID_USER_LIGHT;
-      slotMan.setPowerLevel((PowerLevel::enum_t)level);
-      app.setConfigured();
+      // TODO Set power level
+      // app.setConfigured();
       return 0;
     }
 
@@ -277,9 +265,7 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
       msg.lpszCaption = app.getName().c_str();
       msg.lpszText = text.c_str();
 
-      // Unlock for blocking operation
-      SmartUnlock unlock(&app);
-
+      // TODO Blocking operation should not block app
       MessageBoxIndirect(&msg);
 
       return 0;
@@ -299,7 +285,7 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
 void Win32SysTray::update() {
   updateIcon();
-  SmartUnlock unlock(&app); // Relocked in windowProc()
+  // TODO this call blocks
   processMessages();
 }
 
@@ -324,11 +310,13 @@ void Win32SysTray::processMessages() {
 
 
 void Win32SysTray::updateIcon() {
+#if 0 // TODO Set icon
   if (app.getSlotManager().hasFailure())
     setSysTray(IDI_FAILURE, "One or more folding slot failed");
   else if (app.getSlotManager().isIdle())
     setSysTray(IDI_INACTIVE, "No active folding slots");
   else setSysTray(IDI_NORMAL, "Folding active");
+#endif
 }
 
 
@@ -353,10 +341,9 @@ void Win32SysTray::popup(HWND hWnd) {
   HMENU hMenu = CreatePopupMenu();
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
-  AppendMenu(hMenu, 0, ID_USER_CONTROL, "Advanced &Control");
-  AppendMenu(hMenu, 0, ID_USER_VIEWER, "Protein &Viewer");
 
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
+#if 0 // TODO power level
   PowerLevel power = app.getSlotManager().getPowerLevel();
 
   AppendMenu(hMenu, power == PowerLevel::PLEVEL_FULL ? MF_CHECKED : 0,
@@ -365,12 +352,13 @@ void Win32SysTray::popup(HWND hWnd) {
              ID_USER_MEDIUM, "Medium");
   AppendMenu(hMenu, power == PowerLevel::PLEVEL_LIGHT ? MF_CHECKED : 0,
              ID_USER_LIGHT, "Light");
+#endif
 
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  bool idle = app.getSlotManager().getIdle();
+  bool idle = false; // TODO app.getSlotManager().getIdle();
   AppendMenu(hMenu, idle ? MF_CHECKED : 0, ID_USER_IDLE, "On Idle");
 
-  bool paused = app.getSlotManager().isPaused();
+  bool paused = false; // TODO app.getSlotManager().isPaused();
   AppendMenu(hMenu, paused ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
 
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
@@ -384,9 +372,7 @@ void Win32SysTray::popup(HWND hWnd) {
   // Make foreground, otherwise menu won't go away
   SetForegroundWindow(hWnd);
 
-  // Unlock for blocking operation
-  SmartUnlock unlock(&app);
-
+  // TODO Blocking operation must not block app
   // Track the popup menu
   TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_RIGHTBUTTON,
                  point.x, point.y, 0, hWnd, 0);
