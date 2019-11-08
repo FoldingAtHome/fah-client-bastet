@@ -48,3 +48,5 @@ config.log
 /client.db
 /gpus.json
 /logs
+/work
+/cores
