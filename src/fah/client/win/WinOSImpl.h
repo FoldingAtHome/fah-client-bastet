@@ -68,6 +68,7 @@ namespace FAH {
       bool isSystemIdle() const {return inAwayMode || displayOff;}
 
       // From cb::Thread
+      void start();
       void run();
 
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

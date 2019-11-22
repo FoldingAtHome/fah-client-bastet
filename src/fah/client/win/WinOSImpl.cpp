@@ -113,7 +113,7 @@ WinOSImpl::WinOSImpl(App &app) :
 
   options.pushCategory("Windows");
   options.addTarget("systray", systrayEnabled, "Set to false to disable the "
-                    "Windows systray.");
+                    "Windows systray icon.");
   options.popCategory();
 
   app.getEventBase().newEvent(this, &WinOSImpl::start, 0)->add();
@@ -197,7 +197,12 @@ void WinOSImpl::init() {
 
   // Create icon update timer
   SetTimer(hWnd, ID_UPDATE_TIMER, 1000, 0);
+
+  LOG_INFO(1, "Started Windows systray control");
 }
+
+
+void WinOSImpl::start() {if (systrayEnabled) Thread::start();}
 
 
 void WinOSImpl::run() {
