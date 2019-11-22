@@ -274,7 +274,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
 
 void WinOSImpl::openWebControl() {
-  if (ShellExecute(hWnd, "open", "https://client.foldingathome.org/", 0, 0,
+  if (ShellExecute(hWnd, "open", "https://console.foldingathome.org/", 0, 0,
                    SW_SHOWDEFAULT) <= (HINSTANCE)32)
     LOG_ERROR("Failed to open Web control: " << SysError());
 }

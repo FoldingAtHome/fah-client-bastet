@@ -30,6 +30,7 @@
 #include "App.h"
 #include "Remote.h"
 #include "Config.h"
+#include "Units.h"
 
 #include <cbang/log/Logger.h>
 
@@ -100,6 +101,8 @@ void Server::notify(list<JSON::ValuePtr> &change) {
   broadcast(list);
 
   // Automatically save changes to config
-  if (!change.empty() && change.front()->getString() == "config")
+  if (!change.empty() && change.front()->getString() == "config") {
     app.getDB("config").set("config", app.getConfig());
+    app.getUnits().update();
+  }
 }

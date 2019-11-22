@@ -39,13 +39,16 @@ using namespace std;
 
 
 Config::Config(App &app) : app(app) {
+  unsigned cpus = SystemInfo::instance().getCPUCount();
+  if (1 < cpus) cpus--; // Reserve one CPU by default
+
   // Defaults
   insert("checkpoint", 15);
   insertBoolean("on_idle", true);
   insertBoolean("paused", false);
   insert("power", "medium");
   insert("cause", "any");
-  insert("cpus", SystemInfo::instance().getCPUCount() - 1);
+  insert("cpus", cpus);
   insert("options", "");
   insertDict("gpus");
 }

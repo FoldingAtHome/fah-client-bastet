@@ -71,7 +71,7 @@ Folding@home servers for points.  Fold on your own or in a team.  Compete with
 folders around the world to earn the most points while contributing to science.
 
 Monitor and control the client via your browser by visiting
-https://client.foldingathome.org/'''
+https://console.foldingathome.org/'''
 
 description += short_description
 
