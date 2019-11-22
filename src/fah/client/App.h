@@ -58,6 +58,7 @@ namespace FAH {
     class Units;
     class Cores;
     class Config;
+    class OS;
 
     class App : public cb::Application {
       cb::Event::Base base;
@@ -76,6 +77,7 @@ namespace FAH {
       cb::SmartPointer<Units> units;
       cb::SmartPointer<Cores> cores;
       cb::SmartPointer<Config> config;
+      cb::SmartPointer<OS> os;
       cb::SmartPointer<cb::JSON::Value> info;
 
       cb::KeyPair key;

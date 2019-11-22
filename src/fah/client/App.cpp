@@ -32,6 +32,7 @@
 #include "Units.h"
 #include "Cores.h"
 #include "Config.h"
+#include "OS.h"
 
 #include <cbang/Catch.h>
 #include <cbang/event/Event.h>
@@ -68,7 +69,8 @@ App::App() :
   Application("Folding@home Client", App::_hasFeature), dns(base),
   client(base, dns, new SSLContext), server(new Server(*this)),
   gpus(new GPUResources(*this)), units(new Units(*this)),
-  cores(new Cores(*this)), config(new Config(*this)), info(new JSON::Dict) {
+  cores(new Cores(*this)), config(new Config(*this)), os(OS::create(*this)),
+  info(new JSON::Dict) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -92,7 +94,6 @@ App::App() :
     ->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
                  "assign3.foldingathome.org assign4.foldingathome.org "
                  "assign5.foldingathome.org assign6.foldingathome.org");
-  options.add("ws-port")->setDefault(80);
   options.popCategory();
 
   // Configure log

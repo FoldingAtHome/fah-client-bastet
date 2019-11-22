@@ -48,11 +48,13 @@ namespace FAH {
 
     class Unit :
       public cb::JSON::ObservableDict,
-      public cb::Event::Scheduler<Unit>,
       public cb::Event::Enum,
       public UnitState::Enum {
       App &app;
 
+      cb::SmartPointer<cb::Event::Event> event;
+
+      uint64_t wu;
       std::string id;
 
       cb::JSON::ValuePtr data;
@@ -63,10 +65,15 @@ namespace FAH {
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
+      bool success = false;
+      unsigned retries = 0;
+      uint64_t wait = 0;
+
       Unit(App &app);
 
     public:
-      Unit(App &app, uint32_t cpus, const std::set<std::string> &gpus);
+      Unit(App &app, uint64_t wu, uint32_t cpus,
+           const std::set<std::string> &gpus);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
@@ -87,9 +94,11 @@ namespace FAH {
       uint64_t getDeadline() const;
       bool isExpired() const;
 
-      void next();
+      void triggerNext(double secs = 0);
 
     protected:
+      void next();
+
       void setProgress(unsigned complete, int total);
       void getCore();
       void run();
@@ -101,6 +110,7 @@ namespace FAH {
       void monitor();
       void dump();
       void clean();
+      void retry();
 
       void save();
       void remove();

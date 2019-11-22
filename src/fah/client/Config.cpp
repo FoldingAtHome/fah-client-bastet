@@ -42,6 +42,8 @@ Config::Config(App &app) : app(app) {
   // Defaults
   insert("checkpoint", 15);
   insertBoolean("on_idle", true);
+  insertBoolean("paused", false);
+  insert("power", "medium");
   insert("cause", "any");
   insert("cpus", SystemInfo::instance().getCPUCount() - 1);
   insert("options", "");
@@ -58,6 +60,20 @@ void Config::init() {
       merge(*JSON::Reader::parseString(db.getString("config")));
   } CATCH_ERROR;
 }
+
+
+bool Config::getOnIdle() const {return getBoolean("on_idle");}
+void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
+void Config::setPaused(bool paused) {insertBoolean("paused", paused);}
+bool Config::getPaused() const {return getBoolean("paused");}
+
+
+void Config::setPower(Power power) {
+  insert("power", String::toLower(power.toString()));
+}
+
+
+Power Config::getPower() const {return Power::parse(getString("power"));}
 
 
 uint32_t Config::getCPUs() const {

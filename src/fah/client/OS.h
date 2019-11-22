@@ -30,24 +30,28 @@
 
 #include "Power.h"
 
-#include <cbang/json/Observable.h>
-#include <cbang/enum/ProcessPriority.h>
+#include <cbang/SmartPointer.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class Config : public cb::JSON::ObservableDict {
+    class OS {
       App &app;
 
     public:
-      Config(App &app);
+      OS(App &app) : app(app) {}
+      virtual ~OS() {}
 
-      void init();
+      App &getApp() {return app;}
 
-      bool getOnIdle() const;
+      virtual bool isSystemIdle() const = 0;
+
+      void requestExit();
+
       void setOnIdle(bool onIdle);
+      bool getOnIdle() const;
 
       void setPaused(bool paused);
       bool getPaused() const;
@@ -55,9 +59,10 @@ namespace FAH {
       void setPower(Power power);
       Power getPower() const;
 
-      uint32_t getCPUs() const;
-      cb::ProcessPriority getCorePriority();
-      cb::JSON::ValuePtr getGPU(const std::string &id);
+      bool isIdle() const;
+      bool hasFailure() const;
+
+      static cb::SmartPointer<OS> create(App &app);
     };
   }
 }

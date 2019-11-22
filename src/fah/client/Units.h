@@ -37,12 +37,19 @@ namespace FAH {
                   public cb::Event::Scheduler<Units> {
       App &app;
 
+      uint64_t wus = 0;
+      uint64_t lastWU = 0;
+      uint32_t failures = 0;
+      uint64_t waitUntil = 0;
+
     public:
       Units(App &app);
 
       void add(const cb::SmartPointer<Unit> &unit);
+
       void setPause(bool pause, const std::string unitID = std::string());
 
+      void unitComplete(bool success);
       void update();
       void load();
       void save();

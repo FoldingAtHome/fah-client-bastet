@@ -27,49 +27,18 @@
 \******************************************************************************/
 
 #pragma once
-#ifdef _WIN32
 
-#include "resource.h"
+#include <fah/client/OS.h>
 
-#define _WINSOCKAPI_ // Stop windows from including winsock.h
-#include <windows.h>
 
 namespace FAH {
   namespace Client {
-    class App;
-
-    class Win32SysTray {
-      static Win32SysTray *singleton;
-
-      App &app;
-
-      HINSTANCE hInstance;
-      HWND hWnd;
-      NOTIFYICONDATA notifyIconData;
-
-      int iconCurrent;
-
-      bool inAwayMode;
-      bool displayOff;
-
+    class LinOSImpl : public OS {
     public:
-      Win32SysTray(App &app);
+      LinOSImpl(App &app) : OS(app) {}
 
-      static Win32SysTray &instance() {return *singleton;}
-
-      void init();
-      LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-      void update();
-      void shutdown();
-
-    protected:
-      void updateIcon();
-      void processMessages();
-      void setSysTray(int icon, LPCTSTR tip);
-      void popup(HWND hWnd);
+      // From OS
+      bool isSystemIdle() const;
     };
   }
 }
-
-#endif // _WIN32
-

@@ -26,65 +26,14 @@
 
 \******************************************************************************/
 
-#include "GUI.h"
+#include "LinOSImpl.h"
 
-#include "win32/Win32SysTray.h"
-#include "osx/OSXNotifications.h"
-
-#include <fah/client/App.h>
-
-#include <cbang/config/Options.h>
+#include <cbang/os/PowerManagement.h>
 
 using namespace FAH::Client;
 using namespace cb;
-using namespace std;
 
 
-GUI::GUI(App &app) :
-#ifdef _WIN32
-  sysTray(new Win32SysTray(app)),
-#elif defined(__APPLE__)
-  notary(new OSXNotifications(app)),
-#endif
-  enabled(true) {
-  Options &options = app.getOptions();
-
-  options.pushCategory("GUI");
-  options.addTarget("gui-enabled", enabled, "Set to false to disable the GUI.  "
-                    "A GUI is not currently supported on all operating "
-                    "systems.");
-  options.popCategory();
-}
-
-
-void GUI::init() {
-  if (!enabled) return;
-
-#ifdef _WIN32
-  sysTray->init();
-#elif defined(__APPLE__)
-  notary->init();
-#endif
-}
-
-
-void GUI::update() {
-  if (!enabled) return;
-
-#ifdef _WIN32
-  sysTray->update();
-#elif defined(__APPLE__)
-  notary->update();
-#endif
-}
-
-
-void GUI::shutdown() {
-  if (!enabled) return;
-
-#ifdef _WIN32
-  sysTray->shutdown();
-#elif defined(__APPLE__)
-  notary->shutdown();
-#endif
+bool LinOSImpl::isSystemIdle() const {
+  return 15 < PowerManagement::instance().getIdleSeconds();
 }

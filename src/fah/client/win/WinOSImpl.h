@@ -28,30 +28,56 @@
 
 #pragma once
 
-#include <cbang/SmartPointer.h>
+#include <fah/client/OS.h>
+
+#include <cbang/os/Thread.h>
+
+#include "resource.h"
+
+#define _WINSOCKAPI_ // Stop windows from including winsock.h
+#include <windows.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
-    class Win32SysTray;
-    class OSXNotifications;
 
-    class GUI {
-#ifdef _WIN32
-      cb::SmartPointer<Win32SysTray> sysTray;
-#elif defined(__APPLE__)
-      cb::SmartPointer<OSXNotifications> notary;
-#endif // _WIN32
+    class WinOSImpl : public OS, public cb::Thread {
+      static WinOSImpl *singleton;
 
-      bool enabled;
+      bool systrayEnabled = true;
+
+      HINSTANCE hInstance;
+      HWND hWnd = 0;
+      NOTIFYICONDATA notifyIconData;
+
+      int iconCurrent = 0;
+
+      bool inAwayMode = false;
+      bool displayOff = false;
 
     public:
-      GUI(App &app);
+      WinOSImpl(App &app);
+      ~WinOSImpl();
+
+      static WinOSImpl &instance();
 
       void init();
-      void update();
-      void shutdown();
+
+      // From OS
+      bool isSystemIdle() const {return inAwayMode || displayOff;}
+
+      // From cb::Thread
+      void run();
+
+      LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+    protected:
+      void openWebControl();
+      void showAbout();
+      void updateIcon();
+      void setSysTray(int icon, LPCTSTR tip);
+      void popup(HWND hWnd);
     };
   }
 }

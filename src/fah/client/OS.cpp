@@ -26,38 +26,48 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "OS.h"
 
-#include "Power.h"
+#include <fah/client/App.h>
 
-#include <cbang/json/Observable.h>
-#include <cbang/enum/ProcessPriority.h>
+#if defined(_WIN32)
+#include "win/WinOSImpl.h"
+#elif defined(__APPLE__)
+#include "osx/OSXOSImpl.h"
+#else
+#include "lin/LinOSImpl.h"
+#endif
+
+#include <fah/client/App.h>
+
+using namespace FAH::Client;
+using namespace cb;
 
 
-namespace FAH {
-  namespace Client {
-    class App;
+SmartPointer<OS> OS::create(App &app) {
+#if defined(_WIN32)
+  return new WinOSImpl(app);
 
-    class Config : public cb::JSON::ObservableDict {
-      App &app;
+#elif defined(__APPLE__)
+  return new OSXOSImpl(app);
 
-    public:
-      Config(App &app);
-
-      void init();
-
-      bool getOnIdle() const;
-      void setOnIdle(bool onIdle);
-
-      void setPaused(bool paused);
-      bool getPaused() const;
-
-      void setPower(Power power);
-      Power getPower() const;
-
-      uint32_t getCPUs() const;
-      cb::ProcessPriority getCorePriority();
-      cb::JSON::ValuePtr getGPU(const std::string &id);
-    };
-  }
+#else
+  return new LinOSImpl(app);
+#endif
 }
+
+
+void OS::requestExit() {app.requestExit();}
+
+
+void OS::setOnIdle(bool onIdle) {}
+bool OS::getOnIdle() const {return false;}
+
+void OS::setPaused(bool paused) {}
+bool OS::getPaused() const {return false;}
+
+void OS::setPower(Power power) {}
+Power OS::getPower() const {return Power::POWER_FULL;}
+
+bool OS::isIdle() const {return false;}
+bool OS::hasFailure() const {return false;}

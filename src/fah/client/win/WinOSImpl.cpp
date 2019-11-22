@@ -26,9 +26,7 @@
 
 \******************************************************************************/
 
-#ifdef _WIN32
-
-#include "Win32SysTray.h"
+#include "WinOSImpl.h"
 
 #include <fah/client/App.h>
 
@@ -36,10 +34,11 @@
 #include <cbang/SStream.h>
 #include <cbang/Catch.h>
 #include <cbang/os/SysError.h>
-#include <cbang/os/Subprocess.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/log/Logger.h>
 #include <cbang/openssl/Digest.h>
+#include <cbang/event/Base.h>
+#include <cbang/event/Event.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -47,86 +46,97 @@ using namespace std;
 
 
 namespace {
-  void run_cmd(const string &exe) {
-    Subprocess proc;
-    proc["PATH"] =
-      SystemUtilities::dirname(SystemUtilities::getExecutablePath());
-    proc.exec(exe);
-  }
-}
-
-
-extern "C" LRESULT CALLBACK windowProcCB(HWND hWnd, UINT message, WPARAM wParam,
-                                         LPARAM lParam) {
-  try {
-    return Win32SysTray::instance().windowProc(hWnd, message, wParam, lParam);
-  } CATCH_ERROR;
-
-  return 0;
-}
-
-
-extern "C" INT_PTR CALLBACK aboutProcCB(HWND hDlg, UINT message, WPARAM wParam,
-                                        LPARAM lParam) {
-  switch (message) {
-  case WM_INITDIALOG: return (INT_PTR)1;
-  case WM_COMMAND:
-    if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
-      EndDialog(hDlg, LOWORD(wParam));
-      return (INT_PTR)1;
-    }
-    break;
-  }
-
-  return (INT_PTR)0;
-}
-
-
-namespace {
   const GUID guid_system_awaymode =
     {0x98a7f580, 0x01f7, 0x48aa,
      {0x9c, 0x0f, 0x44, 0x35, 0x2c, 0x29, 0xe5, 0xC0}};
+
   const GUID guid_monitor_power_on =
     {0x02731015, 0x4510, 0x4526,
      {0x99, 0xe6, 0xe5, 0xa1, 0x7e, 0xbd, 0x1a, 0xea}};
+
+
+  extern "C" LRESULT CALLBACK windowProcCB
+  (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    try {
+      return WinOSImpl::instance().windowProc(hWnd, message, wParam, lParam);
+    } CATCH_ERROR;
+
+    return 0;
+  }
+
+
+  extern "C" INT_PTR CALLBACK aboutProcCB
+  (HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_INITDIALOG: return (INT_PTR)1;
+    case WM_COMMAND:
+      if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+        EndDialog(hDlg, LOWORD(wParam));
+        return (INT_PTR)1;
+      }
+      break;
+    }
+
+    return (INT_PTR)0;
+  }
+
+
+  bool isWin7OrLater() {
+    // Initialize OSVERSIONINFOEX
+    OSVERSIONINFOEX osvi;
+    memset(&osvi, 0, sizeof(OSVERSIONINFOEX));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    osvi.dwMajorVersion = 6;
+    osvi.dwMinorVersion = 1;
+
+    // Initialize the condition mask
+    DWORDLONG dwlConditionMask = 0;
+    VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
+    VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
+
+    // Perform the test
+    return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION,
+                             dwlConditionMask);
+  }
 }
 
 
-Win32SysTray *Win32SysTray::singleton = 0;
+WinOSImpl *WinOSImpl::singleton = 0;
 
 
-Win32SysTray::Win32SysTray(App &app) :
-  app(app), hInstance((HINSTANCE)GetModuleHandle(0)), hWnd(0), iconCurrent(0),
-  inAwayMode(false), displayOff(false) {
-  if (singleton) THROW("Win32SysTray already exists");
+WinOSImpl::WinOSImpl(App &app) :
+  OS(app), hInstance((HINSTANCE)GetModuleHandle(0)) {
+  if (singleton) THROW("There can be only one WinOSImpl");
   singleton = this;
+
+  Options &options = app.getOptions();
+
+  options.pushCategory("Windows");
+  options.addTarget("systray", systrayEnabled, "Set to false to disable the "
+                    "Windows systray.");
+  options.popCategory();
+
+  app.getEventBase().newEvent(this, &WinOSImpl::start, 0)->add();
 }
 
 
-static bool isWin7OrLater() {
-  // Initialize OSVERSIONINFOEX
-  OSVERSIONINFOEX osvi;
-  memset(&osvi, 0, sizeof(OSVERSIONINFOEX));
-  osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-  osvi.dwMajorVersion = 6;
-  osvi.dwMinorVersion = 1;
-
-  // Initialize the condition mask
-  DWORDLONG dwlConditionMask = 0;
-  VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
-  VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
-
-  // Perform the test
-  return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION,
-                           dwlConditionMask);
+WinOSImpl::~WinOSImpl() {
+  if (hWnd) DestroyWindow(hWnd);
+  Thread::join();
+  singleton = 0;
 }
 
 
-void Win32SysTray::init() {
+WinOSImpl &WinOSImpl::instance() {
+  if (!singleton) THROW("No WinOSImpl instance");
+}
+
+
+void WinOSImpl::init() {
   HICON hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NORMAL));
 
   // Create window class
-  const char *className = app.getName().c_str();
+  const char *className = getApp().getName().c_str();
   WNDCLASSEX wcex;
   memset(&wcex, 0, sizeof(wcex));
   wcex.cbSize        = sizeof(WNDCLASSEX);
@@ -142,8 +152,8 @@ void Win32SysTray::init() {
     THROW("Failed to register window class: " << SysError());
 
   // Create the systray window and hide it
-  hWnd = CreateWindow(className, className, 0, 0, 0, 400, 600, 0, 0,
-                      hInstance, 0);
+  hWnd =
+    CreateWindow(className, className, 0, 0, 0, 400, 600, 0, 0, hInstance, 0);
   if (!hWnd) THROW("Failed to create systray window: " << SysError());
   ShowWindow(hWnd, SW_HIDE);
 
@@ -184,16 +194,35 @@ void Win32SysTray::init() {
     func(hWnd, &guid_system_awaymode, DEVICE_NOTIFY_WINDOW_HANDLE);
     func(hWnd, &guid_monitor_power_on, DEVICE_NOTIFY_WINDOW_HANDLE);
   }
+
+  // Create icon update timer
+  SetTimer(hWnd, ID_UPDATE_TIMER, 1000, 0);
 }
 
 
-LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
-                                 LPARAM lParam) {
+void WinOSImpl::run() {
+  init();
+
+  MSG msg;
+
+  while (hWnd && 0 < GetMessage(&msg, hWnd, 0, 0)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+
+  if (hWnd) DestroyWindow(hWnd);
+}
+
+
+LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
+                              LPARAM lParam) {
   switch (message) {
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-    app.requestExit();
+    KillTimer(hWnd, ID_UPDATE_TIMER);
+    OS::requestExit();
     PostQuitMessage(0);
+    hWnd = 0;
     return 0;
 
   case WM_POWERBROADCAST:
@@ -202,10 +231,10 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
       if (pbs.PowerSetting == guid_system_awaymode)
         inAwayMode = *((DWORD *)pbs.Data);
+
       else if (pbs.PowerSetting == guid_monitor_power_on)
         displayOff = !*((DWORD *)pbs.Data);
 
-      // TODO set idle: app.setIdle(inAwayMode || displayOff);
       return 0;
     }
     break;
@@ -218,109 +247,73 @@ LRESULT Win32SysTray::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
-    case ID_USER_WEBCONTROL:
-      if (ShellExecute(hWnd, "open", "https://client.foldingathome.org/", 0,
-                       0, SW_SHOWDEFAULT) <= (HINSTANCE)32)
-        LOG_ERROR("Failed to open Web control: " << SysError());
-      return 0;
-
-    case ID_USER_PAUSE:
-      // TODO Toggle pause
-      // app.setConfigured();
-      return 0;
-
-    case ID_USER_IDLE:
-      // TODO Toggle idle
-      // app.setConfigured();
-      return 0;
-
-    case ID_USER_LIGHT:
-    case ID_USER_MEDIUM:
-    case ID_USER_FULL: {
-      // TODO Set power level
-      // app.setConfigured();
-      return 0;
-    }
-
-    case ID_USER_ABOUT: {
-      string text = SSTR
-        ("Folding@home Client\n\r"
-         "Version " << app.getVersion() << "\n\r"
-         "\n\r"
-         "Copyright (c) 2001-2019 foldingathome.org\n\r"
-         "\n\r"
-         "Folding@home uses your excess computing power to help scientists at "
-         "Universities around the world to better understand and find cures "
-         "for diseases such as Alzheimer's, Huntington's, and many forms of "
-         "cancer.\n\r"
-         "\n\r"
-         "For more information visit: https://foldingathome.org/");
-
-      MSGBOXPARAMS msg;
-      msg.cbSize = sizeof(MSGBOXPARAMS);
-      msg.hwndOwner = hWnd;
-      msg.hInstance = hInstance;
-      msg.dwStyle = MB_USERICON | MB_OK | MB_SYSTEMMODAL;
-      msg.lpszIcon = MAKEINTRESOURCE(IDI_NORMAL);
-      msg.lpszCaption = app.getName().c_str();
-      msg.lpszText = text.c_str();
-
-      // TODO Blocking operation should not block app
-      MessageBoxIndirect(&msg);
-
-      return 0;
-    }
-
-    case ID_USER_EXIT:
-      DestroyWindow(hWnd);
-      return 0;
+    case ID_USER_WEBCONTROL: openWebControl();                  return 0;
+    case ID_USER_PAUSE:      OS::setPaused(!OS::getPaused());   return 0;
+    case ID_USER_IDLE:       OS::setOnIdle(!OS::getOnIdle());   return 0;
+    case ID_USER_LIGHT:      OS::setPower(Power::POWER_LIGHT);  return 0;
+    case ID_USER_MEDIUM:     OS::setPower(Power::POWER_MEDIUM); return 0;
+    case ID_USER_FULL:       OS::setPower(Power::POWER_FULL);   return 0;
+    case ID_USER_ABOUT:      showAbout();                       return 0;
+    case ID_USER_EXIT:       DestroyWindow(hWnd);               return 0;
     }
     break;
   }
+
+  case WM_TIMER:
+    if (wParam == ID_UPDATE_TIMER) updateIcon();
+    break;
   }
 
   return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 
-void Win32SysTray::update() {
-  updateIcon();
-  // TODO this call blocks
-  processMessages();
+void WinOSImpl::openWebControl() {
+  if (ShellExecute(hWnd, "open", "https://client.foldingathome.org/", 0, 0,
+                   SW_SHOWDEFAULT) <= (HINSTANCE)32)
+    LOG_ERROR("Failed to open Web control: " << SysError());
 }
 
 
-void Win32SysTray::shutdown() {
-  if (hWnd) {
-    DestroyWindow(hWnd);
-    hWnd = 0;
-  }
+void WinOSImpl::showAbout() {
+  string text = SSTR
+    ("Folding@home Client\n\r"
+     "Version " << getApp().getVersion() << "\n\r"
+     "\n\r"
+     "Copyright (c) 2001-2019 foldingathome.org\n\r"
+     "\n\r"
+     "Folding@home uses your excess computing power to help scientists at "
+     "Universities around the world to better understand and find cures "
+     "for diseases such as Alzheimer's, Huntington's, and many forms of "
+     "cancer.\n\r"
+     "\n\r"
+     "For more information visit: https://foldingathome.org/");
 
-  processMessages();
+  MSGBOXPARAMS msg;
+  msg.cbSize      = sizeof(MSGBOXPARAMS);
+  msg.hwndOwner   = hWnd;
+  msg.hInstance   = hInstance;
+  msg.dwStyle     = MB_USERICON | MB_OK | MB_SYSTEMMODAL;
+  msg.lpszIcon    = MAKEINTRESOURCE(IDI_NORMAL);
+  msg.lpszCaption = getApp().getName().c_str();
+  msg.lpszText    = text.c_str();
+
+  MessageBoxIndirect(&msg);
 }
 
 
-void Win32SysTray::processMessages() {
-  MSG msg;
-  while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-}
-
-
-void Win32SysTray::updateIcon() {
-#if 0 // TODO Set icon
-  if (app.getSlotManager().hasFailure())
+void WinOSImpl::updateIcon() {
+  if (OS::hasFailure())
     setSysTray(IDI_FAILURE, "One or more folding slot failed");
-  else if (app.getSlotManager().isIdle())
+
+  else if (OS::isIdle())
     setSysTray(IDI_INACTIVE, "No active folding slots");
+
   else setSysTray(IDI_NORMAL, "Folding active");
-#endif
 }
 
 
-void Win32SysTray::setSysTray(int icon, LPCTSTR tip) {
+void WinOSImpl::setSysTray(int icon, LPCTSTR tip) {
   if (iconCurrent == icon) return;
   iconCurrent = icon;
 
@@ -336,31 +329,24 @@ void Win32SysTray::setSysTray(int icon, LPCTSTR tip) {
 }
 
 
-void Win32SysTray::popup(HWND hWnd) {
-  // Create popup menu
+void WinOSImpl::popup(HWND hWnd) {
   HMENU hMenu = CreatePopupMenu();
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
 
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-#if 0 // TODO power level
-  PowerLevel power = app.getSlotManager().getPowerLevel();
+  Power power = OS::getPower();
 
-  AppendMenu(hMenu, power == PowerLevel::PLEVEL_FULL ? MF_CHECKED : 0,
+  AppendMenu(hMenu, power == Power::POWER_FULL ? MF_CHECKED : 0,
              ID_USER_FULL, "Full");
-  AppendMenu(hMenu, power == PowerLevel::PLEVEL_MEDIUM ? MF_CHECKED : 0,
+  AppendMenu(hMenu, power == Power::POWER_MEDIUM ? MF_CHECKED : 0,
              ID_USER_MEDIUM, "Medium");
-  AppendMenu(hMenu, power == PowerLevel::PLEVEL_LIGHT ? MF_CHECKED : 0,
+  AppendMenu(hMenu, power == Power::POWER_LIGHT ? MF_CHECKED : 0,
              ID_USER_LIGHT, "Light");
-#endif
 
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  bool idle = false; // TODO app.getSlotManager().getIdle();
-  AppendMenu(hMenu, idle ? MF_CHECKED : 0, ID_USER_IDLE, "On Idle");
-
-  bool paused = false; // TODO app.getSlotManager().isPaused();
-  AppendMenu(hMenu, paused ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
-
+  AppendMenu(hMenu, OS::getOnIdle() ? MF_CHECKED : 0, ID_USER_IDLE, "On Idle");
+  AppendMenu(hMenu, OS::getPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
   AppendMenu(hMenu, 0, ID_USER_ABOUT, "&About");
   AppendMenu(hMenu, 0, ID_USER_EXIT, "&Quit");
@@ -372,10 +358,9 @@ void Win32SysTray::popup(HWND hWnd) {
   // Make foreground, otherwise menu won't go away
   SetForegroundWindow(hWnd);
 
-  // TODO Blocking operation must not block app
   // Track the popup menu
-  TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_RIGHTBUTTON,
-                 point.x, point.y, 0, hWnd, 0);
+  TrackPopupMenu
+    (hMenu, TPM_RIGHTALIGN | TPM_RIGHTBUTTON, point.x, point.y, 0, hWnd, 0);
 
   // So the 2nd time the menu is displayed it wont disappear
   PostMessage(hWnd, WM_NULL, 0, 0);
@@ -383,5 +368,3 @@ void Win32SysTray::popup(HWND hWnd) {
   // Free menu
   DestroyMenu(hMenu);
 }
-
-#endif // _WIN32

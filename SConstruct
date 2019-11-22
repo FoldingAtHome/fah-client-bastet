@@ -46,8 +46,7 @@ conf.Finish()
 
 # Client
 Export('env')
-client, lib = \
-    SConscript('src/client.scons', variant_dir = 'build', duplicate = 0)
+client = SConscript('src/client.scons', variant_dir = 'build', duplicate = 0)
 Default(client)
 
 # Clean

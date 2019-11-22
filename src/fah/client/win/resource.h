@@ -39,3 +39,4 @@
 #define IDI_NORMAL         112
 #define IDI_INACTIVE       113
 #define IDI_FAILURE        114
+#define ID_UPDATE_TIMER    115

@@ -37,6 +37,8 @@
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
 
+#include <algorithm>
+
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -48,6 +50,20 @@ Units::Units(App &app) :
 }
 
 
+void Units::unitComplete(bool success) {
+  if (success) {
+    failures = 0;
+    waitUntil = 0;
+
+  } else {
+    failures++;
+    waitUntil = lastWU + pow(2, std::max(failures, 10U));
+  }
+
+  update();
+}
+
+
 void Units::update() {
   // Remove completed units
   for (unsigned i = 0; i < size();) {
@@ -55,6 +71,10 @@ void Units::update() {
     if (unit.getState() == UnitState::UNIT_DONE) erase(i);
     else i++;
   }
+
+  // Wait on failures
+  if (Time::now() < waitUntil)
+    return schedule(&Units::update, waitUntil - Time::now());
 
   // Get CPUs
   int32_t cpus = app.getConfig().getCPUs();
@@ -80,7 +100,9 @@ void Units::update() {
 
   // Create new unit
   if (0 < cpus) {
-    add(new Unit(app, cpus, gpus));
+    app.getDB("config").set("wus", ++wus);
+    add(new Unit(app, wus, cpus, gpus));
+    lastWU = Time::now();
     LOG_INFO(1, "Added new work unit");
   }
 }
@@ -88,7 +110,7 @@ void Units::update() {
 
 void Units::add(const SmartPointer<Unit> &unit) {
   append(unit);
-  unit->schedule(&Unit::next);
+  unit->triggerNext();
 }
 
 
@@ -103,6 +125,8 @@ void Units::setPause(bool pause, const string unitID) {
 
 
 void Units::load() {
+  wus = app.getDB("config").getInteger("wus", 0);
+
   app.getDB("units").foreach(
     [this] (const string &id, const string &data) {
       LOG_INFO(3, "Loading work unit " << id);

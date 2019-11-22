@@ -51,6 +51,7 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/gpu/GPUVendor.h>
 #include <cbang/time/Time.h>
+#include <cbang/time/TimeInterval.h>
 #include <cbang/util/Random.h>
 #include <cbang/json/Reader.h>
 
@@ -93,11 +94,13 @@ namespace {
 
 
 Unit::Unit(App &app) :
-  Event::Scheduler<Unit>(app.getEventBase()), app(app) {}
+  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint32_t cpus, const std::set<std::string> &gpus) :
-  Unit(app) {
+Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
+           const std::set<std::string> &gpus) : Unit(app) {
+  this->wu = wu;
+  insert("wu", wu);
   insert("cpus", cpus);
 
   auto l = createList();
@@ -112,6 +115,7 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   this->data = data->get("data");
   merge(*data->get("state"));
 
+  wu = getU64("wu", -1);
   id = idFromSig64(this->data->selectString("request.signature"));
   setState(UNIT_CORE);
 }
@@ -134,32 +138,57 @@ void Unit::setPause(bool pause) {
   if (pause && process.isSet() && process->isRunning())
     process->interrupt();
 
-  if (!pause) schedule(&Unit::next);
+  if (!pause) triggerNext();
   save();
 }
 
 
-string Unit::getLogPrefix() const {return id.substr(0, 12) + ":";}
+string Unit::getLogPrefix() const {
+  return String::printf("WU%llu:", wu);
+}
 
 
 string Unit::getWSBaseURL() const {
   string addr = data->selectString("assignment.data.ws");
-  int port = app.getOptions()["ws-port"].toInteger();
+  uint32_t port = data->selectU32("assignment.data.port");
   string portStr = port == 80 ? "" : (":" + String(port));
   return "http://" + addr + portStr + "/api";
 }
 
 
 uint64_t Unit::getDeadline() const {
-  return Time(data->selectString("assignment.data.deadline"));
+  return Time(data->selectString("assignment.data.time")) +
+    data->selectU64("assignment.data.deadline");
 }
 
 
-bool Unit::isExpired() const {return getDeadline() < Time::now();}
+bool Unit::isExpired() const {
+  switch (getState()) {
+  case UNIT_ASSIGN:
+  case UNIT_CLEAN:
+  case UNIT_DONE:
+    return false;
+
+  default: return getDeadline() < Time::now();
+  }
+}
+
+
+void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
 
 void Unit::next() {
-  if (isPaused()) return;
+  if (isPaused() && getState() != UNIT_CLEAN) return;
+
+  // Handle event backoff
+  if (getState() != UNIT_DONE && wait && Time::now() < wait)
+    return triggerNext(wait - Time::now());
+
+  // Check if WU has expired
+  if (isExpired()) {
+    LOG_INFO(1, "Unit expired, deleting");
+    setState(UNIT_CLEAN);
+  }
 
   try {
     switch (getState()) {
@@ -171,9 +200,11 @@ void Unit::next() {
     case UNIT_CLEAN:    clean();    break;
     case UNIT_DONE:                 break;
     }
+
+    return;
   } CATCH_ERROR;
 
-  // TODO Handle retry
+  retry();
 }
 
 
@@ -200,13 +231,13 @@ void Unit::getCore() {
       if (core->isInvalid()) {
         LOG_INFO(1, "Failed to download core");
         dump();
-        schedule(&Unit::next);
+        triggerNext();
       }
 
       if (core->isReady()) {
         setState(
           (data->has("results") || data->has("dump")) ? UNIT_UPLOAD : UNIT_RUN);
-        schedule(&Unit::next);
+        triggerNext();
       }
     };
 
@@ -215,6 +246,8 @@ void Unit::getCore() {
 
 
 void Unit::run() {
+  if (process.isSet()) return monitor();
+
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
     LOG_ERROR("Missing WU data");
@@ -289,7 +322,7 @@ void Unit::run() {
   logCopier = new TailFileToLog(logFile, getLogPrefix());
   logCopier->start();
 
-  schedule(&Unit::monitor);
+  triggerNext();
 
   insert("assignment", data->select("assignment.data"));
   insert("wu", data->select("wu.data"));
@@ -398,19 +431,17 @@ bool Unit::finalizeRun() {
 
 
 void Unit::monitor() {
-  if (!process.isSet()) return;
-
   if (process->isRunning()) {
     TRY_CATCH_ERROR(readInfo());
     if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
     if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
 
-    schedule(&Unit::monitor, 1);
+    triggerNext(1);
 
   } else {
     if (finalizeRun()) readResults();
     save();
-    schedule(&Unit::next);
+    triggerNext();
   }
 }
 
@@ -434,7 +465,21 @@ void Unit::clean() {
   } CATCH_ERROR;
 
   setState(UNIT_DONE);
-  app.getUnits().update();
+  app.getUnits().unitComplete(success);
+}
+
+
+void Unit::retry() {
+  if (++retries < 10) {
+    double delay = pow(2, retries);
+    wait = Time::now() + delay;
+    LOG_INFO(1, "Retrying in " << TimeInterval(delay));
+
+  } else {
+    retries = 0;
+    wait = 0;
+    setState(UNIT_CLEAN);
+  }
 }
 
 
@@ -494,8 +539,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.beginDict();
 
   // Protect against replay
-  sink.insert("time",  Time().toString()); // TODO use measured AS time offset
-  sink.insert("nonce", Random::instance().rand<uint16_t>());
+  // TODO apply measured AS time offset
+  sink.insert("time",           Time().toString());
+  sink.insert("wu",             getU64("wu"));
 
   // Client
   sink.insert("version",        app.getVersion().toString());
@@ -618,13 +664,15 @@ void Unit::download() {
 
 
 void Unit::uploadResponse(const JSON::ValuePtr &data) {
-  LOG_INFO(1, "Credit " << *data);
+  LOG_INFO(1, "Credited");
   setState(UNIT_CLEAN);
-  app.getUnits().update();
+  success = true;
 
-  // TODO Check signature
-
-  // TODO Log credit
+  // Log credit record
+  try {
+    SystemUtilities::ensureDirectory("credits");
+    data->write(*SystemUtilities::oopen("credits/" + getID() + ".json"));
+  } CATCH_ERROR;
 }
 
 
@@ -658,18 +706,19 @@ void Unit::response(Event::Request &req) {
 
       // Handle HTTP reponse codes
       switch (req.getResponseCode()) {
-      case HTTP_SERVICE_UNAVAILABLE: // TODO retry
-      case HTTP_BAD_REQUEST: // TODO stop this WU
-      case HTTP_NOT_ACCEPTABLE:
-      case HTTP_GONE:
-      default: setState(UNIT_CLEAN); break;
+      case HTTP_SERVICE_UNAVAILABLE: retry(); break;
+
+      case HTTP_BAD_REQUEST: case HTTP_NOT_ACCEPTABLE: case HTTP_GONE:
+      default:
+        setState(UNIT_CLEAN);
+        break;
       }
 
     } else
       switch (getState()) {
-      case UNIT_ASSIGN: assignResponse(req.getInputJSON()); break;
+      case UNIT_ASSIGN:   assignResponse(req.getInputJSON());   break;
       case UNIT_DOWNLOAD: downloadResponse(req.getInputJSON()); break;
-      case UNIT_UPLOAD: uploadResponse(req.getInputJSON()); break;
+      case UNIT_UPLOAD:   uploadResponse(req.getInputJSON());   break;
       default: THROW("Unexpected unit state " << getState());
       }
 
@@ -677,5 +726,5 @@ void Unit::response(Event::Request &req) {
     return;
   } CATCH_ERROR;
 
-  // TODO retry on error
+  retry();
 }

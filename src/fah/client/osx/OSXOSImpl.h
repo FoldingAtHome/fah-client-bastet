@@ -27,7 +27,10 @@
 \******************************************************************************/
 
 #pragma once
-#ifdef __APPLE__
+
+#include <fah/client/OS.h>
+
+#include <cbang/os/Thread.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
@@ -38,50 +41,49 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class OSXNotifications {
-      static OSXNotifications *singleton;
+    class OSXOSImpl : public OS, public cb::Thread {
+      static OSXOSImpl *singleton;
 
-      App &app;
+      bool systemIsIdle = false;
+      bool screensaverIsActive false;
+      bool screenIsLocked = false;
+      bool loginwindowIsActive = false;
 
-      bool systemIsIdle;
-      bool screensaverIsActive;
-      bool screenIsLocked;
-      bool loginwindowIsActive;
+      io_service_t displayWrangler = 0;
+      IONotificationPortRef displayNotePort = 0;
+      CFRunLoopSourceRef displayNoteSource = 0;
+      io_object_t displayNotifier = 0;
 
-      io_service_t displayWrangler;
-      IONotificationPortRef displayNotePort;
-      CFRunLoopSourceRef displayNoteSource;
-      io_object_t displayNotifier;
+      SCDynamicStoreRef consoleUserDS = 0;
+      CFRunLoopSourceRef consoleUserRLS = 0;
+      CFStringRef consoleUser = 0;
 
-      SCDynamicStoreRef consoleUserDS;
-      CFRunLoopSourceRef consoleUserRLS;
-      CFStringRef consoleUser;
+      CFRunLoopTimerRef updateTimer = 0;
 
-      CFRunLoopTimerRef updateTimer;
-
-      int idleDelay;
-      int currentDelay;
-      int idleOnLoginwindowDelay;
-      int displayPower;
+      int idleDelay = 5;
+      int currentDelay = 0;
+      int idleOnLoginwindowDelay = 30;
+      int displayPower = 0;
 
     public:
-      OSXNotifications(App &app);
+      OSXOSImpl(App &app);
+      ~OSXOSImpl();
 
-      static OSXNotifications &instance() {return *singleton;}
+      OSXOSImpl &instance() {return *singleton;}
 
+      void init();
+
+      // From OS
       bool isSystemIdle() const {return systemIsIdle;}
 
-      // init, update, shutdown must only be called from main thread
-      void init();
-      void update(); // normally does not return until app is quitting
-      void shutdown();
+      // From cb::Thread
+      void run();
 
-      // private callbacks
-      void consoleUserChanged(SCDynamicStoreRef store,
-                              CFArrayRef changedKeys,
-                              void *info);
-      void displayPowerChanged(void *context, io_service_t service,
-                               natural_t mtype, void *marg);
+      // Callbacks
+      void consoleUserChanged
+      (SCDynamicStoreRef store, CFArrayRef changedKeys, void *info);
+      void displayPowerChanged
+      (void *context, io_service_t service, natural_t mtype, void *marg);
       void finishInit();
       void updateTimerFired(CFRunLoopTimerRef timer, void *info);
 
@@ -98,5 +100,3 @@ namespace FAH {
     };
   }
 }
-
-#endif // __APPLE__
