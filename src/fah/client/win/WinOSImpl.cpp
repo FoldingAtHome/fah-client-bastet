@@ -95,8 +95,8 @@ namespace {
     VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
 
     // Perform the test
-    return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION,
-                             dwlConditionMask);
+    return VerifyVersionInfo
+      (&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
   }
 }
 
@@ -116,7 +116,7 @@ WinOSImpl::WinOSImpl(App &app) :
                     "Windows systray icon.");
   options.popCategory();
 
-  app.getEventBase().newEvent(this, &WinOSImpl::start, 0)->add();
+  app.getEventBase().newEvent(this, &WinOSImpl::start, 0)->activate();
 }
 
 
@@ -148,7 +148,7 @@ void WinOSImpl::init() {
   wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   wcex.lpszClassName = className;
 
-  if (RegisterClassEx(&wcex) == 0)
+  if (!RegisterClassEx(&wcex))
     THROW("Failed to register window class: " << SysError());
 
   // Create the systray window and hide it

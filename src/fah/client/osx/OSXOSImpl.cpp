@@ -124,7 +124,7 @@ OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser(CFSTR("unknown")) {
   if (singleton) THROW("There can be only one OSXOSImpl");
   singleton = this;
 
-  app.getEventBase().newEvent(this, &OSXOSImpl::start, 0)->add();
+  app.getEventBase().newEvent(this, &OSXOSImpl::start, 0)->activate();
 }
 
 
