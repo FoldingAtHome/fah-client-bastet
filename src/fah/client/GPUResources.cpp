@@ -50,7 +50,7 @@ namespace {
 
 
   template <typename LIB>
-  void match(GPUResources &gpus, const std::string &name) {
+  void match(GPUResources &gpus, const std::string &name) try {
     set<string> matched;
     auto &lib = LIB::instance();
 
@@ -65,7 +65,7 @@ namespace {
         matched.insert(gpu.getID());
         gpu.set(name, *it);
       }
-  }
+  } CATCH_ERROR;
 }
 
 
