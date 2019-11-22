@@ -75,7 +75,7 @@ namespace FAH {
 
     protected:
       void openWebControl();
-      void showAbout();
+      void showAbout(HWND hWnd);
       void updateIcon();
       void setSysTray(int icon, LPCTSTR tip);
       void popup(HWND hWnd);

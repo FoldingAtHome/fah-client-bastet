@@ -121,7 +121,7 @@ WinOSImpl::WinOSImpl(App &app) :
 
 
 WinOSImpl::~WinOSImpl() {
-  if (hWnd) DestroyWindow(hWnd);
+  if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
   Thread::join();
   singleton = 0;
 }
@@ -258,7 +258,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
     case ID_USER_LIGHT:      OS::setPower(Power::POWER_LIGHT);  return 0;
     case ID_USER_MEDIUM:     OS::setPower(Power::POWER_MEDIUM); return 0;
     case ID_USER_FULL:       OS::setPower(Power::POWER_FULL);   return 0;
-    case ID_USER_ABOUT:      showAbout();                       return 0;
+    case ID_USER_ABOUT:      showAbout(hWnd);                   return 0;
     case ID_USER_EXIT:       DestroyWindow(hWnd);               return 0;
     }
     break;
@@ -280,7 +280,7 @@ void WinOSImpl::openWebControl() {
 }
 
 
-void WinOSImpl::showAbout() {
+void WinOSImpl::showAbout(HWND hWnd) {
   string text = SSTR
     ("Folding@home Client\n\r"
      "Version " << getApp().getVersion() << "\n\r"
