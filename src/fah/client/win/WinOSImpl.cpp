@@ -129,6 +129,7 @@ WinOSImpl::~WinOSImpl() {
 
 WinOSImpl &WinOSImpl::instance() {
   if (!singleton) THROW("No WinOSImpl instance");
+  return *singleton;
 }
 
 
