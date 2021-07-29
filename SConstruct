@@ -3,8 +3,8 @@ import os
 env = Environment(ENV = os.environ)
 try:
     env.Tool('config', toolpath = [os.environ.get('CBANG_HOME')])
-except Exception, e:
-    raise Exception, 'CBANG_HOME not set?\n' + str(e)
+except Exception as e:
+    raise Exception('CBANG_HOME not set?\n' + str(e))
 
 env.CBLoadTools('compiler cbang dist build_info packager resources osx')
 
@@ -34,7 +34,7 @@ if not env.GetOption('clean'):
     # OSX
     if env['PLATFORM'] == 'darwin':
         if not conf.CheckOSXFramework('SystemConfiguration'):
-            raise Exception, 'Need SystemConfiguration framework'
+            raise Exception('Need SystemConfiguration framework')
 
     # Windows Systray
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
@@ -129,11 +129,11 @@ if 'package' in COMMAND_LINE_TARGETS:
         pkg_scripts        = 'install/osx/scripts',
         pkg_resources      = 'install/osx/Resources',
         pkg_distribution   = 'install/osx/distribution.xml',
-        pkg_files = [[str(client[0]), 'usr/local/bin/', 0755],
+        pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
                      ['install/osx/fahclient.url',
-                      'Applications/Folding@home/fahclient.url', 0644],
+                      'Applications/Folding@home/fahclient.url', 0o644],
                      ['install/osx/launchd.plist', 'Library/LaunchDaemons/' +
-                      'org.foldingathome.fahclient.plist', 0644]],
+                      'org.foldingathome.fahclient.plist', 0o644]],
     )
 
     AlwaysBuild(pkg)
