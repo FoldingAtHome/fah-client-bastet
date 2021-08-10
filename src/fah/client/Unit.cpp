@@ -143,7 +143,9 @@ void Unit::setPause(bool pause) {
 }
 
 
-string Unit::getLogPrefix() const {return String::printf("WU%llu:", wu);}
+string Unit::getLogPrefix() const {
+  return String::printf("WU%" PRIu64 ":", wu);
+}
 
 
 string Unit::getWSBaseURL() const {
