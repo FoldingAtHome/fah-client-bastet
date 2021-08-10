@@ -143,16 +143,15 @@ void Unit::setPause(bool pause) {
 }
 
 
-string Unit::getLogPrefix() const {
-  return String::printf("WU%llu:", wu);
-}
+string Unit::getLogPrefix() const {return String::printf("WU%llu:", wu);}
 
 
 string Unit::getWSBaseURL() const {
-  string addr = data->selectString("assignment.data.ws");
-  uint32_t port = data->selectU32("assignment.data.port");
-  string portStr = port == 80 ? "" : (":" + String(port));
-  return "http://" + addr + portStr + "/api";
+  string addr    = data->selectString("assignment.data.ws");
+  uint32_t port  = data->selectU32("assignment.data.port", 443);
+  string portStr = port == 443 ? "" : (":" + String(port));
+  string scheme  = (port == 443 || port == 8084) ? "https" : "http";
+  return scheme + "://" + addr + portStr + "/api";
 }
 
 
@@ -466,6 +465,9 @@ void Unit::clean() {
 
   setState(UNIT_DONE);
   app.getUnits().unitComplete(success);
+
+  // TODO when a WU gets cleaned and deleted it can still have outstanding
+  // Events that can seg-fault when they trigger.
 }
 
 
@@ -480,6 +482,10 @@ void Unit::retry() {
     wait = 0;
     setState(UNIT_CLEAN);
   }
+
+  insert("retries", retries);
+
+  next();
 }
 
 
@@ -594,8 +600,10 @@ void Unit::assign() {
   LOG_INFO(1, "Requesting WU assignment");
   LOG_DEBUG(3, *data);
 
-  // TODO use https
-  URI uri = "http://" + app.getNextAS().toString() + "/api/assign";
+  // TODO validate peer certificate
+  URI uri = "https://" + app.getNextAS().toString() + "/api/assign";
+
+  // TODO!!! cancel requests if the WU is deleted
   auto pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
                                  this, &Unit::response);
   auto writer = pr->getJSONWriter();
@@ -699,10 +707,18 @@ void Unit::upload() {
 
 void Unit::response(Event::Request &req) {
   try {
-    if (req.getConnectionError()) THROW("No response");
+    if (req.getConnectionError()) {
+      LOG_ERROR("Failed response: " << req.getConnectionError());
+      return retry();
+    }
 
     if (!req.isOk()) {
       LOG_ERROR(req.getResponseCode() << ": " << req.getInput());
+
+      try {
+        auto msg = req.getJSONMessage();
+        insert("error", msg->selectString("error.message"));
+      } CATCH_ERROR;
 
       // Handle HTTP reponse codes
       switch (req.getResponseCode()) {
@@ -714,13 +730,16 @@ void Unit::response(Event::Request &req) {
         break;
       }
 
-    } else
+    } else {
+      erase("error");
+
       switch (getState()) {
       case UNIT_ASSIGN:   assignResponse(req.getInputJSON());   break;
       case UNIT_DOWNLOAD: downloadResponse(req.getInputJSON()); break;
       case UNIT_UPLOAD:   uploadResponse(req.getInputJSON());   break;
       default: THROW("Unexpected unit state " << getState());
       }
+    }
 
     next();
     return;

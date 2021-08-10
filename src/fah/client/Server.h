@@ -35,6 +35,7 @@
 #include <cbang/openssl/SSLContext.h>
 
 #include <list>
+#include <set>
 
 
 namespace FAH {
@@ -47,6 +48,7 @@ namespace FAH {
       public cb::JSON::ObservableDict {
       App &app;
 
+      std::set<std::string> allowedOrigins;
       std::list<cb::SmartPointer<Remote> > clients;
 
     public:
@@ -58,9 +60,11 @@ namespace FAH {
       void remove(Remote &remote);
 
       // From cb::Event::WebServer
+      void init();
       cb::SmartPointer<cb::Event::Request> createRequest
       (cb::Event::RequestMethod method, const cb::URI &uri,
        const cb::Version &version);
+      bool handleRequest(const cb::SmartPointer<cb::Event::Request> &req);
 
       // From cb::JSON::Value
       void notify(std::list<cb::JSON::ValuePtr> &change);

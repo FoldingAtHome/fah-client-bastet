@@ -41,20 +41,28 @@ using namespace std;
 
 Server::Server(App &app) :
   Event::WebServer(app.getOptions(), app.getEventBase()), app(app) {
-  app.getOptions()["http-addresses"].setDefault("127.0.0.1:7397");
+  app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
 
   addMember(this, &Server::corsCB);
 }
 
 
 bool Server::corsCB(Event::Request &req) {
-  req.outSet("Access-Control-Allow-Origin",
-             "https://console.foldingathome.org");
-  req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
-  req.outSet("Access-Control-Allow-Credentials", "true");
-  req.outSet("Access-Control-Allow-Headers",
-             "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,"
-             "Content-Type,Range,Set-Cookie,Authorization");
+  if (req.inHas("Origin")) {
+    string origin = req.inGet("Origin");
+
+    if (allowedOrigins.find(origin) == allowedOrigins.end())
+      THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
+
+    req.outSet("Access-Control-Allow-Origin", origin);
+    req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
+    req.outSet("Access-Control-Allow-Credentials", "true");
+    req.outSet("Access-Control-Allow-Headers",
+               "DNT,User-Agent,X-Requested-With,"
+               "If-Modified-Since,Cache-Control,Content-Type,Range,"
+               "Set-Cookie,Authorization");
+    req.outSet("Vary", "Origin");
+  }
 
   if (req.getMethod() == HTTP_OPTIONS) {
     req.reply();
@@ -84,15 +92,39 @@ void Server::remove(Remote &remote) {
 }
 
 
+void Server::init() {
+  auto &options = app.getOptions();
+
+  // Allowed orgins
+  auto origins = options["allowed-origins"].toStrings();
+  for (unsigned i = 0; i < origins.size(); i++)
+    allowedOrigins.insert(origins[i]);
+
+  // Web root
+  if (options["web-root"].hasValue())
+    addHandler("/.*", options["web-root"]);
+
+  // Init
+  WebServer::init();
+}
+
+
 SmartPointer<Event::Request>
 Server::createRequest(Event::RequestMethod method, const URI &uri,
                       const Version &version) {
   if (method == HTTP_GET && uri.getPath() == "/api/websocket") {
+    LOG_DEBUG(3, "New websocket client");
     clients.push_back(new Remote(app, method, uri, version));
     return clients.back();
   }
 
   return Event::WebServer::createRequest(method, uri, version);
+}
+
+
+bool Server::handleRequest(const SmartPointer<Event::Request> &req) {
+  if (req->isWebsocket()) return true;
+  return Event::WebServer::handleRequest(req);
 }
 
 

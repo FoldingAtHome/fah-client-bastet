@@ -78,7 +78,7 @@ GPUResources::GPUResources(App &app) :
 
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
-  detect();
+  TRY_CATCH_ERROR(detect());
   schedule(&GPUResources::update, updateFreq);
 }
 

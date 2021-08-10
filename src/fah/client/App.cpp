@@ -66,7 +66,7 @@ namespace FAH {
 
 
 App::App() :
-  Application("Folding@home Client", App::_hasFeature), dns(base),
+  Application("Folding@home Client", App::_hasFeature), base(true), dns(base),
   client(base, dns, new SSLContext), server(new Server(*this)),
   gpus(new GPUResources(*this)), units(new Units(*this)),
   cores(new Cores(*this)), config(new Config(*this)), os(OS::create(*this)),
@@ -84,6 +84,15 @@ App::App() :
   options.add("open-web-control", "Make an operating system specific call to "
               "open the Web Control in a browser once client is fully loaded"
               )->setDefault(false);
+  options.add("allowed-origins", "Web origins (URLs) allowed to access this "
+              "client.  Only trused origins should be added.  Web pages at "
+              "added origins will be able to control the client.")
+    ->setDefault("https://console.foldingathome.org");
+  options.add("web-root", "Path to files to be served by the client's Web "
+              "server");
+  // TODO this will not work on macOS or Windows
+  options.add("ssl-ca-certificates", "Path to trusted SSL CA certificates file"
+    )->setDefault("/etc/ssl/certs/ca-certificates.crt");
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -103,7 +112,7 @@ App::App() :
   options["log-thread-prefix"].setDefault(true);
   options["log-short-level"].setDefault(true);
   options["log-rotate-max"].setDefault(16);
-  options["log-date-periodically"].setDefault(Time::SEC_PER_HOUR * 6);
+  options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
   base.newSignal(SIGINT, this, &App::signalEvent)->add();
@@ -269,7 +278,7 @@ void App::loadServers() {
   if (addresses.empty()) THROW("No assignment servers");
 
   for (auto it = addresses.begin(); it != addresses.end(); it++)
-    try {IPAddress::ipsFromString(*it, servers, 80);} CATCH_ERROR;
+    try {IPAddress::ipsFromString(*it, servers);} CATCH_ERROR;
 
   if (servers.empty())
     THROW("Failed to find any assignment servers IP addresses");
@@ -279,6 +288,11 @@ void App::loadServers() {
 void App::run() {
   // Libevent debugging
   if (options["debug-libevent"].toBoolean()) Event::Event::enableDebugLogging();
+
+  // Load root certs
+  string caCertsFile = options["ssl-ca-certificates"];
+  if (!caCertsFile.empty())
+    client.getSSLContext()->loadVerifyLocationsFile(caCertsFile);
 
   // Open DB
   LOG_INFO(1, "Opening Database");
@@ -294,6 +308,7 @@ void App::run() {
   server->insert("units",  units);
   server->insert("config", config);
   server->insert("info",   info);
+  // TODO Add access to log
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
