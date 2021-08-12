@@ -733,7 +733,7 @@ void Unit::response(Event::Request &req) {
       }
 
     } else {
-      erase("error");
+      if (has("error")) erase("error");
 
       switch (getState()) {
       case UNIT_ASSIGN:   assignResponse(req.getInputJSON());   break;

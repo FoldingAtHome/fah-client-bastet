@@ -37,12 +37,10 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/openssl/KeyPair.h>
 #include <cbang/openssl/Digest.h>
-#include <cbang/util/BZip2.h>
 #include <cbang/tar/Tar.h>
-#include <cbang/iostream/BZip2Decompressor.h>
+#include <cbang/iostream/CompressionFilter.h>
 
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
 namespace io = boost::iostreams;
 
 using namespace FAH::Client;
@@ -133,22 +131,22 @@ void Core::downloadResponse(const string &pkg) {
   io::filtering_istream stream;
   istringstream str(pkg);
 
-  // Decompress
+  // Get path
   string path = "cores" + URI(data->getString("url")).getPath();
-  if (String::endsWith(path, ".bz2")) {
-    stream.push(BZip2Decompressor());
-    path = path.substr(0, path.length() - 4);
 
-  } else if (String::endsWith(path, ".gz")) {
-    stream.push(io::zlib_decompressor());
-    path = path.substr(0, path.length() - 3);
+  // Decompress
+  Compression compression = compressionFromPath(path);
+  if (compression != COMPRESSION_NONE) {
+    pushDecompression(compression, stream);
+    path = SystemUtilities::removeExtension(path);
   }
 
   stream.push(str);
 
   // Unpack
   if (String::endsWith(path, ".tar")) {
-    path = path.substr(0, path.length() - 4);
+    path = SystemUtilities::removeExtension(path);
+    string base = SystemUtilities::basename(path);
 
     SystemUtilities::rmtree(path);
 
@@ -157,7 +155,17 @@ void Core::downloadResponse(const string &pkg) {
       tar.readHeader(stream);
       if (tar.isEOF()) break;
 
-      string filename = path + "/" + tar.getFilename();
+      switch (tar.getType()) {
+      case Tar::NORMAL_FILE: break;
+      case Tar::DIRECTORY: continue;
+      default: THROW("Unexpected file type in core package: " << tar.getType());
+      }
+
+      string filename = tar.getFilename();
+      if (!String::startsWith(filename, base + "/"))
+        THROW("Invalid file path in core package: " << filename);
+
+      filename = path + filename.substr(base.length());
       LOG_INFO(1, "Extracting " << filename);
       SystemUtilities::ensureDirectory(SystemUtilities::dirname(filename));
       tar.readFile(*SystemUtilities::oopen(filename, tar.getMode()), stream);
@@ -167,17 +175,14 @@ void Core::downloadResponse(const string &pkg) {
     if (!SystemUtilities::exists(filename))
       THROW("Core package tar missing " << filename);
 
-  } else {
-    SystemUtilities::rmtree(path);
-    SystemUtilities::ensureDirectory(path);
+  } else THROW("Expected tar file");
 
-    string filename = path + "/" + getFilename();
-    LOG_INFO(1, "Extracting " << filename);
-    SystemUtilities::cp(stream, *SystemUtilities::oopen(filename, 0644));
-  }
+  // Make executable
+  path += "/" + getFilename();
+  SystemUtilities::chmod(path, 0755);
 
   // Save
-  data->insert("path", path + "/" + getFilename());
+  data->insert("path", path);
   app.getDB("cores").set(getURL(), *data);
 
   schedule(&Core::ready);
@@ -213,7 +218,7 @@ void Core::response(Event::Request &req) {
     }
 
     case CORE_SIG:
-      sig = req.getInput();
+      sig = Base64().decode(req.getInput());
       state = CORE_DOWNLOAD;
       break;
 
