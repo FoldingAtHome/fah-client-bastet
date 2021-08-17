@@ -2,19 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ExitTimeOut</key>
+	<integer>20</integer>
 	<key>GroupName</key>
 	<string>nobody</string>
 	<key>KeepAlive</key>
-	<true/>
+	<false/>
 	<key>Label</key>
 	<string>org.foldingathome.fahclient</string>
+	<key>LaunchEvents</key>
+	<dict>
+		<key>com.apple.notifyd.matching</key>
+		<dict>
+			<key>fahclient on-demand launch request</key>
+			<dict>
+				<key>Notification</key>
+				<string>org.foldingathome.fahclient.nobody.start</string>
+			</dict>
+		</dict>
+	</dict>
 	<key>LowPriorityIO</key>
 	<true/>
+	<key>ProcessType</key>
+	<string>Standard</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/bin/FAHClient</string>
+		<string>/usr/local/bin/fah-client</string>
 	</array>
 	<key>RunAtLoad</key>
+	<true/>
+	<key>SessionCreate</key>
 	<true/>
 	<key>StandardOutPath</key>
 	<string>/dev/null</string>

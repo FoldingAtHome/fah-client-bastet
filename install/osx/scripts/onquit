@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# fah-client-bastet onquit
+
 if [ "$1" != "--delayed-action" ]; then
   "$0" --delayed-action "$@" &
   exit 0

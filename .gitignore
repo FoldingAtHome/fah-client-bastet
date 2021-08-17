@@ -21,18 +21,24 @@
 *.app
 
 # Build byproducts
-build
-package.txt
-dist.txt
+/build
+/package.txt
+/package-description.txt
+/dist.txt
 /fahclient
+/fah-client
 /*.pkg
+/*.pkg.zip
+/*.mpkg.zip
+/*.tar.bz2
 
 # generic files to ignore
 *~
 *.lock
-*.DS_Store
+.DS_Store
 *.swp
 *.out
+/tmp
 
 # Backup files
 *~
@@ -42,11 +48,12 @@ dist.txt
 .sconsign.dblite
 config.log
 
+# client testing byproducts
 /config.xml
-/package-description.txt
 /log.txt
 /client.db
 /gpus.json
+/configs
 /logs
 /work
 /cores

@@ -315,12 +315,18 @@ void App::run() {
     SystemUtilities::openURI("https://console.foldingathome.org/");
 
   // Event loop
-  base.dispatch();
+  os->dispatch();
 
   LOG_INFO(1, "Clean exit");
 }
 
 
 void App::signalEvent(Event::Event &e, int signal, unsigned flags) {
+  requestExit();
+}
+
+
+void App::requestExit() {
+  Application::requestExit();
   base.loopExit();
 }

@@ -34,6 +34,7 @@
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/event/Base.h>
+#include <cbang/event/Event.h>
 
 #include <IOKit/IOMessage.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -41,6 +42,10 @@
 #include <IOKit/pwr_mgt/IOPMLib.h>
 
 #include <limits>
+#include <xpc/xpc.h>
+#include <pthread.h>
+#include <pwd.h>
+#include <unistd.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -58,28 +63,53 @@ enum {
 };
 
 
-extern "C" {
-  static void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
+namespace {
+
+#pragma mark c callbacks
+
+  void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
+    LOG_DEBUG(5, "consoleUserCB on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().consoleUserChanged(s, keys, info);
   }
 
-
-  static void displayPowerCB(void *ctx, io_service_t service,
+  void displayPowerCB(void *ctx, io_service_t service,
                              natural_t mtype, void *marg) {
+    LOG_DEBUG(5, "displayPowerCB on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
   }
 
-
-  static void finishInitTimerCB(CFRunLoopTimerRef timer, void *info) {
+  void finishInitTimerCB(CFRunLoopTimerRef timer, void *info) {
+    LOG_DEBUG(5, "finishInitTimerCB on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
+    CFRunLoopTimerInvalidate(timer); // in case it would repeat
     OSXOSImpl::instance().finishInit();
   }
 
-
-  static void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
+  void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
+    LOG_DEBUG(5, "updateTimerCB on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().updateTimerFired(timer, info);
   }
+
+  void heartbeatTimerCB(CFRunLoopTimerRef timer, void *info) {
+    LOG_DEBUG(5, "heartbeat on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
+  }
+
+  void noteQuitCB(CFNotificationCenterRef center, void *observer,
+    CFNotificationName name, const void *object, CFDictionaryRef info) {
+    LOG_DEBUG(5, "noteQuitCB on thread "  << pthread_self() <<
+      (pthread_main_np() ? " main" : ""));
+    std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
+    LOG_INFO(3, "Received notification " << n);
+    OSXOSImpl::instance().requestExit();
+  }
+
 }
 
+#pragma mark c functions
 
 static unsigned getIdleSeconds() {
   // copied from PowerManagement, without throttling
@@ -117,12 +147,15 @@ static unsigned getIdleSeconds() {
 }
 
 
+#pragma mark class OSXOSImpl
+
 OSXOSImpl *OSXOSImpl::singleton = 0;
 
 
 OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser(CFSTR("unknown")) {
   if (singleton) THROW("There can be only one OSXOSImpl");
   singleton = this;
+  initialize();
 
   app.getEventBase().newEvent(this, &OSXOSImpl::start, 0)->activate();
 }
@@ -160,6 +193,9 @@ OSXOSImpl::~OSXOSImpl() {
   }
 
   if (consoleUser) CFRelease(consoleUser);
+
+  CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
+  CFNotificationCenterRemoveEveryObserver(nc, this);
 }
 
 
@@ -170,27 +206,107 @@ OSXOSImpl &OSXOSImpl::instance() {
 
 
 void OSXOSImpl::init() {
+  // init subthread in run
+  threadRunLoop = CFRunLoopGetCurrent();
+  // add heartbeat timer to keep runloop from exiting early
+  addHeartbeatTimerToRunLoop(threadRunLoop);
+}
+
+
+void OSXOSImpl::initialize() {
   if (!registerForDisplayPowerNotifications())
     LOG_ERROR("Failed to register for display power changes");
 
   if (!registerForConsoleUserNotifications())
     LOG_ERROR("Failed to register for console user changes");
 
+  registerForLaunchEvents(); // should never fail
+
+  if (!registerForDarwinNotifications())
+    LOG_ERROR("Failed to register for darwin notifications");
+
   // finish init in a timer callback, we so can't have stale values
+  // a timer sometimes never fires if the start date is missed
   CFRunLoopTimerRef timer =
-    CFRunLoopTimerCreate(0, 0, 0, 0, 0, finishInitTimerCB, 0);
+    CFRunLoopTimerCreate(0, CFAbsoluteTimeGetCurrent() + 10, 5,
+      0, 0, finishInitTimerCB, 0);
 
   if (timer) {
     CFRunLoopAddTimer(CFRunLoopGetMain(), timer, kCFRunLoopDefaultMode);
+    CFRelease(timer);
+  } else
+    finishInit();
+
+  addHeartbeatTimerToRunLoop(CFRunLoopGetMain());
+}
+
+
+void OSXOSImpl::addHeartbeatTimerToRunLoop(CFRunLoopRef loop) {
+  // note this may fail silently
+  if (loop == NULL)
+    return;
+  CFRunLoopTimerRef timer =
+    CFRunLoopTimerCreate(0, 0, 600, 0, 0, heartbeatTimerCB, 0);
+  if (timer) {
+    CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
     CFRelease(timer);
   }
 }
 
 
+void OSXOSImpl::dispatch() {
+  // integrate cb::Event (libevent) and CFRunLoop
+  // this is meant for main thread, but should work for any
+  // toss libevent loop to another thread so CFRunLoop can use this thread
+  // catch any exception and re-throw in calling thread
+  // uncaught exceptions in a dispatched block will terminate the program
+  CFRunLoopRef rloop = CFRunLoopGetCurrent();
+  // create a serial queue
+  dispatch_queue_t queue = dispatch_queue_create(NULL, 0);
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block bool did_raise = false;
+  __block cb::Exception the_exception;
+  if (queue == NULL) {
+    // out of memory! use a global concurrent queue
+    queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_retain(queue); // probably not needed
+  }
+  dispatch_async(queue, ^{
+    //sleep(10); // for testing CFRunLoop alone for a while
+    try {
+      //throw Exception("test cb::Exception");
+      getApp().getEventBase().dispatch();
+    } catch (Exception &e) {
+      // TODO more catch exception types
+      did_raise = true;
+      the_exception = e;
+      LOG_DEBUG(5, "Exception in dispatched block: " << e);
+    }
+    // stop the caller thread run loop
+    CFRunLoopStop(rloop);
+    // signal this block is done
+    dispatch_semaphore_signal(semaphore);
+  });
+  CFRunLoopRun();
+  // wait for event_base_dispatch() to finish
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (semaphore) dispatch_release(semaphore);
+  if (queue) dispatch_release(queue);
+  if (did_raise)
+    throw the_exception;
+}
+
+
 void OSXOSImpl::run() {
   init();
+  CFRunLoopRun();
+}
 
-  CFRunLoopRunInMode(kCFRunLoopDefaultMode, 5, false);
+
+void OSXOSImpl::stop() {
+  Thread::stop();
+  if (threadRunLoop)
+    CFRunLoopStop(threadRunLoop);
 }
 
 
@@ -480,4 +596,60 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
 
   // Initial consoleUser value will be set in finishInit
   return ok;
+}
+
+
+bool OSXOSImpl::registerForDarwinNotifications() {
+  bool isok = false;
+  CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
+  void *observer = this;
+  CFStringRef name = NULL;
+  std::string base;
+  std::string user = "nobody";
+  std::string n;
+
+  if (nc == NULL) return false;
+
+  struct passwd *pwent = getpwuid(getuid());
+  if (pwent && pwent->pw_name)
+    user = pwent->pw_name;
+
+  base = "org.foldingathome.fahclient." + user + ".";
+
+  n = base + "stop";
+  name = CFStringCreateWithCString(NULL, n.c_str(), kCFStringEncodingUTF8);
+  if (name) {
+    CFNotificationCenterAddObserver(nc, observer,
+        &noteQuitCB, name, NULL,
+        CFNotificationSuspensionBehaviorCoalesce);
+    CFRelease(name);
+    isok = true;
+    LOG_DEBUG(1, "listening for notification " << n);
+  }
+
+  return isok;
+}
+
+
+bool OSXOSImpl::registerForLaunchEvents() {
+  // register for xpc launchd.plist LaunchEvents
+  // this MUST be done if launchd might have LaunchEvents for us
+  // because we never un-register, it's important to not use OSXOSImpl
+  dispatch_queue_t q = dispatch_get_main_queue();
+  xpc_set_event_stream_handler(
+      "com.apple.iokit.matching", q,
+      ^(xpc_object_t event) {
+          const char *ename = xpc_dictionary_get_string(event, XPC_EVENT_KEY_NAME);
+          // DO NOTHING but consume event
+          LOG_INFO(5, "LaunchEvents IO: " << ename);
+      });
+  xpc_set_event_stream_handler(
+      "com.apple.notifyd.matching", q,
+      ^(xpc_object_t event) {
+          //const char *ename = xpc_dictionary_get_string(event, XPC_EVENT_KEY_NAME);
+          const char *nname = xpc_dictionary_get_string(event, "Notification");
+          // DO NOTHING but consume event
+          LOG_INFO(5, "LaunchEvents notification: " << nname);
+      });
+  return true;
 }
