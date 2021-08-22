@@ -37,6 +37,7 @@ namespace FAH {
                   public cb::Event::Scheduler<Units> {
       App &app;
 
+      bool isConfigLoaded = false;
       uint64_t wus = 0;
       uint64_t lastWU = 0;
       uint32_t failures = 0;
