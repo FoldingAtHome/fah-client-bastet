@@ -67,7 +67,7 @@ void Units::unitComplete(bool success) {
 void Units::update() {
   
   // First load the already existing wus
-  if(!isConfigLoaded) return;
+  if (!isConfigLoaded) return;
 
   // Remove completed units
   for (unsigned i = 0; i < size();) {
