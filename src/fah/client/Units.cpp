@@ -65,6 +65,10 @@ void Units::unitComplete(bool success) {
 
 
 void Units::update() {
+  
+  // First load the already existing wus
+  if (!isConfigLoaded) return;
+
   // Remove completed units
   for (unsigned i = 0; i < size();) {
     auto &unit = *get(i).cast<Unit>();
@@ -135,5 +139,8 @@ void Units::load() {
       } CATCH_ERROR;
     });
 
+  isConfigLoaded = true;
+  LOG_INFO(3, "Loaded already existing wus: " << wus);
+  
   if (empty()) update();
 }
