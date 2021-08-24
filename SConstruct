@@ -15,7 +15,7 @@ env.CBAddVariables(
 conf = env.CBConfigure()
 
 # Config vars
-version = '8.0.0'
+version = open('version.txt', 'r').read().strip()
 env.Replace(RESOURCES_NS      = 'FAH::Client')
 env.Replace(BUILD_INFO_NS     = 'FAH::Client::BuildInfo')
 env.Replace(PACKAGE_VERSION   = version)
