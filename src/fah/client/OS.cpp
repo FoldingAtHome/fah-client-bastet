@@ -59,6 +59,7 @@ SmartPointer<OS> OS::create(App &app) {
 
 void OS::requestExit() {app.requestExit();}
 
+void OS::dispatch() {app.getEventBase().dispatch();}
 
 void OS::setOnIdle(bool onIdle) {}
 bool OS::getOnIdle() const {return false;}

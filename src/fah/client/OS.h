@@ -47,6 +47,7 @@ namespace FAH {
       App &getApp() {return app;}
 
       virtual bool isSystemIdle() const = 0;
+      virtual void dispatch();
 
       void requestExit();
 

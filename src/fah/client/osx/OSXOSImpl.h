@@ -45,7 +45,7 @@ namespace FAH {
       static OSXOSImpl *singleton;
 
       bool systemIsIdle = false;
-      bool screensaverIsActive false;
+      bool screensaverIsActive = false;
       bool screenIsLocked = false;
       bool loginwindowIsActive = false;
 
@@ -58,6 +58,7 @@ namespace FAH {
       CFRunLoopSourceRef consoleUserRLS = 0;
       CFStringRef consoleUser = 0;
 
+      CFRunLoopRef threadRunLoop = 0;
       CFRunLoopTimerRef updateTimer = 0;
 
       int idleDelay = 5;
@@ -69,15 +70,15 @@ namespace FAH {
       OSXOSImpl(App &app);
       ~OSXOSImpl();
 
-      OSXOSImpl &instance() {return *singleton;}
-
-      void init();
+      static OSXOSImpl &instance();
 
       // From OS
       bool isSystemIdle() const {return systemIsIdle;}
+      void dispatch();
 
       // From cb::Thread
       void run();
+      void stop();
 
       // Callbacks
       void consoleUserChanged
@@ -88,8 +89,13 @@ namespace FAH {
       void updateTimerFired(CFRunLoopTimerRef timer, void *info);
 
     protected:
+      void init();
+      void initialize();
+      void addHeartbeatTimerToRunLoop(CFRunLoopRef loop);
       bool registerForConsoleUserNotifications();
+      bool registerForDarwinNotifications();
       bool registerForDisplayPowerNotifications();
+      bool registerForLaunchEvents();
       void updateSystemIdle();
       void delayedUpdateSystemIdle(int delay = -1);
       void displayDidDim();

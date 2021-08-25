@@ -126,6 +126,7 @@ namespace FAH {
 
       // From cb::Application
       void run();
+      void requestExit();
 
       void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
     };

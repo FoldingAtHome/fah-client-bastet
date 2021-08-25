@@ -1,23 +1,6 @@
 #!/bin/bash -e
-#
-# Scripts: preinstall, preupgrade, postflight, postupgrade, postinstall
-#
-# Arguments passed by installer:
-#   $1: full path to the installation package
-#   $2: full path to the installation destination
-#   $3: mountpoint of the destination volume
-#   $4: root directory "/" for the current System folder
-#
-# Environment variables available to a postflight executable:
-#   $INSTALLER_TEMP: scratch area used by Installer for temporary work file
-#   $PACKAGE_PATH: full path to the installation package; should be same as $1
-#   $RECEIPT_PATH: full path to directory containing the file being executed
-#   $SCRIPT_NAME: name of the file being executed
-#   $TMPDIR: if set, a path to a location on a writable destination volume
-#
-# $PACKAGE_PATH is not available in preflight
-# $RECEIPT_PATH is not available in preflight or preinstall
-# $SCRIPT_NAME is not available in preflight or preinstall
+
+# fah-client-bastet preinstall
 
 # Unload any launchd jobs
 OLD_LAUNCHD="/Library/LaunchDaemons/FAHClient.plist"
@@ -46,10 +29,5 @@ fi
 # even though it will be overwritten, move so any Dock alias might still work
 F1="/Applications/FAHClient.url"
 F2="/Applications/Folding@home/Web Control.url"
-if [ -f "$F1" ]; then
-  if [ -f "$F2" ]; then
-    rm -f "$F1"
-  else
-    mv "$F1" "$F2"
-  fi
-fi
+[ -f "$F1" ] && rm -f "$F1" || true
+[ -f "$F2" ] && rm -f "$F2" || true

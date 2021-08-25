@@ -138,6 +138,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     AlwaysBuild(pkg)
     env.Alias('package', pkg)
+    Clean(pkg, ['build/pkg', 'package.txt', 'package-description.txt'])
 
     with open('package-description.txt', 'w') as f:
         f.write(short_description.strip())
