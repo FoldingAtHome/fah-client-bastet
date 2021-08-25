@@ -1,5 +1,6 @@
 # Setup
 import os
+import json
 env = Environment(ENV = os.environ)
 try:
     env.Tool('config', toolpath = [os.environ.get('CBANG_HOME')])
@@ -14,8 +15,11 @@ env.CBAddVariables(
 
 conf = env.CBConfigure()
 
+with open('package.json', 'r') as f:
+  package_info = json.load(f)
+
 # Config vars
-version = '8.0.0'
+version = package_info['version']
 env.Replace(RESOURCES_NS      = 'FAH::Client')
 env.Replace(BUILD_INFO_NS     = 'FAH::Client::BuildInfo')
 env.Replace(PACKAGE_VERSION   = version)
@@ -64,14 +68,7 @@ description = \
 resources of volunteers.
 '''
 
-short_description = '''
-This package contains the Folding@home client software which downloads and runs
-Folding@home simulation work units.  Finished work units are returned to the
-Folding@home servers for points.  Fold on your own or in a team.  Compete with
-folders around the world to earn the most points while contributing to science.
-
-Monitor and control the client via your browser by visiting
-https://console.foldingathome.org/'''
+short_description = package_info.get('description', 'Folding@home client software')
 
 description += short_description
 
@@ -86,7 +83,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     # Package
     pkg = env.Packager(
-        'fah-client',
+        package_info.get('name', 'fah-client'),
 
         version            = version,
         maintainer         = env['PACKAGE_AUTHOR'],
@@ -94,7 +91,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         url                = env['PACKAGE_HOMEPAGE'],
         license            = 'copyright',
         bug_url            = 'https://github.com/FoldingAtHome/fah-client',
-        summary            = 'Folding@home Client',
+        summary            = 'Folding@home Client ' + version,
         description        = description,
         short_description  = short_description,
         prefix             = '/usr',
