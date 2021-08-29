@@ -162,7 +162,8 @@ OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser(CFSTR("unknown")) {
 
 
 OSXOSImpl::~OSXOSImpl() {
-  singleton = 0;
+  // stop subthread
+  stop();
 
   // Stop any update timer
   if (updateTimer) {
@@ -196,6 +197,9 @@ OSXOSImpl::~OSXOSImpl() {
 
   CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
   CFNotificationCenterRemoveEveryObserver(nc, this);
+
+  Thread::join();
+  singleton = 0;
 }
 
 
