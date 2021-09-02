@@ -51,7 +51,7 @@ namespace {
 
 GPUResource::GPUResource(App &app, const cb::GPU &gpu,
                          const cb::PCIDevice &pci) :
-  app(app), id(makeID(pci)), gpu(gpu), pci(pci) {
+  id(makeID(pci)), gpu(gpu), pci(pci) {
 
   insert("type", String::toLower(gpu.getType().toString()));
   insert("description", gpu.getDescription());

@@ -42,8 +42,6 @@ namespace FAH {
     class App;
 
     class GPUResource : public cb::JSON::ObservableDict {
-      App &app;
-
       std::string id;
 
       cb::GPU gpu;
@@ -65,6 +63,7 @@ namespace FAH {
       const cb::ComputeDevice &getCUDA() const {return cuda;}
       const cb::ComputeDevice &getOpenCL() const {return opencl;}
 
+      using cb::JSON::ObservableDict::set;
       void set(const std::string &name, const cb::ComputeDevice &cd);
 
       void writeRequest(cb::JSON::Sink &sink) const;
