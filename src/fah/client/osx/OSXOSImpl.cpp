@@ -47,6 +47,8 @@
 #include <pwd.h>
 #include <unistd.h>
 
+#include <fah/screen-agent/defines.h>
+
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -61,6 +63,9 @@ enum {
 
 
 namespace {
+  CFStringRef kScreenIdle    = CFSTR(SCREEN_IDLE_NOTIFICATION);
+  CFStringRef kScreenNotIdle = CFSTR(SCREEN_NOT_IDLE_NOTIFICATION);
+
 #pragma mark c callbacks
   void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
     OSXOSImpl::instance().consoleUserChanged(s, keys, info);
@@ -85,6 +90,20 @@ namespace {
     LOG_INFO(3, "Received notification "
              << CFStringGetCStringPtr(name, kCFStringEncodingUTF8));
     OSXOSImpl::instance().requestExit();
+  }
+
+
+  void screenIdleCB(CFNotificationCenterRef center, void *observer,
+                  CFNotificationName name, const void *object,
+                  CFDictionaryRef info) {
+    OSXOSImpl::instance().noteScreenIdle();
+  }
+
+
+  void screenNotIdleCB(CFNotificationCenterRef center, void *observer,
+                  CFNotificationName name, const void *object,
+                  CFDictionaryRef info) {
+    OSXOSImpl::instance().noteScreenNotIdle();
   }
 }
 
@@ -188,9 +207,10 @@ void OSXOSImpl::finishInit() {
 
 
 void OSXOSImpl::updateSystemIdle() {
-  bool shouldBeIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
-    screensaverIsActive || screenIsLocked;
-
+  bool shouldBeIdle;
+  if (gotScreenNotIdleRecently()) shouldBeIdle = false;
+  else shouldBeIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
+    gotScreenIdleRecently();
   if (shouldBeIdle == systemIsIdle) return;
   systemIsIdle = shouldBeIdle;
 
@@ -416,9 +436,56 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
 }
 
 
+void OSXOSImpl::noteScreenIdle() {
+  screenIdleExpiry =
+   dispatch_time(DISPATCH_TIME_NOW, SCREEN_NOTIFICATION_EXPIRES * NSEC_PER_SEC);
+  bool wasIdle = screenIdle;
+  screenIdle = true;
+  dispatch_after(screenIdleExpiry + NSEC_PER_SEC, dispatch_get_main_queue(), ^{
+    updateSystemIdle();
+  });
+  if (!wasIdle) delayedUpdateSystemIdle(5);
+}
+
+
+void OSXOSImpl::noteScreenNotIdle() {
+  screenNotIdleExpiry =
+   dispatch_time(DISPATCH_TIME_NOW, SCREEN_NOTIFICATION_EXPIRES * NSEC_PER_SEC);
+  screenNotIdle = true;
+  dispatch_after(screenNotIdleExpiry + NSEC_PER_SEC,dispatch_get_main_queue(),^{
+    updateSystemIdle();
+  });
+  updateSystemIdle();
+}
+
+
+bool OSXOSImpl::gotScreenIdleRecently() {
+  if (!screenIdle) return false;
+  if (dispatch_time(DISPATCH_TIME_NOW, 0) < screenIdleExpiry) return true;
+  screenIdle = false;
+  return false;
+}
+
+
+bool OSXOSImpl::gotScreenNotIdleRecently() {
+  if (!screenNotIdle) return false;
+  if (dispatch_time(DISPATCH_TIME_NOW, 0) < screenNotIdleExpiry) return true;
+  screenNotIdle = false;
+  return false;
+}
+
+
 bool OSXOSImpl::registerForDarwinNotifications() {
   CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
   if (!nc) return false;
+
+  CFNotificationCenterAddObserver(
+    nc, (void *)this, &screenIdleCB, kScreenIdle, 0,
+    CFNotificationSuspensionBehaviorCoalesce);
+
+  CFNotificationCenterAddObserver(
+    nc, (void *)this, &screenNotIdleCB, kScreenNotIdle, 0,
+    CFNotificationSuspensionBehaviorCoalesce);
 
   string user = "nobody";
   struct passwd *pwent = getpwuid(getuid());
