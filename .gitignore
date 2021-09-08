@@ -21,6 +21,7 @@
 *.app
 
 # Build byproducts
+/bin
 /build
 /package.txt
 /package-description.txt
