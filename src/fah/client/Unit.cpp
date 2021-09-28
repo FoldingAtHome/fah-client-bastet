@@ -638,6 +638,9 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
   string wuData = Base64().decode(data->getString("data"));
   data->erase("data"); // Don't save WU data to DB
 
+  // Log it
+  LOG_DEBUG(3, *data);
+
   // Check data hash
   if (wu->getString("sha256") != Digest::base64(wuData, "sha256"))
     THROW("WU data hash does not match");

@@ -65,7 +65,6 @@ void Units::unitComplete(bool success) {
 
 
 void Units::update() {
-  
   // First load the already existing wus
   if (!isConfigLoaded) return;
 
@@ -141,6 +140,6 @@ void Units::load() {
 
   isConfigLoaded = true;
   LOG_INFO(3, "Loaded already existing wus: " << wus);
-  
+
   if (empty()) update();
 }
