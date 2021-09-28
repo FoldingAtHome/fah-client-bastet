@@ -117,6 +117,8 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 
   wu = getU64("wu", -1);
   id = idFromSig64(this->data->selectString("request.signature"));
+  insert("id", id);
+
   setState(UNIT_CORE);
 }
 
@@ -598,6 +600,7 @@ void Unit::assign() {
   string signature = app.getKey().signSHA256(data->toString());
 
   id = idFromSig(signature);
+  insert("id", id);
 
   LOG_INFO(1, "Requesting WU assignment");
   LOG_DEBUG(3, *data);
