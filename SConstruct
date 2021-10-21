@@ -24,7 +24,7 @@ env.Replace(RESOURCES_NS      = 'FAH::Client')
 env.Replace(BUILD_INFO_NS     = 'FAH::Client::BuildInfo')
 env.Replace(PACKAGE_VERSION   = version)
 env.Replace(PACKAGE_AUTHOR = 'Joseph Coffland <joseph@cauldrondevelopment.com>')
-env.Replace(PACKAGE_COPYRIGHT = '2019 foldingathome.org')
+env.Replace(PACKAGE_COPYRIGHT = '2021 foldingathome.org')
 env.Replace(PACKAGE_HOMEPAGE  = 'https://foldingathome.org/')
 env.Replace(PACKAGE_LICENSE   = 'https://www.gnu.org/licenses/gpl-3.0.txt')
 env.Replace(PACKAGE_ORG       = 'foldingathome.org')
@@ -68,7 +68,7 @@ description = \
 resources of volunteers.
 '''
 
-short_description = package_info.get('description', 'Folding@home client software')
+short_description = package_info.get('description', 'Folding@home client')
 
 description += short_description
 
@@ -101,6 +101,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         programs           = [str(client[0])],
         desktop_menu       = ['install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
+        platform_independent = ['install/lin/fah-client.service'],
 
         nsi                = 'install/win/fah-client.nsi',
         nsi_dll_deps       = [str(client[0])],
@@ -110,7 +111,8 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         deb_directory      = 'install/debian',
         deb_section        = 'science',
-        deb_depends        = 'debconf | debconf-2.0, libc6, bzip2, zlib1g',
+        deb_depends        = 'libc6',
+        deb_conflicts      = 'FAHClient',
         deb_pre_depends    = 'adduser',
         deb_priority       = 'optional',
 

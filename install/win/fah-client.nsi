@@ -3,7 +3,7 @@
 !define PROJECT_NAME            "Folding@home"
 !define DISPLAY_NAME            "Folding@home Client"
 
-!define WEB_CLIENT_URL          "https://console.foldingathome.org/"
+!define WEB_CLIENT_URL          "https://app.foldingathome.org/"
 
 !define CLIENT_NAME             "FAHClient"
 !define CLIENT_EXE              "FAHClient.exe"

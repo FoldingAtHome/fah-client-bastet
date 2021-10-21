@@ -87,7 +87,7 @@ App::App() :
   options.add("allowed-origins", "Web origins (URLs) allowed to access this "
               "client.  Only trused origins should be added.  Web pages at "
               "added origins will be able to control the client.")
-    ->setDefault("https://console.foldingathome.org");
+    ->setDefault("https://app.foldingathome.org");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server");
   // TODO this will not work on macOS or Windows
@@ -112,6 +112,7 @@ App::App() :
   options["log-thread-prefix"].setDefault(true);
   options["log-short-level"].setDefault(true);
   options["log-rotate-max"].setDefault(16);
+  options["log-rotate-dir"].setDefault("");
   options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
@@ -216,33 +217,8 @@ const IPAddress &App::getNextAS() {
 }
 
 
-const char *App::getOS() const {
-#ifdef _WIN32
-  return "win32";
-
-#elif __APPLE__
-  return "macosx";
-
-#else
-  // OS Type
-  string platform =
-    String::toLower(Info::instance().get(getName(), "Platform"));
-
-  // 'platform' is the string returned in Python by:
-  //   os.platform.lower() + ' ' + platform.release()
-  if (platform.find("linux")   != string::npos) return "linux";
-  if (platform.find("freebsd") != string::npos) return "freebsd";
-  if (platform.find("openbsd") != string::npos) return "openbsd";
-  if (platform.find("netbsd")  != string::npos) return "netbsd";
-  if (platform.find("solaris") != string::npos) return "solaris";
-#endif
-
-  return "unknown";
-}
-
-
 const char *App::getCPU() const {
-  // These are currently the only CPUs we support
+  // TODO support ARM64
   return sizeof(void *) == 4 ? "x86" : "amd64";
 }
 
@@ -250,7 +226,7 @@ const char *App::getCPU() const {
 void App::loadConfig() {
   // Info
   info->insert("version", getVersion().toString());
-  info->insert("os", getOS());
+  info->insert("os", os->getName());
   info->insert("cpu", getCPU());
   info->insert("cpus", SystemInfo::instance().getCPUCount());
   info->insert("gpus", gpus);
@@ -312,7 +288,7 @@ void App::run() {
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
-    SystemUtilities::openURI("https://console.foldingathome.org/");
+    SystemUtilities::openURI("https://app.foldingathome.org/");
 
   // Event loop
   os->dispatch();

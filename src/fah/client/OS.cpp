@@ -40,8 +40,11 @@
 
 #include <fah/client/App.h>
 
+#include <cbang/Info.h>
+
 using namespace FAH::Client;
 using namespace cb;
+using namespace std;
 
 
 SmartPointer<OS> OS::create(App &app) {
@@ -54,6 +57,31 @@ SmartPointer<OS> OS::create(App &app) {
 #else
   return new LinOSImpl(app);
 #endif
+}
+
+
+const char *OS::getName() const {
+#ifdef _WIN32
+  return "win32";
+
+#elif __APPLE__
+  return "macosx";
+
+#else
+  // OS Type
+  string platform =
+    String::toLower(Info::instance().get(app.getName(), "Platform"));
+
+  // 'platform' is the string returned in Python by:
+  //   os.platform.lower() + ' ' + platform.release()
+  if (platform.find("linux")   != string::npos) return "linux";
+  if (platform.find("freebsd") != string::npos) return "freebsd";
+  if (platform.find("openbsd") != string::npos) return "openbsd";
+  if (platform.find("netbsd")  != string::npos) return "netbsd";
+  if (platform.find("solaris") != string::npos) return "solaris";
+#endif
+
+  return "unknown";
 }
 
 

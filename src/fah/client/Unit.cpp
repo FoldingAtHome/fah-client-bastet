@@ -29,6 +29,7 @@
 #include "Unit.h"
 
 #include "App.h"
+#include "OS.h"
 #include "Server.h"
 #include "GPUResources.h"
 #include "Units.h"
@@ -181,17 +182,17 @@ void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
 
 void Unit::next() {
-  if (isPaused() && getState() != UNIT_CLEAN) return;
-
-  // Handle event backoff
-  if (getState() != UNIT_DONE && wait && Time::now() < wait)
-    return triggerNext(wait - Time::now());
-
   // Check if WU has expired
   if (isExpired()) {
     LOG_INFO(1, "Unit expired, deleting");
     setState(UNIT_CLEAN);
   }
+
+  if (isPaused() && getState() != UNIT_CLEAN) return;
+
+  // Handle event backoff
+  if (getState() != UNIT_DONE && wait && Time::now() < wait)
+    return triggerNext(wait - Time::now());
 
   try {
     switch (getState()) {
@@ -560,7 +561,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
   // OS
   sink.insertDict("os");
   sink.insert("version",        info.getOSVersion().toString());
-  sink.insert("type",           app.getOS());
+  sink.insert("type",           app.getOS().getName());
   sink.insert("memory",         info.getFreeMemory());
   sink.endDict();
 

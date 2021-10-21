@@ -33,4 +33,4 @@ elif [ "$USER" != "" ]; then
   SUDO="sudo -u $USER"
 fi
 SCRIPTS="$(dirname "$0")"
-"$SCRIPTS"/onquit $SUDO open https://console.foldingathome.org/
+"$SCRIPTS"/onquit $SUDO open https://app.foldingathome.org/

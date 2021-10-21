@@ -46,6 +46,8 @@ namespace FAH {
 
       App &getApp() {return app;}
 
+      const char *getName() const;
+
       virtual bool isSystemIdle() const = 0;
       virtual void dispatch();
 

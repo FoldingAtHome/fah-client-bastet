@@ -1,34 +1,14 @@
-#!/bin/sh
-set -e
+#!/bin/sh -e
 
-CLIENT_USER=fahclient
-CLIENT_HOME=/var/lib/fahclient
-CLIENT_ETC=/etc/fahclient
-CLIENT_NAME="Folding@home Client"
-
-if [ "$1" = "upgrade" ]; then
-    # Stop the service
-    invoke-rc.d FAHClient stop || true
-fi
+NAME=fah-client
 
 case "$1" in
-    install|upgrade)
-        # Create directories
-        test -d $CLIENT_HOME || mkdir $CLIENT_HOME
-        test -d $CLIENT_ETC || mkdir $CLIENT_ETC
+  upgrade)
+    ACTIVE=$(systemctl is-active $NAME || true)
 
-        # Create user if it does not exist
-        if ! getent passwd | grep -q "^$CLIENT_USER:"; then
-            echo -n "Adding system user $CLIENT_USER..."
-            if adduser --quiet --system --no-create-home --disabled-password \
-                $CLIENT_USER 2>/dev/null; then
-                echo "done"
-            else
-                echo "failed"
-            fi
-        fi
-
-        # Adjust passwd entry
-        usermod -c "$CLIENT_NAME" -d $CLIENT_HOME $CLIENT_USER
-        ;;
+    if [ "$ACTIVE" = "active" ]; then
+      # Stop the service
+      service $NAME stop
+    fi
+    ;;
 esac

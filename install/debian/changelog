@@ -1,4 +1,4 @@
-fahclient (7.1.8) unstable; urgency=low
+fah-client (8.0.0) unstable; urgency=low
   * Initial Debian package.
 
- -- Joseph Coffland <joseph@cauldrondevelopment.com>  Thu, 13 Jan 2011 20:38:52 -0800
+ -- Joseph Coffland <joseph@cauldrondevelopment.com>  Fri, 15 Oct 2021 00:00:00 +0300

@@ -100,6 +100,7 @@ namespace FAH {
       Units &getUnits() {return *units;}
       Cores &getCores() {return *cores;}
       Config &getConfig() {return *config;}
+      OS &getOS() {return *os;}
       cb::JSON::Value &getInfo() const {return *info;}
 
       const cb::KeyPair &getKey() const {return key;}
@@ -118,7 +119,6 @@ namespace FAH {
                              const std::string &usage);
 
       const cb::IPAddress &getNextAS();
-      const char *getOS() const;
       const char *getCPU() const;
 
       void loadConfig();

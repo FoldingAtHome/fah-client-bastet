@@ -2,91 +2,51 @@
 
 . /usr/share/debconf/confmodule
 
-CLIENT_USER=fahclient
-CLIENT_HOME=/var/lib/fahclient
-CLIENT_ETC=/etc/fahclient
-
-CONFIG=/etc/fahclient/config.xml
-SAMPLE=/usr/share/doc/fahclient/sample-config.xml
+NAME=fah-client
+CLIENT_USER=$NAME
+CLIENT_GROUP=$NAME
+CLIENT_HOME=/var/lib/$NAME
+CLIENT_LOGS=/var/log/$NAME
+CLIENT_SHARE=/usr/share/$NAME
 
 case "$1" in
-    reconfigure|configure)
-        # Set user preference in defaults file
-        db_get fahclient/autostart
-        ENABLE=$RET
+  reconfigure|configure)
+    # Create group if it does not exist
+    if ! getent group | grep -q "^$CLIENT_GROUP:"; then
+      echo "Adding group '$CLIENT_GROUP'."
+      groupadd $CLIENT_GROUP
+    fi
 
-        if [ ! -e $CONFIG ]; then
-            # Get answers
-            db_get fahclient/user
-            USER=$RET
-            db_get fahclient/team
-            TEAM=$RET
-            db_get fahclient/passkey
-            PASSKEY=$RET
-            db_get fahclient/power
-            POWER=$RET
-        fi
+    # Create user if it does not exist
+    if ! getent passwd | grep -q "^$CLIENT_USER:"; then
+      echo "Adding user '$CLIENT_USER'."
+      useradd -r -g $CLIENT_GROUP -K UMASK=002 $CLIENT_USER
+    fi
 
-        db_stop
+    # Add user to group if necessary
+    if ! groups $CLIENT_USER | grep -q "\b$CLIENT_GROUP\b"; then
+      echo "Adding user '$CLIENT_USER' to group '$CLIENT_GROUP'"
+      adduser $CLIENT_USER $CLIENT_GROUP
+    fi
 
-        # Setup config.xml
-        if [ ! -e $CONFIG ]; then
-            PAT="s/user value=\"[^\"]*\"/user value=\"$USER\"/"
-            PAT="$PAT;s/team value=\"[^\"]*\"/team value=\"$TEAM\"/"
-            PAT="$PAT;s/passkey value=\"[^\"]*\"/passkey value=\"$PASSKEY\"/"
-            PAT="$PAT;s/power value=\"[^\"]*\"/power value=\"$POWER\"/"
-            PAT="$PAT;s/fold-anon value=\"[^\"]*\"/fold-anon value=\"true\"/"
+    # Create directories
+    install -d -m 755 -o $CLIENT_USER -g $CLIENT_GROUP $CLIENT_HOME $CLIENT_LOGS
 
-            sed "$PAT" <$SAMPLE >$CONFIG
-        fi
+    # Install the service
+    if [ ! -e /etc/systemd/system/$NAME.service ]; then
+      ln -sf $CLIENT_SHARE/$NAME.service /etc/systemd/system/
+    fi
+    systemctl daemon-reload
 
-        if [ "$1" = "configure" ]; then
-            # Adjust file and directory permissions
-            for dir in "$CLIENT_HOME" "$CLIENT_ETC"; do
-                chown -R $CLIENT_USER "$dir"
-                find "$dir" -type d -exec chmod ug+rwx '{}' \;
-                find "$dir" -type f -exec chmod ug+rw '{}' \;
-            done
-        fi
+    # Start the service
+    service $NAME start
 
-        # Install init.d script
-        if [ "$ENABLE" == "true" ]; then
-            if [ -x insserv ]; then
-                insserv -d FAHClient
-
-                # Start the service
-                service FAHClient start || true
-
-            else
-                update-rc.d FAHClient defaults
-                update-rc.d FAHClient enable
-
-                # Start the service
-                invoke-rc.d FAHClient start || true
-            fi
-        else
-            if [ -x insserv ]; then
-                insserv -r FAHClient
-            else
-                update-rc.d FAHClient defaults
-                update-rc.d FAHClient disable
-            fi
-        fi
-
-        echo
-        echo "The Folding@home client is now installed"
-        echo
-        echo "You can access the Web interface by going to:"
-        echo
-        echo "  https://console.foldingathome.org/"
-        echo
-        echo "in a browser on this computer."
-        echo
-        echo "For information about configuring the Folding@home client for "
-        echo "remote access please see the comments in:"
-        echo
-        echo "  /etc/fahclient/config.xml"
-        echo
-        echo
-        ;;
+    echo
+    echo "The Folding@home client is now installed"
+    echo
+    echo "Access the web interface by going to:"
+    echo
+    echo "  https://app.foldingathome.org/"
+    echo
+    ;;
 esac

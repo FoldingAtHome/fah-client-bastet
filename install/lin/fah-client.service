@@ -1,0 +1,13 @@
+[Unit]
+Description=Folding@home Client
+After=network.target
+
+[Service]
+User=fah-client
+ExecStart=/usr/bin/fah-client --log=/var/log/fah-client/log.txt
+WorkingDirectory=/var/lib/fah-client
+Restart=always
+StandardOutput=null
+
+[Install]
+WantedBy=multi-user.target

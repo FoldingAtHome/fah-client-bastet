@@ -1,42 +1,33 @@
 #!/bin/sh -e
 
-. /usr/share/debconf/confmodule
-
-CLIENT_USER=fahclient
+NAME=fah-client
 
 case "$1" in
-    remove)
-        if [ -x insserv ]; then
-            # Stop the service
-            service FAHClient stop || true
+  remove)
+    service $NAME stop || true
 
-            # Uninstall init.d script
-            insserv -r FAHClient
-        else
-            # Stop the service
-            invoke-rc.d FAHClient stop || true
+    if [ -x insserv ]; then
+      ACTIVE=$(systemctl is-active $NAME || true)
 
-            # Uninstall init.d script
-            update-rc.d -f FAHClient remove
-        fi
-        ;;
+      # Stop the service
+      if [ "$ACTIVE" = "active" ]; then
+        service $NAME stop
+      fi
+    fi
+    ;;
 
-    purge)
-        # Remove all files
-        rm -rf /var/lib/fahclient /etc/fahclient /etc/default/fahclient
-        rm -rf /var/run/fahclient.pid
+  purge)
+    # Remove all files
+    rm -rf /var/lib/$NAME /var/log/$NAME
 
-        # Remove user if it does exists
-        if getent passwd | grep -q "^$CLIENT_USER:"; then
-            echo -n "Removing system user $CLIENT_USER..."
-            if deluser --quiet $CLIENT_USER 2>/dev/null; then
-                echo "done"
-            else
-                echo "failed"
-            fi
-        fi
-
-        # Remove my changes to the db.
-        db_purge || true
-        ;;
+    # Remove user if it does exists
+    if getent passwd | grep -q "^$NAME:"; then
+      echo -n "Removing system user $NAME..."
+      if deluser --quiet $NAME 2>/dev/null; then
+        echo "done"
+      else
+        echo "failed"
+      fi
+    fi
+    ;;
 esac
