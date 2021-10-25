@@ -134,7 +134,9 @@ UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 bool Unit::isPaused() const {return getBoolean("paused", false);}
 
 
-void Unit::setPause(bool pause) {
+void Unit::setPause(bool pause, const std::string msg) {
+  insert("pauseMsg", msg);
+
   if (pause == isPaused()) return;
   insertBoolean("paused", pause);
 

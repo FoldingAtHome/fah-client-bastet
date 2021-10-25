@@ -122,7 +122,7 @@ void Units::setPause(bool pause, const string unitID) {
     auto &unit = *get(i).cast<Unit>();
 
     if (unitID.empty() || unitID == unit.getID())
-      unit.setPause(pause);
+      unit.setPause(pause, "user");
   }
 }
 
