@@ -56,6 +56,7 @@ namespace FAH {
       Power getPower() const;
 
       uint32_t getCPUs() const;
+      uint64_t getProjectKey() const;
       cb::ProcessPriority getCorePriority();
       cb::JSON::ValuePtr getGPU(const std::string &id);
     };

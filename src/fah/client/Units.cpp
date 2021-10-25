@@ -68,11 +68,17 @@ void Units::update() {
   // First load the already existing wus
   if (!isConfigLoaded) return;
 
+  // Get Project Key
+  uint64_t key = app.getConfig().getProjectKey();
+
   // Remove completed units
   for (unsigned i = 0; i < size();) {
     auto &unit = *get(i).cast<Unit>();
     if (unit.getState() == UnitState::UNIT_DONE) erase(i);
-    else i++;
+    else {
+      if(key == unit.getProjectKey()) key = 0;
+      i++;
+    }
   }
 
   // Wait on failures
@@ -104,7 +110,7 @@ void Units::update() {
   // Create new unit
   if (0 < cpus) {
     app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, cpus, gpus));
+    add(new Unit(app, wus, cpus, gpus, key));
     lastWU = Time::now();
     LOG_INFO(1, "Added new work unit");
   }

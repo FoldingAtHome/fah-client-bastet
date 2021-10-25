@@ -77,7 +77,7 @@ void Config::setPower(Power power) {
 
 
 Power Config::getPower() const {return Power::parse(getString("power"));}
-
+uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 uint32_t Config::getCPUs() const {
   int32_t maxCPUs = SystemInfo::instance().getCPUCount();
