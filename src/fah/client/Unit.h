@@ -83,7 +83,8 @@ namespace FAH {
       UnitState getState() const;
 
       bool isPaused() const;
-      void setPause(bool pause);
+      void setPause(bool pause, const std::string msg = std::string());
+      const std::string &getPauseMessage() {return getString("pauseMsg");}
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
