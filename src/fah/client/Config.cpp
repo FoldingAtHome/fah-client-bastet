@@ -76,11 +76,39 @@ void Config::setPower(Power power) {
 }
 
 
+void Config::update() {
+  // Update the cpus
+  unsigned maxCPUs = SystemInfo::instance().getCPUCount();
+  if(1 < maxCPUs) maxCPUs--;
+  unsigned cpus;
+  switch (getPower())
+  {
+    case POWER_LIGHT:
+      cpus = maxCPUs > 1 ? floor(maxCPUs*0.3) : maxCPUs;
+      break;
+    case POWER_MEDIUM:
+      cpus = maxCPUs > 1 ? floor(maxCPUs*0.7) : maxCPUs;
+      break;
+    case POWER_CUSTOM:
+      cpus = getU32("cpus", maxCPUs);
+      break;
+    case POWER_FULL:
+    default:
+      cpus = maxCPUs;
+      break;
+  }
+
+  unsigned currentCPUs = getU32("cpus", maxCPUs);
+  if(currentCPUs != cpus) insert("cpus", cpus);
+}
+
 Power Config::getPower() const {return Power::parse(getString("power"));}
+
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 uint32_t Config::getCPUs() const {
   int32_t maxCPUs = SystemInfo::instance().getCPUCount();
+  if(1 < maxCPUs) maxCPUs--;
   int32_t cpus = getU32("cpus", maxCPUs);
   return maxCPUs < cpus ? maxCPUs : cpus;
 }

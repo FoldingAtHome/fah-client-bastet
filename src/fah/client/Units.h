@@ -43,6 +43,8 @@ namespace FAH {
       uint32_t failures = 0;
       uint64_t waitUntil = 0;
 
+      uint64_t getProjectKey() const;
+
     public:
       Units(App &app);
 

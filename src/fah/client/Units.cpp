@@ -68,17 +68,11 @@ void Units::update() {
   // First load the already existing wus
   if (!isConfigLoaded) return;
 
-  // Get Project Key
-  uint64_t key = app.getConfig().getProjectKey();
-
   // Remove completed units
   for (unsigned i = 0; i < size();) {
     auto &unit = *get(i).cast<Unit>();
     if (unit.getState() == UnitState::UNIT_DONE) erase(i);
-    else {
-      if(key == unit.getProjectKey()) key = 0;
-      i++;
-    }
+    else i++;
   }
 
   // Wait on failures
@@ -96,24 +90,48 @@ void Units::update() {
     if (gpu.isEnabled()) gpus.insert(gpu.getID());
   }
 
-  // Remove used resources
+  uint64_t maxWUs = gpus.size() + 6;
+
+  // Remove used resources. If resources are not available, pause the unit.
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
-
-    cpus -= unit.getCPUs();
-
+    int32_t unitCPUs = unit.getCPUs();
     auto &unitGPUs = *unit.getGPUs();
-    for (unsigned j = 0; j < unitGPUs.size(); j++)
+
+    bool resourcesAvailable = true;
+    for (unsigned j = 0; j < unitGPUs.size(); j++) {
+      if(!gpus.count(unitGPUs.getString(j))) resourcesAvailable = false;
       gpus.erase(unitGPUs.getString(j));
+    }
+
+    resourcesAvailable &= (cpus >= unitCPUs);
+    if(!resourcesAvailable) unit.setPause(true, "resources");
+    else {
+      if(unit.isPaused() && (unit.getPauseMessage() != "user")) unit.setPause(false);
+      cpus -= unitCPUs;
+    }
   }
 
-  // Create new unit
-  if (0 < cpus) {
+  // Create new gpu unit(s)
+  for(auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs; it++) {
     app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, cpus, gpus, key));
-    lastWU = Time::now();
-    LOG_INFO(1, "Added new work unit");
+    std::set<string> assignGPUs;
+    assignGPUs.insert(*it);
+    add(new Unit(app, wus, 1, assignGPUs, getProjectKey()));
+    LOG_INFO(1, "Added new gpu work unit");
+    gpus.erase(*it);
+    cpus--;
   }
+
+  // Create new cpu unit(s)
+  if(0 < cpus && size() < maxWUs)
+  {
+    app.getDB("config").set("wus", ++wus);
+    add(new Unit(app, wus, cpus, gpus, getProjectKey()));
+    cpus -= cpus;
+    LOG_INFO(1, "Added new cpu work unit");
+  }
+  lastWU = Time::now();
 }
 
 
@@ -130,6 +148,15 @@ void Units::setPause(bool pause, const string unitID) {
     if (unitID.empty() || unitID == unit.getID())
       unit.setPause(pause, "user");
   }
+}
+
+uint64_t Units::getProjectKey() const {
+  uint64_t key = app.getConfig().getProjectKey();
+  for(unsigned i = 0; i < size(); i++) {
+    auto &unit = *get(i).cast<Unit>();
+    if(key == unit.getProjectKey()) return 0;
+  }
+  return key;
 }
 
 
