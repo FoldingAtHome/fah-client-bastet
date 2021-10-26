@@ -38,13 +38,15 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class Config : public cb::JSON::ObservableDict {
+    class Config : public cb::JSON::ObservableDict,
+                   public Power::Enum {
       App &app;
 
     public:
       Config(App &app);
 
       void init();
+      void update();
 
       bool getOnIdle() const;
       void setOnIdle(bool onIdle);
