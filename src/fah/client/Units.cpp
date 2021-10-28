@@ -80,7 +80,7 @@ void Units::update() {
     return schedule(&Units::update, waitUntil - Time::now());
 
   // Get CPUs
-  int32_t cpus = app.getConfig().getCPUs();
+  uint32_t cpus = app.getConfig().getCPUs();
 
   // Get GPUs
   std::set<string> gpus;
@@ -91,24 +91,47 @@ void Units::update() {
   }
 
   uint64_t maxWUs = gpus.size() + 6;
+  uint32_t allocatedCPUs = app.getConfig().getCPUs();
+  std::set<int> processedUnits;
 
-  // Remove used resources. If resources are not available, pause the unit.
+  // Remove used resources for gpu units
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
-    int32_t unitCPUs = unit.getCPUs();
     auto &unitGPUs = *unit.getGPUs();
 
-    bool resourcesAvailable = true;
-    for (unsigned j = 0; j < unitGPUs.size(); j++) {
-      if(!gpus.count(unitGPUs.getString(j))) resourcesAvailable = false;
-      gpus.erase(unitGPUs.getString(j));
-    }
+    if(0 < unitGPUs.size()) {
+      cpus -= unit.getCPUs();
+      processedUnits.insert(i);
+      bool resourcesAvailable = true;
+      for (unsigned j = 0; j < unitGPUs.size(); j++) {
+        if(!gpus.count(unitGPUs.getString(j))) resourcesAvailable = false;
+        gpus.erase(unitGPUs.getString(j));
+      }
 
-    resourcesAvailable &= (cpus >= unitCPUs);
-    if(!resourcesAvailable) unit.setPause(true, "resources");
-    else {
-      if(unit.isPaused() && (unit.getPauseMessage() != "user")) unit.setPause(false);
-      cpus -= unitCPUs;
+      if(!resourcesAvailable) unit.setPause(true, "resources");
+      else if(unit.getPauseMessage() != "user") unit.setPause(false);
+    }
+    else if(allocatedCPUs < unit.getCPUs()) unit.setPause(true, "resources");
+  }
+
+  while(processedUnits.size() != size())
+  {
+    int32_t index = -1;
+    for (unsigned i = 0; i < size(); i++) {
+      auto &unit = *get(i).cast<Unit>();
+      uint32_t mostCPUs = index == -1 ? 0: (*get(index).cast<Unit>()).getCPUs();
+      if(unit.getCPUs() > mostCPUs && !processedUnits.count(i)) {
+        index = i;
+      }
+    }
+    if(!processedUnits.count(index)) {
+      auto &unit = *get(index).cast<Unit>();
+      if(unit.getCPUs() <= cpus) {
+        if(unit.getPauseMessage() != "user") unit.setPause(false);
+        cpus -= unit.getCPUs();
+      }
+      else unit.setPause(true, "resources");
+      processedUnits.insert(index);
     }
   }
 
@@ -145,8 +168,10 @@ void Units::setPause(bool pause, const string unitID) {
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
 
-    if (unitID.empty() || unitID == unit.getID())
-      unit.setPause(pause, "user");
+    if (unitID.empty() || unitID == unit.getID()) {
+      if(pause) unit.setPause(pause, "user");
+      else unit.setPause(pause);
+    }
   }
 }
 

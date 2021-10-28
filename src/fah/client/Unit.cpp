@@ -103,6 +103,8 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
   insert("wu", wu);
   insert("cpus", cpus);
   if(projectKey) insert("key", projectKey);
+  insertBoolean("paused", false);
+  insert("pauseMsg", "");
 
   auto l = createList();
   for (auto it = gpus.begin(); it != gpus.end(); it++) l->append(*it);
