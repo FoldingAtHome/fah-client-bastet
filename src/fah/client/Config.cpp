@@ -43,6 +43,9 @@ Config::Config(App &app) : app(app) {
   if (1 < cpus) cpus--; // Reserve one CPU by default
 
   // Defaults
+  insert("user", "Anonymous");
+  insert("team", 0);
+  insert("passkey", "");
   insert("checkpoint", 15);
   insertBoolean("on_idle", true);
   insertBoolean("paused", false);

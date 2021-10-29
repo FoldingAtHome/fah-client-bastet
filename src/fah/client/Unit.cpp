@@ -559,6 +559,11 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("version",        app.getVersion().toString());
   sink.insert("id",             app.getInfo().getString("id"));
 
+  // User
+  sink.insert("user",           app.getConfig().getUsername());
+  sink.insert("team",           app.getConfig().getTeam());
+  sink.insert("passkey",        app.getConfig().getPasskey());
+
   // OS
   sink.insertDict("os");
   sink.insert("version",        info.getOSVersion().toString());
