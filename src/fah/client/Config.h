@@ -57,6 +57,10 @@ namespace FAH {
       void setPower(Power power);
       Power getPower() const;
 
+      const std::string &getUsername() {return getString("user");}
+      const std::string &getPasskey() {return getString("passkey");}
+      uint32_t getTeam() {return getU32("team");}
+
       uint32_t getCPUs() const;
       uint64_t getProjectKey() const;
       cb::ProcessPriority getCorePriority();
