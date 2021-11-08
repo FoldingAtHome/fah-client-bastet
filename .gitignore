@@ -50,7 +50,7 @@ config.log
 
 # client testing byproducts
 /config.xml
-/log.txt
+/log*.txt
 /client.db
 /gpus.json
 /configs
