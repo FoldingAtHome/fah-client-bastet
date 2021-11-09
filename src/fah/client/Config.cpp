@@ -49,7 +49,6 @@ Config::Config(App &app) : app(app) {
   insert("checkpoint", 15);
   insertBoolean("on_idle", true);
   insertBoolean("paused", false);
-  insert("power", "medium");
   insert("cause", "any");
   insert("cpus", cpus);
   insert("options", "");
@@ -73,39 +72,6 @@ void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 void Config::setPaused(bool paused) {insertBoolean("paused", paused);}
 bool Config::getPaused() const {return getBoolean("paused");}
 
-
-void Config::setPower(Power power) {
-  insert("power", String::toLower(power.toString()));
-}
-
-
-void Config::update() {
-  // Update the cpus
-  unsigned maxCPUs = SystemInfo::instance().getCPUCount();
-  if(1 < maxCPUs) maxCPUs--;
-  unsigned cpus;
-  switch (getPower())
-  {
-    case POWER_LIGHT:
-      cpus = maxCPUs > 1 ? floor(maxCPUs*0.3) : maxCPUs;
-      break;
-    case POWER_MEDIUM:
-      cpus = maxCPUs > 1 ? floor(maxCPUs*0.7) : maxCPUs;
-      break;
-    case POWER_CUSTOM:
-      cpus = getU32("cpus", maxCPUs);
-      break;
-    case POWER_FULL:
-    default:
-      cpus = maxCPUs;
-      break;
-  }
-
-  unsigned currentCPUs = getU32("cpus", maxCPUs);
-  if(currentCPUs != cpus) insert("cpus", cpus);
-}
-
-Power Config::getPower() const {return Power::parse(getString("power"));}
 
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 

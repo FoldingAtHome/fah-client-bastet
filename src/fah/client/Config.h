@@ -46,16 +46,12 @@ namespace FAH {
       Config(App &app);
 
       void init();
-      void update();
 
       bool getOnIdle() const;
       void setOnIdle(bool onIdle);
 
       void setPaused(bool paused);
       bool getPaused() const;
-
-      void setPower(Power power);
-      Power getPower() const;
 
       const std::string &getUsername() {return getString("user");}
       const std::string &getPasskey() {return getString("passkey");}
