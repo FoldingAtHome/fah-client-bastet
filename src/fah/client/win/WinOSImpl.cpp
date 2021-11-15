@@ -135,6 +135,7 @@ WinOSImpl &WinOSImpl::instance() {
 
 void WinOSImpl::init() {
   HICON hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NORMAL));
+  if (!hIcon) THROW("Failed to load icon");
 
   // Create window class
   const char *className = getApp().getName().c_str();
