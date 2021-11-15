@@ -22,3 +22,37 @@ proteins can carry out these important functions, they assemble
 themselves, or "fold." The process of protein folding, while critical
 and fundamental to virtually all of biology, in many ways remains a
 mystery.
+
+# Quick Start for Debian Linux
+
+## Install the Prerequisites
+```
+sudo apt-get update
+sudo apt-get install -y scons git npm build-essential libssl-dev
+```
+
+## Get the code
+```
+git clone https://github.com/cauldrondevelopmentllc/cbang
+git clone https://github.com/foldingathome/fah-client-bastet
+git clone https://github.com/foldingathome/fah-web-client-bastet
+```
+
+## Build and Install the Folding@home Client
+```
+export CBANG_HOME=$PWD/cbang
+scons -C cbang
+scons -C fah-client-bastet package
+sudo dpkg -i fah-client-bastet/*.deb
+```
+
+## Start the development web server
+```
+cd fah-web-client
+npm i
+npm run dev
+```
+
+## Open the Browser
+
+With the development server running visit http://localhost:3000/
