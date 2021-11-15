@@ -31,9 +31,6 @@
 #define ID_USER_WEBCONTROL 104
 #define ID_USER_PAUSE      105
 #define ID_USER_IDLE       106
-#define ID_USER_LIGHT      107
-#define ID_USER_MEDIUM     108
-#define ID_USER_FULL       109
 #define ID_USER_ABOUT      110
 #define ID_USER_EXIT       111
 #define IDI_NORMAL         112
