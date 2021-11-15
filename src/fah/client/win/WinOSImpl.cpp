@@ -161,11 +161,10 @@ void WinOSImpl::init() {
 
   // Create Systray Icon
   memset(&notifyIconData, 0, sizeof(NOTIFYICONDATA));
-  notifyIconData.cbSize           = sizeof(NOTIFYICONDATA);
+  notifyIconData.cbSize           = NOTIFYICONDATA_V1_SIZE;
   notifyIconData.uID              = ID_USER_SYSTRAY;
   notifyIconData.uFlags           = NIF_ICON | NIF_MESSAGE;
   notifyIconData.uCallbackMessage = WM_SYSTRAYMSG;
-  notifyIconData.hWnd             = hWnd;
   notifyIconData.hIcon            = hIcon;
 
   // ID
@@ -184,7 +183,11 @@ void WinOSImpl::init() {
     notifyIconData.uFlags |= NIF_GUID;
   }
 
+  // Remove possible old icon
+  Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+
   // Add it
+  notifyIconData.hWnd = hWnd;
   if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
     THROW("Failed to register systray icon: " << SysError());
 
