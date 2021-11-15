@@ -90,9 +90,6 @@ App::App() :
     ->setDefault("https://app.foldingathome.org");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server");
-  // TODO this will not work on macOS or Windows
-  options.add("ssl-ca-certificates", "Path to trusted SSL CA certificates file"
-    )->setDefault("/etc/ssl/certs/ca-certificates.crt");
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -266,9 +263,7 @@ void App::run() {
   if (options["debug-libevent"].toBoolean()) Event::Event::enableDebugLogging();
 
   // Load root certs
-  string caCertsFile = options["ssl-ca-certificates"];
-  if (!caCertsFile.empty())
-    client.getSSLContext()->loadVerifyLocationsFile(caCertsFile);
+  client.getSSLContext()->loadSystemRootCerts();
 
   // Open DB
   LOG_INFO(1, "Opening Database");
