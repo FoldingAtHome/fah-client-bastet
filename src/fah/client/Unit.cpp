@@ -102,7 +102,6 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
   this->wu = wu;
   insert("wu", wu);
   insert("cpus", cpus);
-  insert("pause-reason", std::string());
   if (projectKey) insert("key", projectKey);
   insertBoolean("paused", false);
 
@@ -138,7 +137,8 @@ uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
 
 
 void Unit::setPause(bool pause, const std::string reason) {
-  insert("pause-reason", reason);
+  if (pause) insert("pause-reason", reason);
+  if (!pause && has("pause-reason")) erase("pause-reason");
 
   if (pause == isPaused()) return;
   insertBoolean("paused", pause);

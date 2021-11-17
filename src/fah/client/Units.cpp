@@ -95,9 +95,9 @@ void Units::update() {
     auto &unit = *get(i).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
 
-    if (!result.unitSet.count(i)) unit.setPause(true, "resources");
+    if (!result.unitSet.count(i)) unit.setPause(true, "Insufficient resources.");
     else {
-      unit.setPause(false);
+      if (unit.getPauseReason() != "Paused by user.") unit.setPause(false);
       cpus -= unit.getCPUs();
 
       for (unsigned j = 0; j < unitGPUs.size(); j++)
@@ -105,7 +105,7 @@ void Units::update() {
     }
   }
 
-  LOG_DEBUG(1, "Remaining CPUs:" << cpus << ", Remaining GPUs" << gpus.size());
+  LOG_DEBUG(1, "Remaining CPUs: " << cpus << ", Remaining GPUs: " << gpus.size());
 
   uint64_t maxWUs = gpus.size() + 6;
 
@@ -143,7 +143,7 @@ void Units::setPause(bool pause, const string unitID) {
     auto &unit = *get(i).cast<Unit>();
 
     if (unitID.empty() || unitID == unit.getID()) {
-      if (pause) unit.setPause(pause, "user");
+      if (pause) unit.setPause(pause, "Paused by user.");
       else unit.setPause(pause);
     }
   }
