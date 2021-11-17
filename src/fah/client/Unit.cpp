@@ -300,10 +300,6 @@ void Unit::run() {
     args.push_back(String(gpu.getOpenCL().deviceIndex));
 
   } else { // CPU
-    // TODO Is this relevant any more?
-    //args.push_back("-cpu");
-    //args.push_back(String(getCPUUsage()));
-
     uint32_t cpus = getU32("cpus");
     args.push_back("-np");
     args.push_back(String(cpus));

@@ -179,6 +179,10 @@ void Core::downloadResponse(const string &pkg) {
 
   // Make executable
   path += "/" + getFilename();
+#ifdef _WIN32
+  SystemUtilities::rename(path, path + ".exe");
+  path += ".exe";
+#endif
   SystemUtilities::chmod(path, 0755);
 
   // Save
