@@ -35,11 +35,10 @@ namespace FAH {
   namespace Client {
 
     typedef struct {
-      bool feasible = false;
+      bool feasible = true;
       uint32_t gpus = 0;
       int32_t cpus = 0;
-      uint32_t units = 0;
-      unsigned choice = 0;
+      std::set<uint32_t> unitSet;
       unsigned largestCpuWu = 0;
     } state_t;
 
@@ -67,10 +66,9 @@ namespace FAH {
 
     private:
       uint64_t getProjectKey() const;
-      state_t processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i);
-      unsigned generateMask(uint32_t cpus, const std::set<std::string> &gpus);
-      state_t removeUsedResources(int32_t cpus, std::set<std::string> &gpus);
       bool compare(state_t a, state_t b);
+      state_t addUnit(const std::vector<std::vector<state_t>>& memo, unsigned index, unsigned col, std::set<std::string> gpus);
+      state_t getBestFit(int32_t cpus, std::set<std::string> gpus);
     };
   }
 }

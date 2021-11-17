@@ -43,7 +43,6 @@ using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-
 Units::Units(App &app) :
   Event::Scheduler<Units>(app.getEventBase()), app(app) {
   schedule(&Units::load);
@@ -90,11 +89,23 @@ void Units::update() {
     if (gpu.isEnabled()) gpus.insert(gpu.getID());
   }
 
-  // Remove used resources
-  state_t result = removeUsedResources(cpus, gpus);
-  cpus -= result.cpus;
+  // Find best fit and remove used resources for selected units
+  state_t result = getBestFit(cpus, gpus);
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = *get(i).cast<Unit>();
+    auto &unitGPUs = *unit.getGPUs();
 
-  LOG_DEBUG(1, "Remaining:" << cpus << ":" << gpus.size());
+    if (!result.unitSet.count(i)) unit.setPause(true, "resources");
+    else {
+      unit.setPause(false);
+      cpus -= unit.getCPUs();
+
+      for (unsigned j = 0; j < unitGPUs.size(); j++)
+        if (!gpus.count(unitGPUs.getString(j))) gpus.erase(unitGPUs.getString(j));
+    }
+  }
+
+  LOG_DEBUG(1, "Remaining CPUs:" << cpus << ", Remaining GPUs" << gpus.size());
 
   uint64_t maxWUs = gpus.size() + 6;
 
@@ -167,96 +178,70 @@ uint64_t Units::getProjectKey() const {
 }
 
 
-state_t Units::processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i) {
-  state_t result;
-  result.choice = i;
-  unsigned n = size() - 1;
-
-  while (i) {
-    // Check if workunit is selected.
-    bool selected = i & 1;
-
-    auto &unit = *get(n).cast<Unit>();
-    auto &unitGPUs = *unit.getGPUs();
-    uint32_t unitCPUs = unit.getCPUs();
-
-    if (selected) {
-      if (result.largestCpuWu < unitCPUs) result.largestCpuWu = unitCPUs;
-      result.cpus += unit.getCPUs();
-      for (unsigned j = 0; j < unitGPUs.size(); j++) {
-        if (!gpus.count(unitGPUs.getString(j))) return result;
-        gpus.erase(unitGPUs.getString(j));
-        result.gpus++;
-      }
-    }
-    if (result.cpus > cpus) return result;
-
-    i >>= 1;
-    n--;
-  }
-  result.feasible = true;
-  return result;
-}
-
-
-unsigned Units::generateMask(uint32_t cpus, const std::set<std::string> &gpus) {
-  unsigned mask = 0;
-
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = *get(i).cast<Unit>();
-    auto &unitGPUs = *unit.getGPUs();
-
-    for (unsigned j = 0; j < unitGPUs.size(); j++) {
-        if (!gpus.count(unitGPUs.getString(j))) {
-          mask |= (1 << i);
-          break;
-        }
-    }
-
-    if (cpus < unit.getCPUs()) mask |= (1 << i);
-  }
-
-  return mask;
-}
-
-
-state_t Units::removeUsedResources(int32_t cpus, std::set<std::string> &gpus) {
-
-  unsigned wus = size();
-  unsigned mask = generateMask(cpus, gpus);
-  state_t result;
-
-  for (unsigned i = 1; i < pow(2, wus) - 1; i++)
-  {
-    if ((mask == 0) || (mask & ~i)) {
-      state_t current = processPossibility(cpus, gpus, i);
-      if (current.feasible && compare(current, result)) result = current;
-    }
-  }
-
-  unsigned selection = result.choice;
-
-  // Pause workunits as per selection and remove resources
-  for (int32_t i = wus-1; i >= 0; i--, selection >>= 1) {
-    auto &unit = *get(i).cast<Unit>();
-    auto &unitGPUs = *unit.getGPUs();
-    bool isSelected = selection & 1;
-    if (isSelected) {
-      if (unit.getPauseReason() != "user") unit.setPause(false);
-      for (unsigned j = 0; j < unitGPUs.size(); j++)
-        gpus.erase(unitGPUs.getString(j));
-    }
-    else  unit.setPause(true, "resources");
-  }
-
-  return result;
-}
-
-
 bool Units::compare(state_t a, state_t b) {
   if (a.gpus > b.gpus) return true;
-  if (a.cpus > b.cpus) return true;
-  if (a.units < b.units) return true;
-  if (a.units == b.units && a.largestCpuWu > b.largestCpuWu) return true;
+  if (a.gpus == b.gpus && a.cpus > b.cpus) return true;
+  if (a.cpus == b.cpus && a.unitSet.size() < b.unitSet.size()) return true;
+  if (a.unitSet.size() == b.unitSet.size() && a.largestCpuWu > b.largestCpuWu) return true;
+
   return false;
+}
+
+
+state_t Units::addUnit(const std::vector<std::vector<state_t>>& memo, unsigned index, unsigned col, std::set<std::string> gpus) {
+  state_t result = memo[index][col];
+  auto &newUnit = *get(index).cast<Unit>();
+  auto &newUnitGPUs = *newUnit.getGPUs();
+  auto newUnitCPUs = newUnit.getCPUs();
+
+  auto remainingCPUs = app.getConfig().getCPUs() - result.cpus;
+  if (remainingCPUs < newUnitCPUs) {
+    result.feasible = false;
+    return result;
+  }
+
+  // Remove gpus for already selected units
+  for (auto i: memo[index][col].unitSet) {
+    auto &unit = *get(i).cast<Unit>();
+    auto &unitGPUs = *unit.getGPUs();
+    for (unsigned j = 0; j < unitGPUs.size(); j++) gpus.erase(unitGPUs.getString(j));
+  }
+
+  // Check if the gpus resources for the new unit are available
+  for (unsigned i = 0; i < newUnitGPUs.size(); i++)
+    if (!gpus.count(newUnitGPUs.getString(i))) {
+      result.feasible = false;
+      return result;
+    }
+
+  result.unitSet.insert(index);
+  result.gpus += newUnitGPUs.size();
+  result.cpus += newUnitCPUs;
+  result.feasible = true;
+  if (result.largestCpuWu < newUnitCPUs) result.largestCpuWu = newUnitCPUs;
+
+  return result;
+}
+
+
+state_t Units::getBestFit(int32_t cpus, std::set<string> gpus) {
+  unsigned wus = size();
+  unsigned resources = cpus;
+  std::vector<std::vector<state_t>> memo(wus + 1, std::vector<state_t>(resources + 1));
+
+  for (unsigned i = 1; i <= wus; i++) {
+    for (unsigned j = 1; j <= resources; j++) {
+      auto &unit = *get(i-1).cast<Unit>();
+      auto unitResources = unit.getCPUs();
+
+      if (j < unit.getCPUs()) memo[i][j] = memo[i-1][j];
+      else {
+        state_t temp = addUnit(memo, i-1, j - unitResources, gpus);
+        if (temp.feasible && compare(temp, memo[i-1][j])) memo[i][j] = temp;
+        else memo[i][j] = memo[i-1][j];
+      }
+    }
+  }
+
+  return memo[wus][resources];
 }
