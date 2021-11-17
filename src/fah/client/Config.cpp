@@ -77,7 +77,7 @@ uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 uint32_t Config::getCPUs() const {
   int32_t maxCPUs = SystemInfo::instance().getCPUCount();
-  if(1 < maxCPUs) maxCPUs--;
+  if (1 < maxCPUs) maxCPUs--;
   int32_t cpus = getU32("cpus", maxCPUs);
   return maxCPUs < cpus ? maxCPUs : cpus;
 }

@@ -80,7 +80,7 @@ void Units::update() {
     return schedule(&Units::update, waitUntil - Time::now());
 
   // Get CPUs
-  uint32_t cpus = app.getConfig().getCPUs();
+  int32_t cpus = app.getConfig().getCPUs();
 
   // Get GPUs
   std::set<string> gpus;
@@ -91,7 +91,7 @@ void Units::update() {
   }
 
   // Remove used resources
-  state_ result = removeUsedResources(cpus, gpus);
+  state_t result = removeUsedResources(cpus, gpus);
   cpus -= result.cpus;
 
   LOG_DEBUG(1, "Remaining:" << cpus << ":" << gpus.size());
@@ -99,7 +99,7 @@ void Units::update() {
   uint64_t maxWUs = gpus.size() + 6;
 
   // Create new gpu unit(s)
-  for(auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs; it++) {
+  for (auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs; it++) {
     app.getDB("config").set("wus", ++wus);
     std::set<string> assignGPUs;
     assignGPUs.insert(*it);
@@ -110,7 +110,7 @@ void Units::update() {
   }
 
   // Create new cpu unit(s)
-  if(0 < cpus && size() < maxWUs)
+  if (0 < cpus && size() < maxWUs)
   {
     app.getDB("config").set("wus", ++wus);
     add(new Unit(app, wus, cpus, gpus, getProjectKey()));
@@ -132,19 +132,10 @@ void Units::setPause(bool pause, const string unitID) {
     auto &unit = *get(i).cast<Unit>();
 
     if (unitID.empty() || unitID == unit.getID()) {
-      if(pause) unit.setPause(pause, "user");
+      if (pause) unit.setPause(pause, "user");
       else unit.setPause(pause);
     }
   }
-}
-
-uint64_t Units::getProjectKey() const {
-  uint64_t key = app.getConfig().getProjectKey();
-  for(unsigned i = 0; i < size(); i++) {
-    auto &unit = *get(i).cast<Unit>();
-    if(key == unit.getProjectKey()) return 0;
-  }
-  return key;
 }
 
 
@@ -165,29 +156,40 @@ void Units::load() {
   if (empty()) update();
 }
 
-state_ Units::processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i) {
-  state_ result;
+
+uint64_t Units::getProjectKey() const {
+  uint64_t key = app.getConfig().getProjectKey();
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = *get(i).cast<Unit>();
+    if (key == unit.getProjectKey()) return 0;
+  }
+  return key;
+}
+
+
+state_t Units::processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i) {
+  state_t result;
   result.choice = i;
   unsigned n = size() - 1;
 
-  while(i != 0) {
+  while (i) {
     // Check if workunit is selected.
-    bool selected = (i & 1) == 1 ? true : false;
+    bool selected = i & 1;
 
     auto &unit = *get(n).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
     uint32_t unitCPUs = unit.getCPUs();
 
-    if(selected) {
-      if(result.largestCpuWu < unitCPUs) result.largestCpuWu = unitCPUs;
+    if (selected) {
+      if (result.largestCpuWu < unitCPUs) result.largestCpuWu = unitCPUs;
       result.cpus += unit.getCPUs();
       for (unsigned j = 0; j < unitGPUs.size(); j++) {
-        if(!gpus.count(unitGPUs.getString(j))) return result;
+        if (!gpus.count(unitGPUs.getString(j))) return result;
         gpus.erase(unitGPUs.getString(j));
         result.gpus++;
       }
     }
-    if(result.cpus > cpus) return result;
+    if (result.cpus > cpus) return result;
 
     i >>= 1;
     n--;
@@ -196,46 +198,6 @@ state_ Units::processPossibility(int32_t cpus, std::set<std::string> gpus, unsig
   return result;
 }
 
-bool Units::compare(state_ a, state_ b) {
-  if(a.gpus > b.gpus) return true;
-  if(a.cpus > b.cpus) return true;
-  if(a.units < b.units) return true;
-  if(a.units == b.units && a.largestCpuWu > b.largestCpuWu) return true;
-  return false;
-}
-
-
-state_ Units::removeUsedResources(int32_t cpus, std::set<std::string> &gpus) {
-
-  unsigned wus = size();
-  unsigned mask = generateMask(cpus, gpus);
-  state_ result;
-
-  for(unsigned i = 1; i < pow(2, wus) - 1; i++)
-  {
-    if((mask == 0) || (mask & ~i)) {
-      state_ current = processPossibility(cpus, gpus, i);
-      if(current.feasible && compare(current, result)) result = current;
-    }
-  }
-
-  unsigned selection = result.choice;
-
-  // Pause workunits as per selection and remove resources
-  for(int32_t i = wus-1; i >= 0; i--, selection >>= 1) {
-    auto &unit = *get(i).cast<Unit>();
-    auto &unitGPUs = *unit.getGPUs();
-    bool isSelected = (selection & 1) == 1 ? true : false;
-    if(isSelected) {
-      if(unit.getPauseMessage() != "user") unit.setPause(false);
-      for (unsigned j = 0; j < unitGPUs.size(); j++)
-        gpus.erase(unitGPUs.getString(j));
-    }
-    else  unit.setPause(true, "resources");
-  }
-
-  return result;
-}
 
 unsigned Units::generateMask(uint32_t cpus, const std::set<std::string> &gpus) {
   unsigned mask = 0;
@@ -245,14 +207,56 @@ unsigned Units::generateMask(uint32_t cpus, const std::set<std::string> &gpus) {
     auto &unitGPUs = *unit.getGPUs();
 
     for (unsigned j = 0; j < unitGPUs.size(); j++) {
-        if(!gpus.count(unitGPUs.getString(j))) {
+        if (!gpus.count(unitGPUs.getString(j))) {
           mask |= (1 << i);
           break;
         }
     }
 
-    if(cpus < unit.getCPUs()) mask |= (1 << i);
+    if (cpus < unit.getCPUs()) mask |= (1 << i);
   }
 
   return mask;
+}
+
+
+state_t Units::removeUsedResources(int32_t cpus, std::set<std::string> &gpus) {
+
+  unsigned wus = size();
+  unsigned mask = generateMask(cpus, gpus);
+  state_t result;
+
+  for (unsigned i = 1; i < pow(2, wus) - 1; i++)
+  {
+    if ((mask == 0) || (mask & ~i)) {
+      state_t current = processPossibility(cpus, gpus, i);
+      if (current.feasible && compare(current, result)) result = current;
+    }
+  }
+
+  unsigned selection = result.choice;
+
+  // Pause workunits as per selection and remove resources
+  for (int32_t i = wus-1; i >= 0; i--, selection >>= 1) {
+    auto &unit = *get(i).cast<Unit>();
+    auto &unitGPUs = *unit.getGPUs();
+    bool isSelected = selection & 1;
+    if (isSelected) {
+      if (unit.getPauseReason() != "user") unit.setPause(false);
+      for (unsigned j = 0; j < unitGPUs.size(); j++)
+        gpus.erase(unitGPUs.getString(j));
+    }
+    else  unit.setPause(true, "resources");
+  }
+
+  return result;
+}
+
+
+bool Units::compare(state_t a, state_t b) {
+  if (a.gpus > b.gpus) return true;
+  if (a.cpus > b.cpus) return true;
+  if (a.units < b.units) return true;
+  if (a.units == b.units && a.largestCpuWu > b.largestCpuWu) return true;
+  return false;
 }

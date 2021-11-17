@@ -102,9 +102,9 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
   this->wu = wu;
   insert("wu", wu);
   insert("cpus", cpus);
-  if(projectKey) insert("key", projectKey);
+  insert("pause-reason", std::string());
+  if (projectKey) insert("key", projectKey);
   insertBoolean("paused", false);
-  insert("pauseMsg", "");
 
   auto l = createList();
   for (auto it = gpus.begin(); it != gpus.end(); it++) l->append(*it);
@@ -137,8 +137,8 @@ bool Unit::isPaused() const {return getBoolean("paused", false);}
 uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
 
 
-void Unit::setPause(bool pause, const std::string msg) {
-  insert("pauseMsg", msg);
+void Unit::setPause(bool pause, const std::string reason) {
+  insert("pause-reason", reason);
 
   if (pause == isPaused()) return;
   insertBoolean("paused", pause);
@@ -589,9 +589,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insertDict("project");
 
   // Project
-  if(config.hasString("release")) sink.insert("release", String::toLower(config.getString("release")));
-  if(config.hasString("cause")) sink.insert("cause", String::toLower(config.getString("cause")));
-  if(getProjectKey()) sink.insert("key", getProjectKey());
+  if (config.hasString("release")) sink.insert("release", String::toLower(config.getString("release")));
+  if (config.hasString("cause")) sink.insert("cause", String::toLower(config.getString("cause")));
+  if (getProjectKey()) sink.insert("key", getProjectKey());
 
   sink.endDict(); // project
 

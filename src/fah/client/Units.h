@@ -34,14 +34,14 @@
 namespace FAH {
   namespace Client {
 
-    struct state_ {
+    typedef struct {
       bool feasible = false;
       uint32_t gpus = 0;
       int32_t cpus = 0;
       uint32_t units = 0;
       unsigned choice = 0;
       unsigned largestCpuWu = 0;
-    };
+    } state_t;
 
     class Units : public cb::JSON::ObservableList,
                   public cb::Event::Scheduler<Units> {
@@ -52,12 +52,6 @@ namespace FAH {
       uint64_t lastWU = 0;
       uint32_t failures = 0;
       uint64_t waitUntil = 0;
-
-      uint64_t getProjectKey() const;
-      state_ processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i);
-      unsigned generateMask(uint32_t cpus, const std::set<std::string> &gpus);
-      state_ removeUsedResources(int32_t cpus, std::set<std::string> &gpus);
-      bool compare(state_ a, state_ b);
 
     public:
       Units(App &app);
@@ -70,6 +64,13 @@ namespace FAH {
       void update();
       void load();
       void save();
+
+    private:
+      uint64_t getProjectKey() const;
+      state_t processPossibility(int32_t cpus, std::set<std::string> gpus, unsigned i);
+      unsigned generateMask(uint32_t cpus, const std::set<std::string> &gpus);
+      state_t removeUsedResources(int32_t cpus, std::set<std::string> &gpus);
+      bool compare(state_t a, state_t b);
     };
   }
 }
