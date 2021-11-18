@@ -34,11 +34,12 @@
 namespace FAH {
   namespace Client {
 
+    typedef std::set<unsigned> wu_set_t;
     typedef struct {
       bool feasible = true;
       uint32_t gpus = 0;
       int32_t cpus = 0;
-      std::set<uint32_t> unitSet;
+      wu_set_t unitSet;
       unsigned largestCpuWu = 0;
     } state_t;
 
@@ -67,8 +68,8 @@ namespace FAH {
     private:
       uint64_t getProjectKey() const;
       bool compare(state_t a, state_t b);
-      state_t addUnit(const std::vector<std::vector<state_t>>& memo, unsigned index, unsigned col, std::set<std::string> gpus);
-      state_t getBestFit(int32_t cpus, std::set<std::string> gpus);
+      state_t getState(const state_t& current, unsigned index, std::set<std::string> gpus);
+      state_t findBestFit(const state_t& current, unsigned i, std::set<std::string> gpus);
     };
   }
 }

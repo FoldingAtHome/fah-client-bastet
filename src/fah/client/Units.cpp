@@ -90,7 +90,7 @@ void Units::update() {
   }
 
   // Find best fit and remove used resources for selected units
-  state_t result = getBestFit(cpus, gpus);
+  state_t result = findBestFit(state_t(), 0, gpus);
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
@@ -188,12 +188,14 @@ bool Units::compare(state_t a, state_t b) {
 }
 
 
-state_t Units::addUnit(const std::vector<std::vector<state_t>>& memo, unsigned index, unsigned col, std::set<std::string> gpus) {
-  state_t result = memo[index][col];
+state_t Units::getState(const state_t& current, unsigned index, std::set<std::string> gpus) {
+  state_t result = current;
+
   auto &newUnit = *get(index).cast<Unit>();
   auto &newUnitGPUs = *newUnit.getGPUs();
   auto newUnitCPUs = newUnit.getCPUs();
 
+  // Check if there are enough cpus for new unit
   auto remainingCPUs = app.getConfig().getCPUs() - result.cpus;
   if (remainingCPUs < newUnitCPUs) {
     result.feasible = false;
@@ -201,7 +203,7 @@ state_t Units::addUnit(const std::vector<std::vector<state_t>>& memo, unsigned i
   }
 
   // Remove gpus for already selected units
-  for (auto i: memo[index][col].unitSet) {
+  for (auto i: current.unitSet) {
     auto &unit = *get(i).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
     for (unsigned j = 0; j < unitGPUs.size(); j++) gpus.erase(unitGPUs.getString(j));
@@ -223,25 +225,17 @@ state_t Units::addUnit(const std::vector<std::vector<state_t>>& memo, unsigned i
   return result;
 }
 
+state_t Units::findBestFit(const state_t& current, unsigned i, std::set<std::string> gpus) {
+  state_t result = current;
 
-state_t Units::getBestFit(int32_t cpus, std::set<string> gpus) {
-  unsigned wus = size();
-  unsigned resources = cpus;
-  std::vector<std::vector<state_t>> memo(wus + 1, std::vector<state_t>(resources + 1));
+  for (unsigned j = i; j < size(); j++) {
+    // Add unit to current unit set and check if returned state is feasible.
+    state_t temp = getState(current, j, gpus);
+    if (!temp.feasible) continue;
 
-  for (unsigned i = 1; i <= wus; i++) {
-    for (unsigned j = 1; j <= resources; j++) {
-      auto &unit = *get(i-1).cast<Unit>();
-      auto unitResources = unit.getCPUs();
-
-      if (j < unit.getCPUs()) memo[i][j] = memo[i-1][j];
-      else {
-        state_t temp = addUnit(memo, i-1, j - unitResources, gpus);
-        if (temp.feasible && compare(temp, memo[i-1][j])) memo[i][j] = temp;
-        else memo[i][j] = memo[i-1][j];
-      }
-    }
+    temp = findBestFit(temp, j+1, gpus);
+    if (compare(temp, result)) result = temp;
   }
 
-  return memo[wus][resources];
+  return result;
 }
