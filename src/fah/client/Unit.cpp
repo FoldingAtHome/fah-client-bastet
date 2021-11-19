@@ -276,7 +276,7 @@ void Unit::run() {
 
   // Args
   vector<string> args;
-  args.push_back("../" + core->getPath());
+  args.push_back(SystemUtilities::absolute(core->getPath()));
   args.push_back("-dir");
   args.push_back(getID());
   args.push_back("-suffix");
@@ -404,7 +404,7 @@ void Unit::readResults() {
 
 
 bool Unit::finalizeRun() {
-  logCopier->join();
+  if (logCopier.isSet()) logCopier->join();
   logCopier.release();
 
   ExitCode code = (ExitCode::enum_t)process->wait();
@@ -449,10 +449,8 @@ void Unit::monitor() {
 void Unit::dump() {
   LOG_DEBUG(3, "Dumping WU");
 
-  string wuSig64 = data->selectString("wu.signature");
-  data->insert("dump", app.getKey().signBase64SHA256(wuSig64));
-  data->insertUndefined("data");
-  setState(UNIT_UPLOAD);
+  // TODO Implement dumping with current WS
+  setState(UNIT_CLEAN);
 }
 
 
