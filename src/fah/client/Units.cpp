@@ -60,12 +60,12 @@ void Units::unitComplete(bool success) {
     waitUntil = lastWU + pow(2, std::max(failures, 10U));
   }
 
-  update();
+  triggerUpdate();
 }
 
 
 void Units::update() {
-  // First load the already existing wus
+  // First load the already existing WUs
   if (!isConfigLoaded) return;
 
   // Remove completed units
@@ -78,6 +78,8 @@ void Units::update() {
   // Wait on failures
   if (Time::now() < waitUntil)
     return schedule(&Units::update, waitUntil - Time::now());
+
+  if (isPaused()) return;
 
   // Find best fit
   state_t best;
@@ -95,20 +97,20 @@ void Units::update() {
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
     if (!best.wus.count(i)) unit.setPause(true, "Resources not available.");
-    else if (unit.getPauseReason() != "Paused by user.") unit.setPause(false);
+    else unit.setPause(false);
   }
 
   LOG_DEBUG(1, "Remaining CPUs: " << best.cpus << ", Remaining GPUs: "
             << best.gpus.size());
 
-  // Do not add WUs if any have not reached the RUN state
-  for (unsigned i = 0; i < size();)
-    if (get(i).cast<Unit>()->getState() < UnitState::UNIT_RUN) return;
+  // Do not add WUs if any have not reached the CORE state
+  for (unsigned i = 0; i < size(); i++)
+    if (get(i).cast<Unit>()->getState() < UnitState::UNIT_CORE) return;
 
   // Add new WU if we don't have too many WUs.
   // Assume all WUs need at least one CPU
   const unsigned maxWUs = allGPUs.size() + 6;
-  if (maxWUs < size() && best.cpus) {
+  if (size() < maxWUs && best.cpus) {
     app.getDB("config").set("wus", ++wus);
     add(new Unit(app, wus, best.cpus, best.gpus, getProjectKey()));
     LOG_INFO(1, "Added new work unit");
@@ -118,21 +120,28 @@ void Units::update() {
 }
 
 
+void Units::triggerUpdate() {schedule(&Units::update);}
+
+
 void Units::add(const SmartPointer<Unit> &unit) {
   append(unit);
   unit->triggerNext();
 }
 
 
-void Units::setPause(bool pause, const string unitID) {
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = *get(i).cast<Unit>();
+bool Units::isPaused() const {
+  return app.getDB("config").getBoolean("paused", false);
+}
 
-    if (unitID.empty() || unitID == unit.getID()) {
-      if (pause) unit.setPause(pause, "Paused by user.");
-      else unit.setPause(pause);
-    }
-  }
+
+void Units::setPause(bool pause) {
+  app.getDB("config").set("paused", pause);
+
+  if (pause)
+    for (unsigned i = 0; i < size(); i++)
+      get(i).cast<Unit>()->setPause(true, "Paused by user.");
+
+  triggerUpdate();
 }
 
 
@@ -150,7 +159,8 @@ void Units::load() {
   isConfigLoaded = true;
   LOG_INFO(3, "Loaded " << size() << " wus.");
 
-  if (empty()) update();
+  if (isPaused()) setPause(true);
+  else triggerUpdate();
 }
 
 

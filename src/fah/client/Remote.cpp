@@ -49,10 +49,9 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
   LOG_DEBUG(3, "msg: " << *msg);
 
   string cmd = msg->getString("cmd", "");
-  string unit = msg->getString("unit", "");
 
-  if (cmd == "pause") app.getUnits().setPause(true, unit);
-  if (cmd == "unpause") app.getUnits().setPause(false, unit);
+  if (cmd == "pause") app.getUnits().setPause(true);
+  if (cmd == "unpause") app.getUnits().setPause(false);
   if (cmd == "config") app.getConfig().merge(*msg->get("config"));
 }
 

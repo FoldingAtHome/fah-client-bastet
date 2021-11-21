@@ -122,6 +122,8 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   insert("id", id);
 
   setState(UNIT_CORE);
+  insertBoolean("paused", true);
+  insert("pause-reason", "Initializing.");
 }
 
 
@@ -137,10 +139,20 @@ Unit::~Unit() {
 }
 
 
-void Unit::setState(UnitState state) {insert("state", state.toString());}
+void Unit::setState(UnitState state) {
+  if (hasString("state") && state == getState()) return;
+  app.getUnits().triggerUpdate();
+  insert("state", state.toString());
+}
+
+
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
-bool Unit::isPaused() const {return getBoolean("paused", false);}
 uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
+
+
+bool Unit::isPaused() const {
+  return app.getUnits().isPaused() || getBoolean("paused", true);
+}
 
 
 void Unit::setPause(bool pause, const string reason) {
@@ -158,14 +170,7 @@ void Unit::setPause(bool pause, const string reason) {
 }
 
 
-const string &Unit::getPauseReason() const {
-  return getString("pause-reason", string());
-}
-
-
-string Unit::getLogPrefix() const {
-  return String::printf("WU%" PRIu64 ":", wu);
-}
+string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
 
 string Unit::getWSBaseURL() const {
@@ -256,6 +261,7 @@ void Unit::getCore() {
       }
 
       if (core->isReady()) {
+        // TODO handle dump correctly
         setState(
           (data->has("results") || data->has("dump")) ? UNIT_UPLOAD : UNIT_RUN);
         triggerNext();

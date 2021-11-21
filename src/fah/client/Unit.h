@@ -83,10 +83,10 @@ namespace FAH {
       void setState(UnitState state);
       UnitState getState() const;
 
-      bool isPaused() const;
       uint64_t getProjectKey() const;
+
+      bool isPaused() const;
       void setPause(bool pause, const std::string reason = std::string());
-      const std::string &getPauseReason() const;
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}

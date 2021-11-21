@@ -56,9 +56,11 @@ namespace FAH {
       Units(App &app);
 
       void add(const cb::SmartPointer<Unit> &unit);
-      void setPause(bool pause, const std::string unitID = std::string());
+      bool isPaused() const;
+      void setPause(bool pause);
       void unitComplete(bool success);
       void update();
+      void triggerUpdate();
       void load();
       void save();
 
