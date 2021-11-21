@@ -372,8 +372,6 @@ void Unit::readViewerTop() {
 
 
 void Unit::readViewerFrame() {
-  if (viewerFrame == 2) return; // TODO Remove this
-
   string filename =
     getDirectory() + String::printf("/viewerFrame%d.json", viewerFrame);
 

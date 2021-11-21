@@ -30,21 +30,20 @@
 
 #include "Unit.h"
 
+#include <set>
+#include <string>
+
 
 namespace FAH {
   namespace Client {
-
-    typedef std::set<unsigned> wu_set_t;
-    typedef struct {
-      bool feasible = true;
-      uint32_t gpus = 0;
-      int32_t cpus = 0;
-      wu_set_t unitSet;
-      unsigned largestCpuWu = 0;
-    } state_t;
-
     class Units : public cb::JSON::ObservableList,
                   public cb::Event::Scheduler<Units> {
+      typedef struct {
+        std::set<unsigned> wus;     // Selected WU indices
+        unsigned cpus;              // Unused CPUs
+        std::set<std::string> gpus; // Unused GPUs
+      } state_t;
+
       App &app;
 
       bool isConfigLoaded = false;
@@ -57,9 +56,7 @@ namespace FAH {
       Units(App &app);
 
       void add(const cb::SmartPointer<Unit> &unit);
-
       void setPause(bool pause, const std::string unitID = std::string());
-
       void unitComplete(bool success);
       void update();
       void load();
@@ -67,11 +64,8 @@ namespace FAH {
 
     private:
       uint64_t getProjectKey() const;
-      bool compare(state_t a, state_t b) const;
-      state_t getState(const state_t& current, unsigned index,
-                       std::set<std::string> gpus) const;
-      state_t findBestFit(const state_t& current, unsigned i,
-                          std::set<std::string> gpus) const;
+      static bool isBetter(const state_t &a, const state_t &b);
+      state_t findBestFit(const state_t &current, unsigned i) const;
     };
   }
 }
