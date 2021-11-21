@@ -150,7 +150,7 @@ void Unit::setPause(bool pause, const std::string reason) {
 }
 
 
-const std::string &Unit::getPauseReason() {
+const std::string &Unit::getPauseReason() const {
   return getString("pause-reason", std::string());
 }
 
