@@ -95,22 +95,26 @@ void Units::update() {
     auto &unit = *get(i).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
 
-    if (!result.unitSet.count(i)) unit.setPause(true, "Insufficient resources.");
+    if (!result.unitSet.count(i))
+      unit.setPause(true, "Insufficient resources.");
     else {
       if (unit.getPauseReason() != "Paused by user.") unit.setPause(false);
       cpus -= unit.getCPUs();
 
       for (unsigned j = 0; j < unitGPUs.size(); j++)
-        if (!gpus.count(unitGPUs.getString(j))) gpus.erase(unitGPUs.getString(j));
+        if (!gpus.count(unitGPUs.getString(j)))
+          gpus.erase(unitGPUs.getString(j));
     }
   }
 
-  LOG_DEBUG(1, "Remaining CPUs: " << cpus << ", Remaining GPUs: " << gpus.size());
+  LOG_DEBUG(1, "Remaining CPUs: " << cpus << ", Remaining GPUs: "
+            << gpus.size());
 
   uint64_t maxWUs = gpus.size() + 6;
 
   // Create new gpu unit(s)
-  for (auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs; it++) {
+  for (auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs;
+       it++) {
     app.getDB("config").set("wus", ++wus);
     std::set<string> assignGPUs;
     assignGPUs.insert(*it);
@@ -181,13 +185,15 @@ bool Units::compare(state_t a, state_t b) {
   if (a.gpus > b.gpus) return true;
   if (a.gpus == b.gpus && a.cpus > b.cpus) return true;
   if (a.cpus == b.cpus && a.unitSet.size() < b.unitSet.size()) return true;
-  if (a.unitSet.size() == b.unitSet.size() && a.largestCpuWu > b.largestCpuWu) return true;
+  if (a.unitSet.size() == b.unitSet.size() && a.largestCpuWu > b.largestCpuWu)
+    return true;
 
   return false;
 }
 
 
-state_t Units::getState(const state_t& current, unsigned index, std::set<std::string> gpus) {
+state_t Units::getState(const state_t& current, unsigned index,
+                        std::set<std::string> gpus) {
   state_t result = current;
 
   auto &newUnit = *get(index).cast<Unit>();
@@ -205,7 +211,8 @@ state_t Units::getState(const state_t& current, unsigned index, std::set<std::st
   for (auto i: current.unitSet) {
     auto &unit = *get(i).cast<Unit>();
     auto &unitGPUs = *unit.getGPUs();
-    for (unsigned j = 0; j < unitGPUs.size(); j++) gpus.erase(unitGPUs.getString(j));
+    for (unsigned j = 0; j < unitGPUs.size(); j++)
+      gpus.erase(unitGPUs.getString(j));
   }
 
   // Check if the gpus resources for the new unit are available
@@ -224,7 +231,8 @@ state_t Units::getState(const state_t& current, unsigned index, std::set<std::st
   return result;
 }
 
-state_t Units::findBestFit(const state_t& current, unsigned i, std::set<std::string> gpus) {
+state_t Units::findBestFit(const state_t& current, unsigned i,
+                           std::set<std::string> gpus) {
   state_t result = current;
 
   for (unsigned j = i; j < size(); j++) {

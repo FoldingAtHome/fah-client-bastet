@@ -641,19 +641,20 @@ bool OSXOSImpl::registerForLaunchEvents() {
   // because we never un-register, it's important to not use OSXOSImpl
   dispatch_queue_t q = dispatch_get_main_queue();
   xpc_set_event_stream_handler(
-      "com.apple.iokit.matching", q,
-      ^(xpc_object_t event) {
-          const char *ename = xpc_dictionary_get_string(event, XPC_EVENT_KEY_NAME);
-          // DO NOTHING but consume event
-          LOG_INFO(5, "LaunchEvents IO: " << ename);
-      });
+    "com.apple.iokit.matching", q,
+    ^(xpc_object_t event) {
+      const char *ename = xpc_dictionary_get_string(event, XPC_EVENT_KEY_NAME);
+      // DO NOTHING but consume event
+      LOG_INFO(5, "LaunchEvents IO: " << ename);
+    });
+
   xpc_set_event_stream_handler(
-      "com.apple.notifyd.matching", q,
-      ^(xpc_object_t event) {
-          //const char *ename = xpc_dictionary_get_string(event, XPC_EVENT_KEY_NAME);
-          const char *nname = xpc_dictionary_get_string(event, "Notification");
-          // DO NOTHING but consume event
-          LOG_INFO(5, "LaunchEvents notification: " << nname);
-      });
+    "com.apple.notifyd.matching", q,
+    ^(xpc_object_t event) {
+      const char *nname = xpc_dictionary_get_string(event, "Notification");
+      // DO NOTHING but consume event
+      LOG_INFO(5, "LaunchEvents notification: " << nname);
+    });
+
   return true;
 }
