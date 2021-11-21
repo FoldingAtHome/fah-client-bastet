@@ -71,14 +71,12 @@ bool Config::getOnIdle() const {return getBoolean("on_idle");}
 void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 void Config::setPaused(bool paused) {insertBoolean("paused", paused);}
 bool Config::getPaused() const {return getBoolean("paused");}
-
-
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
+
 uint32_t Config::getCPUs() const {
-  int32_t maxCPUs = SystemInfo::instance().getCPUCount();
-  if (1 < maxCPUs) maxCPUs--;
-  int32_t cpus = getU32("cpus", maxCPUs);
+  uint32_t maxCPUs = SystemInfo::instance().getCPUCount();
+  uint32_t cpus = getU32("cpus");
   return maxCPUs < cpus ? maxCPUs : cpus;
 }
 
