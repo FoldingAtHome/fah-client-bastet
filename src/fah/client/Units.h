@@ -67,11 +67,11 @@ namespace FAH {
 
     private:
       uint64_t getProjectKey() const;
-      bool compare(state_t a, state_t b);
+      bool compare(state_t a, state_t b) const;
       state_t getState(const state_t& current, unsigned index,
-                       std::set<std::string> gpus);
+                       std::set<std::string> gpus) const;
       state_t findBestFit(const state_t& current, unsigned i,
-                          std::set<std::string> gpus);
+                          std::set<std::string> gpus) const;
     };
   }
 }

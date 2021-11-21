@@ -181,7 +181,7 @@ uint64_t Units::getProjectKey() const {
 }
 
 
-bool Units::compare(state_t a, state_t b) {
+bool Units::compare(state_t a, state_t b) const {
   if (a.gpus > b.gpus) return true;
   if (a.gpus == b.gpus && a.cpus > b.cpus) return true;
   if (a.cpus == b.cpus && a.unitSet.size() < b.unitSet.size()) return true;
@@ -193,7 +193,7 @@ bool Units::compare(state_t a, state_t b) {
 
 
 state_t Units::getState(const state_t& current, unsigned index,
-                        std::set<std::string> gpus) {
+                        std::set<std::string> gpus) const {
   state_t result = current;
 
   auto &newUnit = *get(index).cast<Unit>();
@@ -231,8 +231,9 @@ state_t Units::getState(const state_t& current, unsigned index,
   return result;
 }
 
+
 state_t Units::findBestFit(const state_t& current, unsigned i,
-                           std::set<std::string> gpus) {
+                           std::set<std::string> gpus) const {
   state_t result = current;
 
   for (unsigned j = i; j < size(); j++) {
