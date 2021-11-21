@@ -47,6 +47,7 @@
 #include <cbang/os/SystemInfo.h>
 
 #include <cbang/event/Event.h>
+#include <cbang/event/HTTPConnOut.h>
 #include <cbang/net/Base64.h>
 #include <cbang/openssl/Digest.h>
 #include <cbang/gpu/GPUVendor.h>
@@ -97,8 +98,8 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
-           const std::set<std::string> &gpus, uint64_t projectKey) : Unit(app) {
+Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus,
+           uint64_t projectKey) : Unit(app) {
   this->wu = wu;
   insert("wu", wu);
   insert("cpus", cpus);
@@ -125,7 +126,14 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 
 
 Unit::~Unit() {
+  if (pr.isSet()) {
+    pr->setCallback(0);
+    pr->getConnection().close();
+  }
+
   if (logCopier.isSet()) logCopier->join();
+
+  event->del();
 }
 
 
@@ -135,7 +143,7 @@ bool Unit::isPaused() const {return getBoolean("paused", false);}
 uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
 
 
-void Unit::setPause(bool pause, const std::string reason) {
+void Unit::setPause(bool pause, const string reason) {
   if (pause) insert("pause-reason", reason);
   if (!pause && has("pause-reason")) erase("pause-reason");
 
@@ -150,8 +158,8 @@ void Unit::setPause(bool pause, const std::string reason) {
 }
 
 
-const std::string &Unit::getPauseReason() const {
-  return getString("pause-reason", std::string());
+const string &Unit::getPauseReason() const {
+  return getString("pause-reason", string());
 }
 
 
@@ -471,9 +479,6 @@ void Unit::clean() {
 
   setState(UNIT_DONE);
   app.getUnits().unitComplete(success);
-
-  // TODO when a WU gets cleaned and deleted it can still have outstanding
-  // Events that can seg-fault when they trigger.
 }
 
 
@@ -624,9 +629,8 @@ void Unit::assign() {
   // TODO validate peer certificate
   URI uri = "https://" + app.getNextAS().toString() + "/api/assign";
 
-  // TODO!!! cancel requests if the WU is deleted
-  auto pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                                 this, &Unit::response);
+  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
+                            this, &Unit::response);
   auto writer = pr->getJSONWriter();
   writer->beginDict();
   writer->insert("data", *data);
@@ -686,8 +690,8 @@ void Unit::download() {
     [this] (unsigned bytes, int total) {setProgress(bytes, total);};
 
   URI uri = getWSBaseURL() + "/assign";
-  auto pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                                 this, &Unit::response);
+  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
+                            this, &Unit::response);
   data->write(*pr->getJSONWriter());
   setProgress(0, 0);
   pr->setProgressCallback(progressCB);
@@ -716,8 +720,8 @@ void Unit::upload() {
     [this] (unsigned bytes, int total) {setProgress(bytes, total);};
 
   URI uri = getWSBaseURL() + "/results";
-  auto pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                                 this, &Unit::response);
+  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
+                            this, &Unit::response);
 
   auto writer = pr->getJSONWriter();
   data->write(*writer);
