@@ -150,7 +150,7 @@ void Unit::setPause(bool pause, const std::string reason) {
 }
 
 
-const std::string &getPauseReason() {
+const std::string &Unit::getPauseReason() {
   return getString("pause-reason", std::string());
 }
 
@@ -586,18 +586,18 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("signature",      info.getCPUSignature());
   sink.insert("80000001",       info.getCPUFeatures80000001());
 
-  auto &config = app.getConfig();
-
+  // Project
   sink.insertDict("project");
 
-  // Project
-  if (config.hasString("release")) sink.insert("release", String::toLower(config.getString("release")));
-  if (config.hasString("cause")) sink.insert("cause", String::toLower(config.getString("cause")));
+  auto &config = app.getConfig();
+  if (config.hasString("release"))
+    sink.insert("release", config.getString("release"));
+  if (config.hasString("cause"))
+    sink.insert("cause", config.getString("cause"));
   if (getProjectKey()) sink.insert("key", getProjectKey());
 
   sink.endDict(); // project
-
-  sink.endDict(); // CPU
+  sink.endDict(); // cpu
 
   // GPU
   auto &gpus = *get("gpus");
