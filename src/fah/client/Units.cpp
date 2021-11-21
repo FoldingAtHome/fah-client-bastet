@@ -121,8 +121,7 @@ void Units::update() {
   }
 
   // Create new cpu unit(s)
-  if (0 < cpus && size() < maxWUs)
-  {
+  if (0 < cpus && size() < maxWUs) {
     app.getDB("config").set("wus", ++wus);
     add(new Unit(app, wus, cpus, gpus, getProjectKey()));
     cpus -= cpus;
