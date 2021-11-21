@@ -85,7 +85,7 @@ namespace FAH {
       bool isPaused() const;
       uint64_t getProjectKey() const;
       void setPause(bool pause, const std::string reason = std::string());
-      const std::string &getPauseReason() {return getString("pause-reason", std::string());}
+      const std::string &getPauseReason();
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
