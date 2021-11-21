@@ -30,7 +30,6 @@
 
 #include "App.h"
 #include "Config.h"
-#include "ProjectConfig.h"
 
 #include <cbang/String.h>
 #include <cbang/json/JSON.h>
@@ -91,8 +90,6 @@ void GPUResource::writeRequest(JSON::Sink &sink) const {
     sink.insert("driver",    opencl.driverVersion.toString());
     sink.endDict();
   }
-
-  ProjectConfig(*config).writeRequest(sink);
 
   sink.endDict();
 }

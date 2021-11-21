@@ -43,10 +43,12 @@ Config::Config(App &app) : app(app) {
   if (1 < cpus) cpus--; // Reserve one CPU by default
 
   // Defaults
+  insert("user", "Anonymous");
+  insert("team", 0);
+  insert("passkey", "");
   insert("checkpoint", 15);
   insertBoolean("on_idle", true);
   insertBoolean("paused", false);
-  insert("power", "medium");
   insert("cause", "any");
   insert("cpus", cpus);
   insert("options", "");
@@ -71,16 +73,11 @@ void Config::setPaused(bool paused) {insertBoolean("paused", paused);}
 bool Config::getPaused() const {return getBoolean("paused");}
 
 
-void Config::setPower(Power power) {
-  insert("power", String::toLower(power.toString()));
-}
-
-
-Power Config::getPower() const {return Power::parse(getString("power"));}
-
+uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 uint32_t Config::getCPUs() const {
   int32_t maxCPUs = SystemInfo::instance().getCPUCount();
+  if (1 < maxCPUs) maxCPUs--;
   int32_t cpus = getU32("cpus", maxCPUs);
   return maxCPUs < cpus ? maxCPUs : cpus;
 }

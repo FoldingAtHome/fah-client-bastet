@@ -43,7 +43,6 @@ using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-
 Units::Units(App &app) :
   Event::Scheduler<Units>(app.getEventBase()), app(app) {
   schedule(&Units::load);
@@ -90,24 +89,46 @@ void Units::update() {
     if (gpu.isEnabled()) gpus.insert(gpu.getID());
   }
 
-  // Remove used resources
+  // Find best fit and remove used resources for selected units
+  state_t result = findBestFit(state_t(), 0, gpus);
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
-
-    cpus -= unit.getCPUs();
-
     auto &unitGPUs = *unit.getGPUs();
-    for (unsigned j = 0; j < unitGPUs.size(); j++)
-      gpus.erase(unitGPUs.getString(j));
+
+    if (!result.unitSet.count(i)) unit.setPause(true, "Insufficient resources.");
+    else {
+      if (unit.getPauseReason() != "Paused by user.") unit.setPause(false);
+      cpus -= unit.getCPUs();
+
+      for (unsigned j = 0; j < unitGPUs.size(); j++)
+        if (!gpus.count(unitGPUs.getString(j))) gpus.erase(unitGPUs.getString(j));
+    }
   }
 
-  // Create new unit
-  if (0 < cpus) {
+  LOG_DEBUG(1, "Remaining CPUs: " << cpus << ", Remaining GPUs: " << gpus.size());
+
+  uint64_t maxWUs = gpus.size() + 6;
+
+  // Create new gpu unit(s)
+  for (auto it = gpus.begin(); it != gpus.end() && 0 < cpus && size() < maxWUs; it++) {
     app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, cpus, gpus));
-    lastWU = Time::now();
-    LOG_INFO(1, "Added new work unit");
+    std::set<string> assignGPUs;
+    assignGPUs.insert(*it);
+    add(new Unit(app, wus, 1, assignGPUs, getProjectKey()));
+    LOG_INFO(1, "Added new gpu work unit");
+    gpus.erase(*it);
+    cpus--;
   }
+
+  // Create new cpu unit(s)
+  if (0 < cpus && size() < maxWUs)
+  {
+    app.getDB("config").set("wus", ++wus);
+    add(new Unit(app, wus, cpus, gpus, getProjectKey()));
+    cpus -= cpus;
+    LOG_INFO(1, "Added new cpu work unit");
+  }
+  lastWU = Time::now();
 }
 
 
@@ -121,8 +142,10 @@ void Units::setPause(bool pause, const string unitID) {
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = *get(i).cast<Unit>();
 
-    if (unitID.empty() || unitID == unit.getID())
-      unit.setPause(pause);
+    if (unitID.empty() || unitID == unit.getID()) {
+      if (pause) unit.setPause(pause, "Paused by user.");
+      else unit.setPause(pause);
+    }
   }
 }
 
@@ -142,4 +165,77 @@ void Units::load() {
   LOG_INFO(3, "Loaded already existing wus: " << wus);
 
   if (empty()) update();
+}
+
+
+uint64_t Units::getProjectKey() const {
+  uint64_t key = app.getConfig().getProjectKey();
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = *get(i).cast<Unit>();
+    if (key == unit.getProjectKey()) return 0;
+  }
+  return key;
+}
+
+
+bool Units::compare(state_t a, state_t b) {
+  if (a.gpus > b.gpus) return true;
+  if (a.gpus == b.gpus && a.cpus > b.cpus) return true;
+  if (a.cpus == b.cpus && a.unitSet.size() < b.unitSet.size()) return true;
+  if (a.unitSet.size() == b.unitSet.size() && a.largestCpuWu > b.largestCpuWu) return true;
+
+  return false;
+}
+
+
+state_t Units::getState(const state_t& current, unsigned index, std::set<std::string> gpus) {
+  state_t result = current;
+
+  auto &newUnit = *get(index).cast<Unit>();
+  auto &newUnitGPUs = *newUnit.getGPUs();
+  auto newUnitCPUs = newUnit.getCPUs();
+
+  // Check if there are enough cpus for new unit
+  auto remainingCPUs = app.getConfig().getCPUs() - result.cpus;
+  if (remainingCPUs < newUnitCPUs) {
+    result.feasible = false;
+    return result;
+  }
+
+  // Remove gpus for already selected units
+  for (auto i: current.unitSet) {
+    auto &unit = *get(i).cast<Unit>();
+    auto &unitGPUs = *unit.getGPUs();
+    for (unsigned j = 0; j < unitGPUs.size(); j++) gpus.erase(unitGPUs.getString(j));
+  }
+
+  // Check if the gpus resources for the new unit are available
+  for (unsigned i = 0; i < newUnitGPUs.size(); i++)
+    if (!gpus.count(newUnitGPUs.getString(i))) {
+      result.feasible = false;
+      return result;
+    }
+
+  result.unitSet.insert(index);
+  result.gpus += newUnitGPUs.size();
+  result.cpus += newUnitCPUs;
+  result.feasible = true;
+  if (result.largestCpuWu < newUnitCPUs) result.largestCpuWu = newUnitCPUs;
+
+  return result;
+}
+
+state_t Units::findBestFit(const state_t& current, unsigned i, std::set<std::string> gpus) {
+  state_t result = current;
+
+  for (unsigned j = i; j < size(); j++) {
+    // Add unit to current unit set and check if returned state is feasible.
+    state_t temp = getState(current, j, gpus);
+    if (!temp.feasible) continue;
+
+    temp = findBestFit(temp, j+1, gpus);
+    if (compare(temp, result)) result = temp;
+  }
+
+  return result;
 }

@@ -33,6 +33,16 @@
 
 namespace FAH {
   namespace Client {
+
+    typedef std::set<unsigned> wu_set_t;
+    typedef struct {
+      bool feasible = true;
+      uint32_t gpus = 0;
+      int32_t cpus = 0;
+      wu_set_t unitSet;
+      unsigned largestCpuWu = 0;
+    } state_t;
+
     class Units : public cb::JSON::ObservableList,
                   public cb::Event::Scheduler<Units> {
       App &app;
@@ -54,6 +64,12 @@ namespace FAH {
       void update();
       void load();
       void save();
+
+    private:
+      uint64_t getProjectKey() const;
+      bool compare(state_t a, state_t b);
+      state_t getState(const state_t& current, unsigned index, std::set<std::string> gpus);
+      state_t findBestFit(const state_t& current, unsigned i, std::set<std::string> gpus);
     };
   }
 }

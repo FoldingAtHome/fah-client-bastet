@@ -73,7 +73,7 @@ namespace FAH {
 
     public:
       Unit(App &app, uint64_t wu, uint32_t cpus,
-           const std::set<std::string> &gpus);
+           const std::set<std::string> &gpus, uint64_t projectKey);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
@@ -83,7 +83,9 @@ namespace FAH {
       UnitState getState() const;
 
       bool isPaused() const;
-      void setPause(bool pause);
+      uint64_t getProjectKey() const;
+      void setPause(bool pause, const std::string reason = std::string());
+      const std::string &getPauseReason() {return getString("pause-reason", std::string());}
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}

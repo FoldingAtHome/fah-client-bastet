@@ -36,7 +36,6 @@
 #include "Core.h"
 #include "Cores.h"
 #include "Config.h"
-#include "ProjectConfig.h"
 #include "ExitCode.h"
 
 #include <cbang/Catch.h>
@@ -99,10 +98,12 @@ Unit::Unit(App &app) :
 
 
 Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
-           const std::set<std::string> &gpus) : Unit(app) {
+           const std::set<std::string> &gpus, uint64_t projectKey) : Unit(app) {
   this->wu = wu;
   insert("wu", wu);
   insert("cpus", cpus);
+  if (projectKey) insert("key", projectKey);
+  insertBoolean("paused", false);
 
   auto l = createList();
   for (auto it = gpus.begin(); it != gpus.end(); it++) l->append(*it);
@@ -132,9 +133,13 @@ Unit::~Unit() {
 void Unit::setState(UnitState state) {insert("state", state.toString());}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 bool Unit::isPaused() const {return getBoolean("paused", false);}
+uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
 
 
-void Unit::setPause(bool pause) {
+void Unit::setPause(bool pause, const std::string reason) {
+  if (pause) insert("pause-reason", reason);
+  if (!pause && has("pause-reason")) erase("pause-reason");
+
   if (pause == isPaused()) return;
   insertBoolean("paused", pause);
 
@@ -552,6 +557,11 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("version",        app.getVersion().toString());
   sink.insert("id",             app.getInfo().getString("id"));
 
+  // User
+  sink.insert("user",           app.getConfig().getUsername());
+  sink.insert("team",           app.getConfig().getTeam());
+  sink.insert("passkey",        app.getConfig().getPasskey());
+
   // OS
   sink.insertDict("os");
   sink.insert("version",        info.getOSVersion().toString());
@@ -572,7 +582,16 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("signature",      info.getCPUSignature());
   sink.insert("80000001",       info.getCPUFeatures80000001());
 
-  ProjectConfig(app.getConfig()).writeRequest(sink);
+  auto &config = app.getConfig();
+
+  sink.insertDict("project");
+
+  // Project
+  if (config.hasString("release")) sink.insert("release", String::toLower(config.getString("release")));
+  if (config.hasString("cause")) sink.insert("cause", String::toLower(config.getString("cause")));
+  if (getProjectKey()) sink.insert("key", getProjectKey());
+
+  sink.endDict(); // project
 
   sink.endDict(); // CPU
 
