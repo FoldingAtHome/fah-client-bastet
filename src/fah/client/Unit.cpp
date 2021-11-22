@@ -151,25 +151,11 @@ uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
 
 
 bool Unit::isPaused() const {
-  return app.getUnits().isPaused() || getBoolean("paused", true);
+  return app.getConfig().getPaused() || getBoolean("paused", true);
 }
 
 
-void Unit::setPause(bool pause, const string reason) {
-  if (pause) insert("pause-reason", reason);
-  if (!pause && has("pause-reason")) erase("pause-reason");
-
-  if (pause == isPaused()) return;
-  insertBoolean("paused", pause);
-
-  if (pause && process.isSet() && process->isRunning())
-    process->interrupt();
-
-  if (!pause) triggerNext();
-  save();
-}
-
-
+void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
 
@@ -210,10 +196,24 @@ void Unit::next() {
     setState(UNIT_CLEAN);
   }
 
-  if (isPaused() && getState() != UNIT_CLEAN) return;
+  // Pause/unpause WU
+  bool waiting = wait && Time::now() < wait;
+
+  if (isPaused()) {
+    // Stop the process
+    if (process.isSet() && process->isRunning())
+      process->interrupt();
+
+    if (app.getConfig().getPaused()) insert("pause-reason", "Paused by user.");
+    else if (waiting) insert("pause-reason", "Waiting to retry.");
+    else insert("pause-reason", "Resources not available.");
+
+    if (getState() != UNIT_CLEAN) return;
+
+  } else if (hasString("pause-reason")) erase("pause-reason");
 
   // Handle event backoff
-  if (getState() != UNIT_DONE && wait && Time::now() < wait)
+  if (getState() != UNIT_DONE && waiting)
     return triggerNext(wait - Time::now());
 
   try {
@@ -495,6 +495,7 @@ void Unit::retry() {
     LOG_INFO(1, "Retrying in " << TimeInterval(delay));
 
   } else {
+    LOG_INFO(1, "Too many retries, failing WU");
     retries = 0;
     wait = 0;
     setState(UNIT_CLEAN);
@@ -511,7 +512,7 @@ void Unit::save() {
 
   writer.beginDict();
   writer.insert("state", *this);
-  writer.insert("data", *data);
+  if (data.isSet()) writer.insert("data", *data);
   writer.endDict();
   writer.flush();
 
@@ -549,7 +550,7 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   else get("gpus")->clear();
 
   // Try to allocate more units now that our resources have been updated
-  app.getUnits().schedule(&Units::update);
+  app.getUnits().triggerUpdate();
 
   this->data = data;
   setState(UNIT_DOWNLOAD);
@@ -693,14 +694,14 @@ void Unit::download() {
 
   // Monitor download progress
   auto progressCB =
-    [this] (unsigned bytes, int total) {setProgress(bytes, total);};
+    [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   URI uri = getWSBaseURL() + "/assign";
   pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
                             this, &Unit::response);
   data->write(*pr->getJSONWriter());
   setProgress(0, 0);
-  pr->setProgressCallback(progressCB);
+  pr->getConnection().getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 
@@ -723,7 +724,7 @@ void Unit::upload() {
 
   // Monitor upload progress
   auto progressCB =
-    [this] (unsigned bytes, int total) {setProgress(bytes, total);};
+    [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   URI uri = getWSBaseURL() + "/results";
   pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
@@ -734,7 +735,7 @@ void Unit::upload() {
   writer->close();
 
   setProgress(0, 0);
-  pr->setProgressCallback(progressCB);
+  pr->getConnection().getWriteProgress().setCallback(progressCB, 1);
   pr->send();
 }
 

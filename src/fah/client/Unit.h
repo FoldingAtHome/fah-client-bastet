@@ -32,8 +32,8 @@
 
 #include <cbang/json/Observable.h>
 
+#include <cbang/event/Event.h>
 #include <cbang/event/Enum.h>
-#include <cbang/event/Scheduler.h>
 #include <cbang/event/OutgoingRequest.h>
 
 #include <cbang/os/Subprocess.h>
@@ -86,7 +86,7 @@ namespace FAH {
       uint64_t getProjectKey() const;
 
       bool isPaused() const;
-      void setPause(bool pause, const std::string reason = std::string());
+      void setPause(bool pause);
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}

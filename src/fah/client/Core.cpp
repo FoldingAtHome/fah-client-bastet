@@ -34,6 +34,7 @@
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/event/Event.h>
+#include <cbang/event/HTTPConnOut.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/openssl/KeyPair.h>
 #include <cbang/openssl/Digest.h>
@@ -198,13 +199,16 @@ void Core::download(const string &url) {
 
   // Monitor download progress
   auto progressCB =
-    [this] (unsigned bytes, int total) {
+    [this] (const Progress &p) {
+      unsigned bytes = p.getTotal();
+      unsigned size = p.getSize();
+
       for (unsigned i = 0; i < progressCBs.size(); i++)
-        progressCBs[i](bytes, total);
+        progressCBs[i](bytes, size);
     };
 
   auto pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
-  pr->setProgressCallback(progressCB);
+  pr->getConnection().getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 

@@ -45,8 +45,8 @@ using namespace std;
 
 
 Units::Units(App &app) :
-  Event::Scheduler<Units>(app.getEventBase()), app(app) {
-  schedule(&Units::load);
+  app(app), event(app.getEventBase().newEvent(this, &Units::update, 0)) {
+  app.getEventBase().newEvent(this, &Units::load, 0)->activate();
 }
 
 
@@ -57,7 +57,7 @@ void Units::unitComplete(bool success) {
 
   } else {
     failures++;
-    waitUntil = lastWU + pow(2, std::max(failures, 10U));
+    waitUntil = lastWU + pow(2, std::min(failures, 10U));
   }
 
   triggerUpdate();
@@ -76,10 +76,11 @@ void Units::update() {
   }
 
   // Wait on failures
-  if (Time::now() < waitUntil)
-    return schedule(&Units::update, waitUntil - Time::now());
+  auto now = Time::now();
+  if (now < waitUntil) return event->add(waitUntil - now);
 
-  if (isPaused()) return;
+  // No further action if paused
+  if (app.getConfig().getPaused()) return;
 
   // Find best fit
   state_t best;
@@ -94,11 +95,8 @@ void Units::update() {
   best = findBestFit(best, 0);
 
   // Start/stop WUs
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = *get(i).cast<Unit>();
-    if (!best.wus.count(i)) unit.setPause(true, "Resources not available.");
-    else unit.setPause(false);
-  }
+  for (unsigned i = 0; i < size(); i++)
+    get(i).cast<Unit>()->setPause(!best.wus.count(i));
 
   LOG_DEBUG(1, "Remaining CPUs: " << best.cpus << ", Remaining GPUs: "
             << best.gpus.size());
@@ -120,28 +118,18 @@ void Units::update() {
 }
 
 
-void Units::triggerUpdate() {schedule(&Units::update);}
+void Units::triggerUpdate(bool updateUnits) {
+  if (!event->isPending()) event->activate();
+
+  if (updateUnits)
+    for (unsigned i = 0; i < size(); i++)
+      get(i).cast<Unit>()->triggerNext();
+}
 
 
 void Units::add(const SmartPointer<Unit> &unit) {
   append(unit);
   unit->triggerNext();
-}
-
-
-bool Units::isPaused() const {
-  return app.getDB("config").getBoolean("paused", false);
-}
-
-
-void Units::setPause(bool pause) {
-  app.getDB("config").set("paused", pause);
-
-  if (pause)
-    for (unsigned i = 0; i < size(); i++)
-      get(i).cast<Unit>()->setPause(true, "Paused by user.");
-
-  triggerUpdate();
 }
 
 
@@ -159,8 +147,7 @@ void Units::load() {
   isConfigLoaded = true;
   LOG_INFO(3, "Loaded " << size() << " wus.");
 
-  if (isPaused()) setPause(true);
-  else triggerUpdate();
+  triggerUpdate();
 }
 
 

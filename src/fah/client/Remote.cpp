@@ -50,9 +50,11 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
   string cmd = msg->getString("cmd", "");
 
-  if (cmd == "pause") app.getUnits().setPause(true);
-  if (cmd == "unpause") app.getUnits().setPause(false);
-  if (cmd == "config") app.getConfig().merge(*msg->get("config"));
+  if (cmd == "pause")   app.getConfig().setPaused(true);
+  if (cmd == "unpause") app.getConfig().setPaused(false);
+  if (cmd == "config")  app.getConfig().merge(*msg->get("config"));
+
+  app.getUnits().triggerUpdate(true);
 }
 
 

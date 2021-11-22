@@ -53,6 +53,10 @@
 #include <cbang/openssl/CertificateStore.h>
 #include <cbang/openssl/CertificateStoreContext.h>
 
+#ifndef _WIN32
+#include <signal.h>
+#endif
+
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -115,6 +119,15 @@ App::App() :
   // Handle exit signal
   base.newSignal(SIGINT, this, &App::signalEvent)->add();
   base.newSignal(SIGTERM, this, &App::signalEvent)->add();
+
+  // Network timeout
+  client.setReadTimeout(45);
+  client.setWriteTimeout(45);
+
+  // Ignore SIGPIPE
+#ifndef _WIN32
+  ::signal(SIGPIPE, SIG_IGN);
+#endif
 
   // Add custom certificate extension
   SSL::createObject("1.2.3.4.70.64.72", "fahKeyUsage",

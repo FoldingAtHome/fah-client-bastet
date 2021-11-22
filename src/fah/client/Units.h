@@ -36,8 +36,7 @@
 
 namespace FAH {
   namespace Client {
-    class Units : public cb::JSON::ObservableList,
-                  public cb::Event::Scheduler<Units> {
+    class Units : public cb::JSON::ObservableList {
       typedef struct {
         std::set<unsigned> wus;     // Selected WU indices
         unsigned cpus;              // Unused CPUs
@@ -46,6 +45,7 @@ namespace FAH {
 
       App &app;
 
+      cb::SmartPointer<cb::Event::Event> event;
       bool isConfigLoaded = false;
       uint64_t wus = 0;
       uint64_t lastWU = 0;
@@ -56,13 +56,10 @@ namespace FAH {
       Units(App &app);
 
       void add(const cb::SmartPointer<Unit> &unit);
-      bool isPaused() const;
-      void setPause(bool pause);
       void unitComplete(bool success);
       void update();
-      void triggerUpdate();
+      void triggerUpdate(bool updateUnits = false);
       void load();
-      void save();
 
     private:
       uint64_t getProjectKey() const;
