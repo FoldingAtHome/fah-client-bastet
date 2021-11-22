@@ -135,7 +135,7 @@ bool Units::isPaused() const {
 
 
 void Units::setPause(bool pause) {
-  app.getDB("config").set("paused", pause);
+  app.getConfig().setPaused(pause);
 
   if (pause)
     for (unsigned i = 0; i < size(); i++)
