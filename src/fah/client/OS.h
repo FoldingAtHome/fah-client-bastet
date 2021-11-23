@@ -53,14 +53,8 @@ namespace FAH {
 
       void requestExit();
 
-      void setOnIdle(bool onIdle);
-      bool getOnIdle() const;
-
       void setPaused(bool paused);
       bool getPaused() const;
-
-      void setPower(Power power);
-      Power getPower() const;
 
       bool isIdle() const;
       bool hasFailure() const;

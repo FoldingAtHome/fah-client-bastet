@@ -50,6 +50,28 @@ Units::Units(App &app) :
 }
 
 
+bool Units::isIdle() const {
+  for (unsigned i = 0; i < size(); i++)
+    if (!get(i).cast<Unit>()->isPaused()) return false;
+
+  return true;
+}
+
+
+bool Units::hasFailure() const {
+  for (unsigned i = 0; i < size(); i++)
+    if (get(i).cast<Unit>()->getRetries()) return true;
+
+  return false;
+}
+
+
+void Units::add(const SmartPointer<Unit> &unit) {
+  append(unit);
+  unit->triggerNext();
+}
+
+
 void Units::unitComplete(bool success) {
   if (success) {
     failures = 0;
@@ -124,12 +146,6 @@ void Units::triggerUpdate(bool updateUnits) {
   if (updateUnits)
     for (unsigned i = 0; i < size(); i++)
       get(i).cast<Unit>()->triggerNext();
-}
-
-
-void Units::add(const SmartPointer<Unit> &unit) {
-  append(unit);
-  unit->triggerNext();
 }
 
 

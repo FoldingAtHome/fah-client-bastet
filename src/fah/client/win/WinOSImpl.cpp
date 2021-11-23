@@ -259,7 +259,6 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
     switch (LOWORD(wParam)) {
     case ID_USER_WEBCONTROL: openWebControl();                  return 0;
     case ID_USER_PAUSE:      OS::setPaused(!OS::getPaused());   return 0;
-    case ID_USER_IDLE:       OS::setOnIdle(!OS::getOnIdle());   return 0;
     case ID_USER_ABOUT:      showAbout(hWnd);                   return 0;
     case ID_USER_EXIT:       DestroyWindow(hWnd);               return 0;
     }
@@ -341,7 +340,6 @@ void WinOSImpl::popup(HWND hWnd) {
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  AppendMenu(hMenu, OS::getOnIdle() ? MF_CHECKED : 0, ID_USER_IDLE, "On Idle");
   AppendMenu(hMenu, OS::getPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
   AppendMenu(hMenu, 0, ID_USER_ABOUT, "&About");

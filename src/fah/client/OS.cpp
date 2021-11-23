@@ -29,6 +29,8 @@
 #include "OS.h"
 
 #include <fah/client/App.h>
+#include <fah/client/Config.h>
+#include <fah/client/Units.h>
 
 #if defined(_WIN32)
 #include "win/WinOSImpl.h"
@@ -86,17 +88,15 @@ const char *OS::getName() const {
 
 
 void OS::requestExit() {app.requestExit();}
-
 void OS::dispatch() {app.getEventBase().dispatch();}
 
-void OS::setOnIdle(bool onIdle) {}
-bool OS::getOnIdle() const {return false;}
 
-void OS::setPaused(bool paused) {}
-bool OS::getPaused() const {return false;}
+void OS::setPaused(bool paused) {
+  app.getConfig().setPaused(paused);
+  app.getUnits().triggerUpdate(true);
+}
 
-void OS::setPower(Power power) {}
-Power OS::getPower() const {return Power::POWER_FULL;}
 
-bool OS::isIdle() const {return false;}
-bool OS::hasFailure() const {return false;}
+bool OS::getPaused()  const {return app.getConfig().getPaused();}
+bool OS::isIdle()     const {return app.getUnits().isIdle();}
+bool OS::hasFailure() const {return app.getUnits().hasFailure();}

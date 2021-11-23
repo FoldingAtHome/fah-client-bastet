@@ -79,6 +79,7 @@ namespace FAH {
       ~Unit();
 
       const std::string &getID() const {return id;}
+      unsigned getRetries() const {return retries;}
 
       void setState(UnitState state);
       UnitState getState() const;
