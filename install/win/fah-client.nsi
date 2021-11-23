@@ -149,6 +149,7 @@ Section -Install
   ; Data directory
   CreateDirectory $DataDir
   AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
+  SetOutPath $DataDir ; Set working directory for shortcuts, etc.
 
   ; Delete old desktop links
   Delete "$DESKTOP\FAHControl.lnk"
