@@ -86,8 +86,10 @@ namespace FAH {
 
       uint64_t getProjectKey() const;
 
+      bool isWaiting() const;
       bool isPaused() const;
       void setPause(bool pause);
+      const char *getPauseReason() const;
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}

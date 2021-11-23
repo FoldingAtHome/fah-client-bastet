@@ -286,7 +286,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
     ("Folding@home Client\n\r"
      "Version " << getApp().getVersion() << "\n\r"
      "\n\r"
-     "Copyright (c) 2001-2019 foldingathome.org\n\r"
+     "Copyright (c) 2001-2022 foldingathome.org\n\r"
      "\n\r"
      "Folding@home uses your excess computing power to help scientists at "
      "Universities around the world to better understand and find cures "

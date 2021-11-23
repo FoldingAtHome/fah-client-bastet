@@ -47,7 +47,7 @@ Config::Config(App &app) : app(app) {
   insert("team", 0);
   insert("passkey", "");
   insert("checkpoint", 15);
-  insertBoolean("on_idle", true);
+  insertBoolean("on_idle", false);
   insertBoolean("paused", false);
   insert("cause", "any");
   insert("cpus", cpus);

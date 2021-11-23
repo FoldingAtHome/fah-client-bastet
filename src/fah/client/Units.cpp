@@ -31,6 +31,7 @@
 #include "App.h"
 #include "Unit.h"
 #include "Config.h"
+#include "OS.h"
 #include "GPUResources.h"
 
 #include <cbang/Catch.h>
@@ -103,6 +104,7 @@ void Units::update() {
 
   // No further action if paused
   if (app.getConfig().getPaused()) return;
+  if (app.getConfig().getOnIdle() && !app.getOS().isSystemIdle()) return;
 
   // Find best fit
   state_t best;

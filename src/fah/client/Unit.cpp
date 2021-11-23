@@ -148,6 +148,7 @@ void Unit::setState(UnitState state) {
 
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
+bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
@@ -156,6 +157,17 @@ bool Unit::isPaused() const {
 
 
 void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
+
+
+const char *Unit::getPauseReason() const {
+  if (app.getConfig().getOnIdle() && !app.getOS().isSystemIdle())
+    return "Waiting for idle system.";
+  if (app.getConfig().getPaused()) return "Paused by user.";
+  if (isWaiting()) return "Waiting to retry.";
+  return "Resources not available.";
+}
+
+
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
 
@@ -197,24 +209,22 @@ void Unit::next() {
   }
 
   // Pause/unpause WU
-  bool waiting = wait && Time::now() < wait;
-
   if (isPaused()) {
+    insert("pause-reason", getPauseReason());
+
     // Stop the process
     if (process.isSet() && process->isRunning())
       process->interrupt();
-
-    if (app.getConfig().getPaused()) insert("pause-reason", "Paused by user.");
-    else if (waiting) insert("pause-reason", "Waiting to retry.");
-    else insert("pause-reason", "Resources not available.");
 
     if (getState() != UNIT_CLEAN) return;
 
   } else if (hasString("pause-reason")) erase("pause-reason");
 
   // Handle event backoff
-  if (getState() != UNIT_DONE && waiting)
-    return triggerNext(wait - Time::now());
+  if (getState() != UNIT_DONE && isWaiting()) {
+    uint64_t now = Time::now();
+    return triggerNext(now < wait ? (wait - now) : 0);
+  }
 
   try {
     switch (getState()) {
