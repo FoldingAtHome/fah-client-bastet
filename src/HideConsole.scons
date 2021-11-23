@@ -1,0 +1,10 @@
+import glob
+
+Import('*')
+
+env = env.Clone()
+env.CBConfConsole() # Build console app on Windows
+
+prog = env.Program('#/HideConsole', ['HideConsole.cpp']);
+
+Return('prog')

@@ -53,12 +53,20 @@ Export('env')
 client = SConscript('src/client.scons', variant_dir = 'build', duplicate = 0)
 Default(client)
 
+# HideConsole
+hide_console = None
+if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+    hide_console = SConscript('src/HideConsole.scons', variant_dir = 'build',
+                              duplicate = 0)
+    Default(hide_console)
+
 # Clean
 Clean(client, ['build', 'config.log'])
 
 # Dist
 docs = ['README.md', 'CHANGELOG.md', 'LICENSE']
 distfiles = docs + [client, 'images/fahlogo.png']
+if hide_console is not None: distfiles.append(hide_console)
 tar = env.TarBZ2Dist('fah-client', distfiles)
 Alias('dist', tar)
 AlwaysBuild(tar)

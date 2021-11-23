@@ -126,6 +126,7 @@ Section -Install
   SetOverwrite try
   SetOutPath "$INSTDIR"
   File /oname=${CLIENT_EXE}  "${CLIENT_HOME}\fah-client.exe"
+  File "${CLIENT_HOME}\HideConsole.exe"
   File /oname=${CLIENT_ICON} "${CLIENT_HOME}\images\fahlogo.ico"
   File /oname=README.txt     "${CLIENT_HOME}\README.md"
   File /oname=License.txt    "${CLIENT_HOME}\LICENSE"
@@ -154,8 +155,8 @@ Section -Install
   Delete "$DESKTOP\Folding@home.lnk"
 
   ; Desktop link
-  CreateShortCut "$DESKTOP\Folding @Home.lnk" "$INSTDIR\${CLIENT_EXE}" \
-    '--open-web-control' "$INSTDIR\${CLIENT_ICON}"
+  CreateShortCut "$DESKTOP\Folding @Home.lnk" "$INSTDIR\HideConsole.exe" \
+    '"$INSTDIR\${CLIENT_EXE}" --open-web-control' "$INSTDIR\${CLIENT_ICON}"
 
   ; Write uninstaller
 write_uninstaller:
@@ -189,8 +190,8 @@ write_uninstaller:
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "${MENU_PATH}"
   CreateDirectory "${MENU_PATH}"
-  CreateShortCut "${MENU_PATH}\Folding@home.lnk" "$INSTDIR\${CLIENT_EXE}" \
-    '--open-web-control' "$INSTDIR\${CLIENT_ICON}"
+  CreateShortCut "${MENU_PATH}\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
+    '"$INSTDIR\${CLIENT_EXE}" --open-web-control' "$INSTDIR\${CLIENT_ICON}"
   CreateShortCut "${MENU_PATH}\Data Directory.lnk" "$DataDir"
   CreateShortCut "${MENU_PATH}\Homepage.lnk" "$INSTDIR\Homepage.url"
   CreateShortCut "${MENU_PATH}\Uninstall.lnk" "$INSTDIR\${UNINSTALLER}"
@@ -202,8 +203,8 @@ write_uninstaller:
   ;  Autostart
   Delete "$SMSTARTUP\${CLIENT_NAME}.lnk" # Clean up old link
   ${If} $AutoStart == ${BST_CHECKED}
-    CreateShortCut "$SMSTARTUP\Folding@home.lnk" "$INSTDIR\${CLIENT_EXE}" "" \
-      "$INSTDIR\${CLIENT_ICON}"
+    CreateShortCut "$SMSTARTUP\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
+      "$INSTDIR\${CLIENT_EXE}" "$INSTDIR\${CLIENT_ICON}"
   ${Else}
     Delete "$SMSTARTUP\Folding@home.lnk"
   ${EndIf}
