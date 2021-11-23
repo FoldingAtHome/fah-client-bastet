@@ -331,14 +331,12 @@ FunctionEnd
 
 
 Function OnInstallPageEnter
-  ; Init data dir
+  ; Init
   ${If} $DataDir == ""
     ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
       "DataDirectory"
-  ${EndIf}
-
-  ${If} $DataDir == ""
     StrCpy $DataDir "$APPDATA\${PRODUCT_NAME}"
+    StrCpy $AutoStart ${BST_CHECKED}
   ${EndIf}
 
   !insertmacro MUI_HEADER_TEXT "Installation Options" ""
@@ -353,7 +351,7 @@ Function OnInstallPageEnter
   ${NSD_CreateCheckbox} 5%% 8u 90%% 12u \
     "Automatically start at login time. (Recommended)"
   Pop $0
-  ${NSD_SetState} $0 ${BST_CHECKED}
+  ${NSD_SetState} $0 $AutoStart
   ${NSD_OnClick} $0 OnAutoStartChange
 
   ; Install Path
@@ -431,10 +429,8 @@ FunctionEnd
 
 
 Function OnRunFAH
-  ${If} $AutoStart == ${BST_CHECKED}
-    # Also opens Web Control
-    ExecShell "open" "${MENU_PATH}\Folding@home.lnk"
-  ${EndIf}
+  # Also opens Web Control
+  ExecShell "open" "${MENU_PATH}\Folding@home.lnk"
 FunctionEnd
 
 
