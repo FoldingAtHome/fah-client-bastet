@@ -62,32 +62,18 @@ SmartPointer<OS> OS::create(App &app) {
 }
 
 
-const char *OS::getName() const {
-#ifdef _WIN32
-  return "win32";
+void OS::requestExit() {app.requestExit();}
 
-#elif __APPLE__
-  return "macosx";
 
-#else
-  // OS Type
-  string platform =
-    String::toLower(Info::instance().get(app.getName(), "Platform"));
-
-  // 'platform' is the string returned in Python by:
-  //   os.platform.lower() + ' ' + platform.release()
-  if (platform.find("linux")   != string::npos) return "linux";
-  if (platform.find("freebsd") != string::npos) return "freebsd";
-  if (platform.find("openbsd") != string::npos) return "openbsd";
-  if (platform.find("netbsd")  != string::npos) return "netbsd";
-  if (platform.find("solaris") != string::npos) return "solaris";
+const char *OS::getCPU() const {
+#if defined(__aarch64__)
+  return "arm64";
 #endif
 
-  return "unknown";
+  return sizeof(void *) == 4 ? "x86" : "amd64";
 }
 
 
-void OS::requestExit() {app.requestExit();}
 void OS::dispatch() {app.getEventBase().dispatch();}
 
 

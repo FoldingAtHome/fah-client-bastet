@@ -207,6 +207,23 @@ void WinOSImpl::init() {
 }
 
 
+const char *WinOSImpl::getName() const {return "win32";}
+
+
+const char *WinOSImpl::getCPU() const {
+  SYSTEM_INFO info;
+  GetNativeSystemInfo(&info);
+
+  switch (info.wProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64: return "amd64";
+  case PROCESSOR_ARCHITECTURE_ARM:   return "arm";
+  case PROCESSOR_ARCHITECTURE_ARM64: return "arm64";
+  case PROCESSOR_ARCHITECTURE_INTEL: return "x86";
+  default: OS::getCPU();
+  }
+}
+
+
 void WinOSImpl::start() {if (systrayEnabled) Thread::start();}
 
 

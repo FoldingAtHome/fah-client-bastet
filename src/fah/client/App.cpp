@@ -227,19 +227,13 @@ const IPAddress &App::getNextAS() {
 }
 
 
-const char *App::getCPU() const {
-  // TODO support ARM64
-  return sizeof(void *) == 4 ? "x86" : "amd64";
-}
-
-
 void App::loadConfig() {
   // Info
   info->insert("version", getVersion().toString());
-  info->insert("os", os->getName());
-  info->insert("cpu", getCPU());
-  info->insert("cpus", SystemInfo::instance().getCPUCount());
-  info->insert("gpus", gpus);
+  info->insert("os",      os->getName());
+  info->insert("cpu",     os->getCPU());
+  info->insert("cpus",    SystemInfo::instance().getCPUCount());
+  info->insert("gpus",    gpus);
 
   auto &config = getDB("config");
 

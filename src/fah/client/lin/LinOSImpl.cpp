@@ -30,8 +30,27 @@
 
 #include <cbang/os/PowerManagement.h>
 
+#include <sys/utsname.h>
+
 using namespace FAH::Client;
+using namespace std;
 using namespace cb;
+
+
+const char *LinOSImpl::getName() const {return "linux";}
+
+
+const char *LinOSImpl::getCPU() const {
+  struct utsname name;
+
+  uname(&name);
+  string machine(name.machine);
+
+  if (machine.find("x86_64") != string::npos) return "amd64";
+  if (machine == "arch64" || machine == "arm64") return "arm64";
+
+  return OS::getCPU();
+}
 
 
 bool LinOSImpl::isSystemIdle() const {

@@ -598,7 +598,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
   // CPU
   sink.insertDict("cpu");
-  sink.insert("cpu",            app.getCPU());
+  sink.insert("cpu",            app.getOS().getCPU());
   sink.insert("cpus",           getU32("cpus"));
   sink.insert("extended",       info.getCPUExtendedFeatures());
   sink.insert("vendor",         info.getCPUVendor());

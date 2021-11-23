@@ -258,6 +258,9 @@ void OSXOSImpl::addHeartbeatTimerToRunLoop(CFRunLoopRef loop) {
 }
 
 
+const char *OSXOSImpl::getName() const {return "macosx";}
+
+
 void OSXOSImpl::dispatch() {
   // integrate cb::Event (libevent) and CFRunLoop
   // this is meant for main thread, but should work for any

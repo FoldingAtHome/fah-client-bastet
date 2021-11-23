@@ -119,7 +119,6 @@ namespace FAH {
                              const std::string &usage);
 
       const cb::IPAddress &getNextAS();
-      const char *getCPU() const;
 
       void loadConfig();
       void loadServers();

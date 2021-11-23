@@ -38,6 +38,8 @@ namespace FAH {
       LinOSImpl(App &app) : OS(app) {}
 
       // From OS
+      const char *getName() const;
+      const char *getCPU() const;
       bool isSystemIdle() const;
     };
   }

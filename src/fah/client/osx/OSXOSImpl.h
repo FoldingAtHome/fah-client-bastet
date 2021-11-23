@@ -73,6 +73,7 @@ namespace FAH {
       static OSXOSImpl &instance();
 
       // From OS
+      const char *getName() const;
       bool isSystemIdle() const {return systemIsIdle;}
       void dispatch();
 

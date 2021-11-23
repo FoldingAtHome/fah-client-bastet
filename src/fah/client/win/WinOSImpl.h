@@ -65,6 +65,8 @@ namespace FAH {
       void init();
 
       // From OS
+      const char *getName() const;
+      const char *getCPU() const;
       bool isSystemIdle() const {return inAwayMode || displayOff;}
 
       // From cb::Thread
