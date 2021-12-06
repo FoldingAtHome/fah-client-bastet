@@ -94,10 +94,16 @@ namespace FAH {
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
 
+      double getEstimatedProgress() const;
+      double getCurrentFrameProgress() const;
+      uint64_t getRunTimeEstimate() const;
+      uint64_t getETA() const;
+
       std::string getLogPrefix() const;
       std::string getDirectory() const {return "work/" + id;}
       std::string getWSBaseURL() const;
       uint64_t getDeadline() const;
+      bool isFinished() const;
       bool isExpired() const;
 
       void triggerNext(double secs = 0);

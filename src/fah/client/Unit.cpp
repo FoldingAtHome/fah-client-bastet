@@ -168,6 +168,35 @@ const char *Unit::getPauseReason() const {
 }
 
 
+double Unit::getCurrentFrameProgress() const {
+  // TODO: Use frameTimer
+  return 0;
+}
+
+double Unit::getEstimatedProgress() const {
+  if (isFinished()) return has("error") ? 0 : 1;
+
+  double progress = 0.0;
+  if (getState() == UNIT_RUN) {
+    progress = getNumber("progress", 0);
+    if (isPaused()) return progress;
+    return progress + getCurrentFrameProgress();
+  }
+  return progress;
+}
+
+uint64_t Unit::getRunTimeEstimate() const {
+  int64_t estimate = data->selectU64("assignment.data.deadline", 0);
+  return estimate;
+}
+
+uint64_t Unit::getETA() const {
+  double progress = getEstimatedProgress();
+  if (1.0 <= progress) return 0;
+
+  return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
+}
+
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
 
@@ -183,6 +212,18 @@ string Unit::getWSBaseURL() const {
 uint64_t Unit::getDeadline() const {
   return Time(data->selectString("assignment.data.time")) +
     data->selectU64("assignment.data.deadline");
+}
+
+
+bool Unit::isFinished() const {
+  switch (getState()) {
+  case UNIT_UPLOAD:
+  case UNIT_CLEAN:
+  case UNIT_DONE:
+    return true;
+
+  default: return false;
+  }
 }
 
 
@@ -466,6 +507,9 @@ void Unit::monitor() {
     TRY_CATCH_ERROR(readInfo());
     if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
     if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
+    std::string currentETA = TimeInterval(getETA()).toString();
+    if (currentETA != getString("eta", ""))
+      insert("eta", currentETA);
 
     triggerNext(1);
 
