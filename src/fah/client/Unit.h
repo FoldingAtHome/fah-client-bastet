@@ -29,6 +29,7 @@
 #pragma once
 
 #include "UnitState.h"
+#include "FrameTimer.h"
 
 #include <cbang/json/Observable.h>
 
@@ -62,10 +63,14 @@ namespace FAH {
       cb::SmartPointer<Core> core;
 
       unsigned viewerFrame = 0;
+      FrameTimer frameTimer;
 
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
+      uint32_t totalPausedTime; // Total time unit was paused.
+      uint32_t timesPaused; // No of times unit was paused.
+      uint32_t lastPausedTime; // last time unit was paused.
       bool success = false;
       unsigned retries = 0;
       uint64_t wait = 0;
@@ -97,7 +102,9 @@ namespace FAH {
       double getEstimatedProgress() const;
       double getCurrentFrameProgress() const;
       uint64_t getRunTimeEstimate() const;
+      double getCreditEstimate() const;
       uint64_t getETA() const;
+      double getPPD() const;
 
       std::string getLogPrefix() const;
       std::string getDirectory() const {return "work/" + id;}

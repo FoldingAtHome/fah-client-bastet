@@ -95,7 +95,7 @@ namespace {
 
 
 Unit::Unit(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
+  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)), frameTimer(*this) {}
 
 
 Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus,
@@ -175,18 +175,12 @@ double Unit::getCurrentFrameProgress() const {
 
 double Unit::getEstimatedProgress() const {
   if (isFinished()) return has("error") ? 0 : 1;
-
-  double progress = 0.0;
-  if (getState() == UNIT_RUN) {
-    progress = getNumber("progress", 0);
-    if (isPaused()) return progress;
-    return progress + getCurrentFrameProgress();
-  }
-  return progress;
+  if (getState() == UNIT_RUN) return frameTimer.getProgress();
+  return 0;
 }
 
 uint64_t Unit::getRunTimeEstimate() const {
-  int64_t estimate = data->selectU64("assignment.data.deadline", 0);
+  int64_t estimate = data->selectU64("assignment.data.timeout", 0);
   return estimate;
 }
 
@@ -196,6 +190,37 @@ uint64_t Unit::getETA() const {
 
   return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
 }
+
+
+double Unit::getCreditEstimate() const {
+  uint64_t credit = data->selectU64("assignment.data.credit", 0);
+  if (credit < 0) return 0;
+
+  double bonus = 1;
+
+  // TODO: GetKFactor
+  uint64_t kFactor = 3;
+  if (kFactor) {
+    uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
+    uint64_t timeout = data->selectU64("assignment.data.timeout", 0);
+    uint64_t deadline = data->selectU64("assignment.data.deadline", 0);
+    uint64_t delta = Time::now() - timeAssigned + getETA();
+
+    if (delta && delta < timeout) {
+      bonus = sqrt(kFactor * (double)deadline / delta);
+      if (bonus < 1) bonus = 1;
+    }
+  }
+
+  return bonus * credit;
+}
+
+
+double Unit::getPPD() const {
+  double estimate = getRunTimeEstimate();
+  return estimate <= 0 ? 0 : getCreditEstimate() / estimate * Time::SEC_PER_DAY;
+}
+
 
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
@@ -396,6 +421,9 @@ void Unit::run() {
   logCopier = new TailFileToLog(logFile, getLogPrefix());
   logCopier->start();
 
+  // Start the frameTimer
+  frameTimer.start();
+
   triggerNext();
 
   insert("assignment", data->select("assignment.data"));
@@ -421,6 +449,7 @@ void Unit::readInfo() {
     if (f->gcount() == sizeof(WUInfo)) {
       if (info.type != core->getType()) THROW("Invalid WU info");
       setProgress(info.done, info.total);
+      frameTimer.update(info.done, info.total);
     }
   }
 }
@@ -507,14 +536,22 @@ void Unit::monitor() {
     TRY_CATCH_ERROR(readInfo());
     if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
     if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
+
+    // Update ETA
     std::string currentETA = TimeInterval(getETA()).toString();
     if (currentETA != getString("eta", ""))
       insert("eta", currentETA);
 
+    // Update PPD
+    insert("ppd", String::printf("%.0f", getPPD()));
+
     triggerNext(1);
 
   } else {
-    if (finalizeRun()) readResults();
+    if (finalizeRun()) {
+      frameTimer.stop();
+      readResults();
+    }
     save();
     triggerNext();
   }
