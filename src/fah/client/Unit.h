@@ -100,8 +100,8 @@ namespace FAH {
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
 
       double getEstimatedProgress() const;
-      double getCurrentFrameProgress() const;
       uint64_t getRunTimeEstimate() const;
+      void adjustRuntimeEstimate(uint64_t time);
       double getCreditEstimate() const;
       uint64_t getETA() const;
       double getPPD() const;

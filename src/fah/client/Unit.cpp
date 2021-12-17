@@ -168,11 +168,6 @@ const char *Unit::getPauseReason() const {
 }
 
 
-double Unit::getCurrentFrameProgress() const {
-  // TODO: Use frameTimer
-  return 0;
-}
-
 double Unit::getEstimatedProgress() const {
   if (isFinished()) return has("error") ? 0 : 1;
   if (getState() == UNIT_RUN) return frameTimer.getProgress();
@@ -180,15 +175,19 @@ double Unit::getEstimatedProgress() const {
 }
 
 uint64_t Unit::getRunTimeEstimate() const {
-  int64_t estimate = data->selectU64("assignment.data.timeout", 0);
-  return estimate;
+  return getU64("runtimeEstimate", 0);
 }
 
-uint64_t Unit::getETA() const {
-  double progress = getEstimatedProgress();
-  if (1.0 <= progress) return 0;
+void Unit::adjustRuntimeEstimate(uint64_t time) {
+  if (!time) return;
+  uint64_t totalTime = getU64("totalTime") + time/100;
 
-  return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
+  insert("totalTime", totalTime);
+
+  double progress = getNumber("progress");
+  if (progress) insert("runtimeEstimate", totalTime/progress);
+  else insert("runtimeEstimate", data->selectU64("assignment.data.timeout", 0));
+  LOG_DEBUG(3, "TT:RTE " << totalTime << " " << getRunTimeEstimate());
 }
 
 
@@ -213,6 +212,14 @@ double Unit::getCreditEstimate() const {
   }
 
   return bonus * credit;
+}
+
+
+uint64_t Unit::getETA() const {
+  double progress = getEstimatedProgress();
+  if (1.0 <= progress) return 0;
+
+  return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
 }
 
 
@@ -282,9 +289,15 @@ void Unit::next() {
     if (process.isSet() && process->isRunning())
       process->interrupt();
 
+    // Stop the frameTimer
+    if (frameTimer.isRunning()) frameTimer.stop();
+
     if (getState() != UNIT_CLEAN) return;
 
-  } else if (hasString("pause-reason")) erase("pause-reason");
+  } else {
+    if (!frameTimer.isRunning()) frameTimer.start();
+    if (hasString("pause-reason")) erase("pause-reason");
+  }
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting()) {
@@ -450,6 +463,7 @@ void Unit::readInfo() {
       if (info.type != core->getType()) THROW("Invalid WU info");
       setProgress(info.done, info.total);
       frameTimer.update(info.done, info.total);
+      insert("prog", frameTimer.getProgress());
     }
   }
 }
@@ -639,6 +653,10 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   // Update GPUs
   if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
   else get("gpus")->clear();
+
+  // Insert initial runtime estimate as timeout.
+  insert("runtimeEstimate", assign->getU64("timeout"));
+  insert("totalTime", 0);
 
   // Try to allocate more units now that our resources have been updated
   app.getUnits().triggerUpdate();

@@ -41,17 +41,16 @@ using namespace cb;
 using namespace FAH::Client;
 
 
-FrameTimer::FrameTimer(const Unit &unit) :
+FrameTimer::FrameTimer(Unit &unit) :
   unit(unit), totalFrames(0), currentFrame(0), currentTime(0), lastUpdate(0),
   lastTimeUpdate(0), lastFrameUpdate(0), running(false) {}
 
 
 uint64_t FrameTimer::getCurrentFrameTime() const {
   uint64_t now = Time::now();
-  // Update current time every 10 seconds
-  if (running && (now - lastTimeUpdate) > 10)
+  if (running) {
     return currentTime + now - lastTimeUpdate;
-
+  }
   return currentTime;
 }
 
@@ -64,7 +63,9 @@ bool FrameTimer::isStalled() const {
 
 double FrameTimer::getCurrentFrameEstimatedProgress() const {
   double estimate = unit.getRunTimeEstimate();
-  return estimate ? getCurrentFrameTime() / estimate: 0;
+  double frameProgress = estimate ? getCurrentFrameTime() / estimate: 0;
+  if (0.01 < frameProgress) return 0.01;
+  return frameProgress;
 }
 
 
@@ -88,14 +89,18 @@ void FrameTimer::start() {
   running = true;
 
   startTime = Time::now();
-  lastUpdate = lastTimeUpdate = lastFrameUpdate = 0;
+  currentTime = lastUpdate = lastTimeUpdate = lastFrameUpdate = 0;
 }
 
 
 void FrameTimer::stop() {
   if (!running) LOG_ERROR("Frame timer not running");
   running = false;
-  if (lastTimeUpdate) currentTime += Time::now() - lastTimeUpdate;
+  if (lastTimeUpdate) {
+    uint64_t now = Time::now();
+    currentTime += now - lastTimeUpdate;
+    lastTimeUpdate = now;
+  }
 }
 
 
@@ -124,9 +129,9 @@ void FrameTimer::update(uint64_t frame, uint64_t total) {
     lastUpdate = now;
   }
 
-  if (currentFrame != frame)
-  {
+  if (currentFrame != frame) {
     lastFrameUpdate = now;
+    unit.adjustRuntimeEstimate(getCurrentFrameTime() * 100);
     currentFrame = frame;
     lastTimeUpdate = now;
     currentTime = 0;

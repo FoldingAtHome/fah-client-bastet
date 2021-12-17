@@ -38,7 +38,7 @@ namespace FAH {
     class Unit;
 
     class FrameTimer {
-      const Unit &unit;
+      Unit &unit;
       unsigned totalFrames; ///< Total number of frames in WU
       unsigned currentFrame; ///< The current frame
       uint64_t currentTime; ///< The accumulated time on this frame
@@ -49,12 +49,11 @@ namespace FAH {
       bool running;
 
     public:
-      FrameTimer(const Unit &unit);
+      FrameTimer(Unit &unit);
 
       uint64_t getCurrentFrameTime() const;
 
-      uint64_t getLastFrameUpdate() const {return lastFrameUpdate;}
-
+      bool isRunning() const {return running;}
       bool isStalled() const;
       double getCurrentFrameEstimatedProgress() const;
       double getKnownProgress() const;
