@@ -75,6 +75,15 @@ namespace FAH {
       unsigned retries = 0;
       uint64_t wait = 0;
 
+      bool isFrameTimerRunning = false;
+      uint64_t currentFrame = 0; // Current frame
+      uint64_t frameTime = 0; // The accumulated time on this frame
+      uint64_t startTime = 0; // Last time the frame timer was started
+      uint64_t lastUpdate; // Last time update() was called
+      uint64_t lastTimeUpdate; // Last time frameTime was updated
+      uint64_t lastFrameUpdate; // Last time the frame count changed
+      uint64_t runTime = 0; // Total time the unit has been running
+
       Unit(App &app);
 
     public:
@@ -98,9 +107,12 @@ namespace FAH {
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
+      double getProgress() const {return getNumber("progress", 0.0);}
 
-      double getEstimatedProgress() const;
       uint64_t getRunTimeEstimate() const;
+      uint64_t getCurrentFrameTime() const;
+      double getCurrentFrameProgress() const;
+      double getEstimatedProgress() const;
       void adjustRuntimeEstimate(uint64_t time);
       double getCreditEstimate() const;
       uint64_t getETA() const;
@@ -118,6 +130,10 @@ namespace FAH {
 
     protected:
       void next();
+
+      void startFrameTimer();
+      void stopFrameTimer();
+      void updateFrameTimer(uint64_t frame, uint64_t total);
 
       void setProgress(unsigned complete, int total);
       void getCore();

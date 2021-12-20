@@ -131,7 +131,6 @@ void FrameTimer::update(uint64_t frame, uint64_t total) {
 
   if (currentFrame != frame) {
     lastFrameUpdate = now;
-    unit.adjustRuntimeEstimate(getCurrentFrameTime() * 100);
     currentFrame = frame;
     lastTimeUpdate = now;
     currentTime = 0;
