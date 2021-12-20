@@ -95,7 +95,7 @@ namespace {
 
 
 Unit::Unit(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)), frameTimer(*this) {}
+  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
 Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus,
@@ -301,16 +301,12 @@ void Unit::next() {
       process->interrupt();
 
     // Stop the frameTimer
-    if (frameTimer.isRunning()) frameTimer.stop();
     if (isFrameTimerRunning) stopFrameTimer();
 
     if (getState() != UNIT_CLEAN) return;
 
   } else {
-    if (!frameTimer.isRunning()) {
-      frameTimer.start();
-      startFrameTimer();
-    }
+    if (!isFrameTimerRunning) startFrameTimer();
     if (hasString("pause-reason")) erase("pause-reason");
   }
 
@@ -342,8 +338,6 @@ void Unit::startFrameTimer() {
   if (!isFrameTimerRunning) {
     isFrameTimerRunning = true;
     startTime = Time::now();
-    runTime = getU64("run-time", 0);
-    frameTime = getU64("frameTime", 0);
     lastUpdate = lastTimeUpdate = lastFrameUpdate = 0;
   }
 }
@@ -356,8 +350,6 @@ void Unit::stopFrameTimer() {
       uint64_t now = Time::now();
       frameTime += now - lastTimeUpdate;
       lastTimeUpdate = now;
-      insert("frameTime", frameTime);
-      insert("run-time", getRunTimeEstimate());
     }
   }
 }
@@ -510,7 +502,6 @@ void Unit::run() {
   logCopier->start();
 
   // Start the frameTimer
-  frameTimer.start();
   startFrameTimer();
 
   triggerNext();
@@ -538,7 +529,6 @@ void Unit::readInfo() {
     if (f->gcount() == sizeof(WUInfo)) {
       if (info.type != core->getType()) THROW("Invalid WU info");
       setProgress(info.done, info.total);
-      frameTimer.update(info.done, info.total);
       updateFrameTimer(info.done, info.total);
       insert("prog", getEstimatedProgress());
     }
@@ -640,7 +630,6 @@ void Unit::monitor() {
 
   } else {
     if (finalizeRun()) {
-      frameTimer.stop();
       stopFrameTimer();
       readResults();
     }

@@ -29,7 +29,6 @@
 #pragma once
 
 #include "UnitState.h"
-#include "FrameTimer.h"
 
 #include <cbang/json/Observable.h>
 
@@ -63,7 +62,6 @@ namespace FAH {
       cb::SmartPointer<Core> core;
 
       unsigned viewerFrame = 0;
-      FrameTimer frameTimer;
 
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
