@@ -121,6 +121,8 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   id = idFromSig64(this->data->selectString("request.signature"));
   insert("id", id);
 
+  runTime = getU64("run-time", 0);
+
   setState(UNIT_CORE);
   insertBoolean("paused", true);
   insert("pause-reason", "Initializing.");
@@ -172,7 +174,10 @@ const char *Unit::getPauseReason() const {
 uint64_t Unit::getRunTimeEstimate() const {
   double progress = getProgress();
   if (progress) return (runTime / progress);
-  return (0.2 * data->selectU64("assignment.data.timeout", 0));
+  uint64_t estimate = data->selectU64("assignment.data.estimate", 0);
+  if (estimate <= 0)
+    estimate = 0.2 * data->selectU64("assignment.data.timeout", 0);
+  return estimate;
 }
 
 
@@ -285,6 +290,14 @@ bool Unit::isIdling() const {
 void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
 
+void Unit::triggerExit() {
+  insert("run-time", runTime);
+  insert("frameTime", getCurrentFrameTime());
+  if (has("frames")) erase("frames");
+  if (has("topology")) erase("topology");
+  save();
+}
+
 void Unit::next() {
   // Check if WU has expired
   if (isExpired()) {
@@ -337,8 +350,9 @@ void Unit::next() {
 void Unit::startFrameTimer() {
   if (!isFrameTimerRunning) {
     isFrameTimerRunning = true;
+    if (!startTime) frameTime = getU64("frameTime", 0);
     startTime = Time::now();
-    lastUpdate = lastTimeUpdate = lastFrameUpdate = 0;
+    lastUpdate = lastTimeUpdate = 0;
   }
 }
 
@@ -379,8 +393,7 @@ void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
     lastUpdate = now;
   }
 
-  if (currentFrame != frame) {
-    lastFrameUpdate = now;
+  if (currentFrame + 1 == frame) {
     uint64_t currentFrameTime = getCurrentFrameTime();
     if (currentFrameTime) runTime += currentFrameTime;
     currentFrame = frame;
@@ -720,10 +733,6 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   // Update GPUs
   if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
   else get("gpus")->clear();
-
-  // Insert initial runtime estimate as timeout.
-  insert("runtimeEstimate", assign->getU64("timeout"));
-  insert("totalTime", 0);
 
   // Try to allocate more units now that our resources have been updated
   app.getUnits().triggerUpdate();

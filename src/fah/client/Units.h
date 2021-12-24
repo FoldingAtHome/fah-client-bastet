@@ -62,6 +62,7 @@ namespace FAH {
       void unitComplete(bool success);
       void update();
       void triggerUpdate(bool updateUnits = false);
+      void triggerExit();
       void load();
 
     private:

@@ -151,6 +151,12 @@ void Units::triggerUpdate(bool updateUnits) {
 }
 
 
+void Units::triggerExit() {
+  for (unsigned i = 0; i < size(); i++)
+    get(i).cast<Unit>()->triggerExit();
+}
+
+
 void Units::load() {
   wus = app.getDB("config").getInteger("wus", 0);
 

@@ -77,9 +77,8 @@ namespace FAH {
       uint64_t currentFrame = 0; // Current frame
       uint64_t frameTime = 0; // The accumulated time on this frame
       uint64_t startTime = 0; // Last time the frame timer was started
-      uint64_t lastUpdate; // Last time update() was called
-      uint64_t lastTimeUpdate; // Last time frameTime was updated
-      uint64_t lastFrameUpdate; // Last time the frame count changed
+      uint64_t lastUpdate = 0; // Last time update() was called
+      uint64_t lastTimeUpdate = 0; // Last time frameTime was updated
       uint64_t runTime = 0; // Total time the unit has been running
 
       Unit(App &app);
@@ -125,6 +124,7 @@ namespace FAH {
       bool isIdling() const;
 
       void triggerNext(double secs = 0);
+      void triggerExit();
 
     protected:
       void next();
