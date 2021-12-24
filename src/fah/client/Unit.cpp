@@ -172,7 +172,7 @@ const char *Unit::getPauseReason() const {
 
 
 uint64_t Unit::getRunTimeEstimate() const {
-  double progress = getProgress();
+  double progress = getKnownProgress();
   if (progress) return (runTime / progress);
   uint64_t estimate = data->selectU64("assignment.data.estimate", 0);
   if (estimate <= 0)
@@ -198,7 +198,8 @@ double Unit::getCurrentFrameProgress() const {
 
 double Unit::getEstimatedProgress() const {
   if (isFinished()) return has("error") ? 0 : 1;
-  if (getState() == UNIT_RUN) return getProgress() + getCurrentFrameProgress();
+  if (getState() == UNIT_RUN)
+    return getKnownProgress() + getCurrentFrameProgress();
   return 0;
 }
 
@@ -398,12 +399,13 @@ void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
     if (currentFrameTime) runTime += currentFrameTime;
     currentFrame = frame;
     lastTimeUpdate = now;
+    startTime = now;
     frameTime = 0;
   }
 }
 
 
-void Unit::setProgress(unsigned complete, int total) {
+void Unit::setProgress(double complete, int total) {
   if (complete && total <= 0) return;
 
   double progress = complete ? (double)complete / total : 0;
@@ -541,9 +543,9 @@ void Unit::readInfo() {
 
     if (f->gcount() == sizeof(WUInfo)) {
       if (info.type != core->getType()) THROW("Invalid WU info");
-      setProgress(info.done, info.total);
+      knownProgress = info.done * 1.0 / info.total;
       updateFrameTimer(info.done, info.total);
-      insert("prog", getEstimatedProgress());
+      setProgress(getEstimatedProgress(), 1);
     }
   }
 }
@@ -631,12 +633,8 @@ void Unit::monitor() {
     if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
     if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
 
-    // Update ETA
-    std::string currentETA = TimeInterval(getETA()).toString();
-    if (currentETA != getString("eta", ""))
-      insert("eta", currentETA);
-
-    // Update PPD
+    // Update ETA and PPD
+    insert("eta", TimeInterval(getETA()).toString());
     insert("ppd", String::printf("%.0f", getPPD()));
 
     triggerNext(1);

@@ -66,9 +66,7 @@ namespace FAH {
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
-      uint32_t totalPausedTime; // Total time unit was paused.
-      uint32_t timesPaused; // No of times unit was paused.
-      uint32_t lastPausedTime; // last time unit was paused.
+      double knownProgress = 0;
       bool success = false;
       unsigned retries = 0;
       uint64_t wait = 0;
@@ -104,13 +102,12 @@ namespace FAH {
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
-      double getProgress() const {return getNumber("progress", 0.0);}
+      double getKnownProgress() const {return knownProgress;}
 
       uint64_t getRunTimeEstimate() const;
       uint64_t getCurrentFrameTime() const;
       double getCurrentFrameProgress() const;
       double getEstimatedProgress() const;
-      void adjustRuntimeEstimate(uint64_t time);
       double getCreditEstimate() const;
       uint64_t getETA() const;
       double getPPD() const;
@@ -133,7 +130,7 @@ namespace FAH {
       void stopFrameTimer();
       void updateFrameTimer(uint64_t frame, uint64_t total);
 
-      void setProgress(unsigned complete, int total);
+      void setProgress(double complete, int total);
       void getCore();
       void run();
       void readInfo();
