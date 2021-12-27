@@ -121,6 +121,8 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   id = idFromSig64(this->data->selectString("request.signature"));
   insert("id", id);
 
+  runTime = getU64("run-time", 0);
+
   setState(UNIT_CORE);
   insertBoolean("paused", true);
   insert("pause-reason", "Initializing.");
@@ -152,7 +154,8 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return app.getConfig().getPaused() || getBoolean("paused", true);
+  return app.getConfig().getPaused() || isIdling() ||
+          getBoolean("paused", true);
 }
 
 
@@ -160,11 +163,81 @@ void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
 
 
 const char *Unit::getPauseReason() const {
-  if (app.getConfig().getOnIdle() && !app.getOS().isSystemIdle())
-    return "Waiting for idle system.";
   if (app.getConfig().getPaused()) return "Paused by user.";
+  if (getBoolean("paused", true)) return "Resources not available.";
   if (isWaiting()) return "Waiting to retry.";
-  return "Resources not available.";
+  if (isIdling()) return "Waiting for idle system.";
+  return "Not paused";
+}
+
+
+uint64_t Unit::getRunTimeEstimate() const {
+  double progress = getKnownProgress();
+  if (progress) return (runTime / progress);
+  uint64_t estimate = data->selectU64("assignment.data.estimate", 0);
+  if (estimate <= 0)
+    estimate = 0.2 * data->selectU64("assignment.data.timeout", 0);
+  return estimate;
+}
+
+
+uint64_t Unit::getCurrentFrameTime() const {
+  uint64_t now = Time::now();
+  if (isFrameTimerRunning) return frameTime + now - lastTimeUpdate;
+  return frameTime;
+}
+
+
+double Unit::getCurrentFrameProgress() const {
+  double estimate = getRunTimeEstimate();
+  double frameProgress = estimate ?  getCurrentFrameTime() / estimate: 0;
+  if (0.01 < frameProgress) return 0.01;
+  return frameProgress;
+}
+
+
+double Unit::getEstimatedProgress() const {
+  if (isFinished()) return has("error") ? 0 : 1;
+  if (getState() == UNIT_RUN)
+    return getKnownProgress() + getCurrentFrameProgress();
+  return 0;
+}
+
+
+double Unit::getCreditEstimate() const {
+  uint64_t credit = data->selectU64("assignment.data.credit", 0);
+  if (credit <= 0) return 0;
+
+  double bonus = 1;
+  uint64_t kFactor = 0.75;
+
+  if (kFactor) {
+    uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
+    uint64_t timeout = data->selectU64("assignment.data.timeout", 0);
+    uint64_t deadline = data->selectU64("assignment.data.deadline", 0);
+    uint64_t delta = Time::now() - timeAssigned + getETA();
+
+    if (delta && delta < timeout) {
+      bonus = sqrt(kFactor * (double)deadline / delta);
+      if (bonus < 1) bonus = 1;
+    }
+  }
+
+  return bonus * credit;
+}
+
+
+uint64_t Unit::getETA() const {
+  double progress = getEstimatedProgress();
+  if (1.0 <= progress) return 0;
+
+  return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
+}
+
+
+double Unit::getPPD() const {
+  double estimate = getRunTimeEstimate();
+  return estimate <= 0 ? 0 : getCreditEstimate() / estimate * Time::SEC_PER_DAY;
 }
 
 
@@ -186,6 +259,18 @@ uint64_t Unit::getDeadline() const {
 }
 
 
+bool Unit::isFinished() const {
+  switch (getState()) {
+  case UNIT_UPLOAD:
+  case UNIT_CLEAN:
+  case UNIT_DONE:
+    return true;
+
+  default: return false;
+  }
+}
+
+
 bool Unit::isExpired() const {
   switch (getState()) {
   case UNIT_ASSIGN:
@@ -198,8 +283,21 @@ bool Unit::isExpired() const {
 }
 
 
+bool Unit::isIdling() const {
+  return app.getConfig().getOnIdle() && !app.getOS().isSystemIdle();
+}
+
+
 void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
+
+void Unit::triggerExit() {
+  insert("run-time", runTime);
+  insert("frameTime", getCurrentFrameTime());
+  if (has("frames")) erase("frames");
+  if (has("topology")) erase("topology");
+  save();
+}
 
 void Unit::next() {
   // Check if WU has expired
@@ -216,9 +314,15 @@ void Unit::next() {
     if (process.isSet() && process->isRunning())
       process->interrupt();
 
+    // Stop the frameTimer
+    if (isFrameTimerRunning) stopFrameTimer();
+
     if (getState() != UNIT_CLEAN) return;
 
-  } else if (hasString("pause-reason")) erase("pause-reason");
+  } else {
+    if (!isFrameTimerRunning) startFrameTimer();
+    if (hasString("pause-reason")) erase("pause-reason");
+  }
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting()) {
@@ -244,7 +348,64 @@ void Unit::next() {
 }
 
 
-void Unit::setProgress(unsigned complete, int total) {
+void Unit::startFrameTimer() {
+  if (!isFrameTimerRunning) {
+    isFrameTimerRunning = true;
+    if (!startTime) frameTime = getU64("frameTime", 0);
+    startTime = Time::now();
+    lastUpdate = lastTimeUpdate = 0;
+  }
+}
+
+
+void Unit::stopFrameTimer() {
+  if (isFrameTimerRunning) {
+    isFrameTimerRunning = false;
+    if (lastTimeUpdate) {
+      uint64_t now = Time::now();
+      frameTime += now - lastTimeUpdate;
+      lastTimeUpdate = now;
+    }
+  }
+}
+
+
+void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
+  if (!isFrameTimerRunning) {
+    LOG_ERROR("Frame timer not running, starting it");
+    startFrameTimer();
+    return;
+  }
+  if (!total || total < frame) return;
+  uint64_t now = Time::now();
+
+  // Check for start
+  if (!lastUpdate) lastUpdate = lastTimeUpdate = now;
+  else {
+    // Detect and adjust for clock skew
+    int64_t delta = (int64_t)now - lastUpdate;
+    if (60 < delta) {
+      LOG_WARNING("Detected clock skew (" << TimeInterval(delta)
+                  << "), I/O delay, laptop hibernation or other slowdown "
+                  "noted, adjusting time estimates");
+      frameTime += lastUpdate - lastTimeUpdate;
+      lastTimeUpdate = now;
+    }
+    lastUpdate = now;
+  }
+
+  if (currentFrame + 1 == frame) {
+    uint64_t currentFrameTime = getCurrentFrameTime();
+    if (currentFrameTime) runTime += currentFrameTime;
+    currentFrame = frame;
+    lastTimeUpdate = now;
+    startTime = now;
+    frameTime = 0;
+  }
+}
+
+
+void Unit::setProgress(double complete, int total) {
   if (complete && total <= 0) return;
 
   double progress = complete ? (double)complete / total : 0;
@@ -355,6 +516,9 @@ void Unit::run() {
   logCopier = new TailFileToLog(logFile, getLogPrefix());
   logCopier->start();
 
+  // Start the frameTimer
+  startFrameTimer();
+
   triggerNext();
 
   insert("assignment", data->select("assignment.data"));
@@ -379,7 +543,9 @@ void Unit::readInfo() {
 
     if (f->gcount() == sizeof(WUInfo)) {
       if (info.type != core->getType()) THROW("Invalid WU info");
-      setProgress(info.done, info.total);
+      knownProgress = info.done * 1.0 / info.total;
+      updateFrameTimer(info.done, info.total);
+      setProgress(getEstimatedProgress(), 1);
     }
   }
 }
@@ -467,10 +633,17 @@ void Unit::monitor() {
     if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
     if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
 
+    // Update ETA and PPD
+    insert("eta", TimeInterval(getETA()).toString());
+    insert("ppd", String::printf("%.0f", getPPD()));
+
     triggerNext(1);
 
   } else {
-    if (finalizeRun()) readResults();
+    if (finalizeRun()) {
+      stopFrameTimer();
+      readResults();
+    }
     save();
     triggerNext();
   }

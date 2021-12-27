@@ -66,9 +66,18 @@ namespace FAH {
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
+      double knownProgress = 0;
       bool success = false;
       unsigned retries = 0;
       uint64_t wait = 0;
+
+      bool isFrameTimerRunning = false;
+      uint64_t currentFrame = 0; // Current frame
+      uint64_t frameTime = 0; // The accumulated time on this frame
+      uint64_t startTime = 0; // Last time the frame timer was started
+      uint64_t lastUpdate = 0; // Last time update() was called
+      uint64_t lastTimeUpdate = 0; // Last time frameTime was updated
+      uint64_t runTime = 0; // Total time the unit has been running
 
       Unit(App &app);
 
@@ -93,19 +102,35 @@ namespace FAH {
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
+      double getKnownProgress() const {return knownProgress;}
+
+      uint64_t getRunTimeEstimate() const;
+      uint64_t getCurrentFrameTime() const;
+      double getCurrentFrameProgress() const;
+      double getEstimatedProgress() const;
+      double getCreditEstimate() const;
+      uint64_t getETA() const;
+      double getPPD() const;
 
       std::string getLogPrefix() const;
       std::string getDirectory() const {return "work/" + id;}
       std::string getWSBaseURL() const;
       uint64_t getDeadline() const;
+      bool isFinished() const;
       bool isExpired() const;
+      bool isIdling() const;
 
       void triggerNext(double secs = 0);
+      void triggerExit();
 
     protected:
       void next();
 
-      void setProgress(unsigned complete, int total);
+      void startFrameTimer();
+      void stopFrameTimer();
+      void updateFrameTimer(uint64_t frame, uint64_t total);
+
+      void setProgress(double complete, int total);
       void getCore();
       void run();
       void readInfo();

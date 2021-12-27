@@ -305,6 +305,9 @@ void App::signalEvent(Event::Event &e, int signal, unsigned flags) {
 
 
 void App::requestExit() {
+  // TODO: Update the shutdown functionality.
+  getUnits().triggerExit();
+
   Application::requestExit();
   base.loopExit();
 }
