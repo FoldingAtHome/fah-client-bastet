@@ -406,10 +406,12 @@ void Unit::setProgress(double complete, int total) {
 
   double progress = complete ? (double)complete / total : 0;
 
-  if (getNumber("progress", 0) != progress) {
-    LOG_INFO(1, getState() << String::printf(" %0.2f%% ", progress * 100));
-
+  double oldValue = getNumber("progress", 0);
+  if (oldValue != progress) {
     insert("progress", progress);
+    if(floor(oldValue * 100) < floor(progress * 100)) {
+      LOG_INFO(1, getState() << String::printf(" %0.2f%% ", progress * 100));
+    }
   }
 }
 
