@@ -73,6 +73,22 @@ void Units::add(const SmartPointer<Unit> &unit) {
 }
 
 
+unsigned Units::getUnitIndex(const std::string &id) const {
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = get(i)->cast<Unit>();
+    if (unit.getID() == id) return i;
+  }
+
+  THROW("Unit " << id << " not found.");
+}
+
+
+Unit &Units::getUnit(unsigned index) const {
+  if (size() <= index) THROW("Invalid unit index " << index);
+  return get(index)->cast<Unit>();
+}
+
+
 void Units::unitComplete(bool success) {
   if (success) {
     failures = 0;

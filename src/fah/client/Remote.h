@@ -29,6 +29,7 @@
 #pragma once
 
 #include <cbang/event/JSONWebsocket.h>
+#include <map>
 
 
 namespace FAH {
@@ -38,10 +39,15 @@ namespace FAH {
 
     class Remote : public cb::Event::JSONWebsocket {
       App &app;
+      std::string vizUnitID;
+      unsigned vizFrame = 0;
 
     public:
       Remote(App &app, cb::Event::RequestMethod method, const cb::URI &uri,
              const cb::Version &version);
+
+      void sendViz();
+      void sendChanges(const cb::JSON::ValuePtr &changes);
 
       // From cb::Event::JSONWebsocket
       void onMessage(const cb::JSON::ValuePtr &msg);

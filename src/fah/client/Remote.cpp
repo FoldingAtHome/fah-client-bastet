@@ -45,10 +45,67 @@ Remote::Remote(App &app, Event::RequestMethod method, const URI &uri,
   Event::JSONWebsocket(method, uri, version), app(app) {}
 
 
+void Remote::sendViz() {
+  if (vizUnitID.empty()) return;
+
+  auto unitIndex = app.getUnits().getUnitIndex(vizUnitID);
+  auto &unit = app.getUnits().getUnit(unitIndex);
+  auto topology = unit.getTopology();
+  auto frames = unit.getFrames();
+
+  if (topology.isNull()) return;
+
+  // Send topology
+  if (!vizFrame) {
+    SmartPointer<JSON::List> changes = new JSON::List;
+    changes->append("viz");
+    changes->append(vizUnitID);
+    changes->append("topology");
+    changes->append(topology);
+    sendChanges(changes);
+  }
+
+  // Send frames
+  while (vizFrame < frames.size() - 1) {
+    SmartPointer<JSON::List> changes = new JSON::List;
+    changes->append("viz");
+    changes->append(vizUnitID);
+    changes->append("frames");
+    changes->append(vizFrame);
+    changes->append(frames[vizFrame]);
+    sendChanges(changes);
+    vizFrame++;
+  }
+}
+
+
+void Remote::sendChanges(const JSON::ValuePtr &changes) {
+  SmartPointer<JSON::Dict> data = new JSON::Dict;
+  data->insert("id", app.getInfo().getString("id"));
+  data->insert("changes", changes);
+  send(*data);
+
+  // Check for viz frame changes: ["units", <unit index>, "frames", #]
+  if (changes->size() == 4 && changes->getString(0) == "units" &&
+      changes->getString(2) == "frames") {
+    unsigned unitIndex = changes->getU32(1);
+    string unitID = app.getUnits().getUnit(unitIndex).getID();
+
+    if (vizUnitID == unitID) sendViz();
+  }
+}
+
+
 void Remote::onMessage(const JSON::ValuePtr &msg) {
   LOG_DEBUG(3, "msg: " << *msg);
 
   string cmd = msg->getString("cmd", "");
+
+  if (cmd == "viz") {
+    vizUnitID = msg->getString("unit", "");
+    vizFrame = msg->getU32("frame", 0);
+    sendViz();
+  }
 
   if (cmd == "pause")   app.getConfig().setPaused(true);
   if (cmd == "unpause") app.getConfig().setPaused(false);
@@ -58,5 +115,12 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 }
 
 
-void Remote::onOpen() {send(app.getServer());}
+void Remote::onOpen() {
+  SmartPointer<JSON::Dict> data = new JSON::Dict;
+  data->merge(app.getServer());
+  data->erase("viz");
+  send(*data);
+}
+
+
 void Remote::onComplete() {app.getServer().remove(*this);}

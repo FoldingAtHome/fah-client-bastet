@@ -73,12 +73,12 @@ bool Server::corsCB(Event::Request &req) {
 }
 
 
-void Server::broadcast(const JSON::ValuePtr &msg) {
-  LOG_DEBUG(5, __func__ << ' ' << *msg);
+void Server::broadcast(const JSON::ValuePtr &changes) {
+  LOG_DEBUG(5, __func__ << ' ' << *changes);
 
   for (auto it = clients.begin(); it != clients.end(); it++) {
     auto &ws = **it;
-    if (ws.isActive()) ws.send(*msg);
+    if (ws.isActive()) ws.sendChanges(changes);
   }
 }
 
@@ -129,8 +129,10 @@ bool Server::handleRequest(const SmartPointer<Event::Request> &req) {
 
 
 void Server::notify(list<JSON::ValuePtr> &change) {
-  SmartPointer<JSON::List> list = new JSON::List(change.begin(), change.end());
-  broadcast(list);
+  SmartPointer<JSON::List> changes =
+    new JSON::List(change.begin(), change.end());
+
+  broadcast(changes);
 
   // Automatically save changes to config
   if (!change.empty() && change.front()->getString() == "config") {

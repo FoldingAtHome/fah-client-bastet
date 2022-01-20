@@ -294,8 +294,6 @@ void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 void Unit::triggerExit() {
   insert("run-time", runTime);
   insert("frameTime", getCurrentFrameTime());
-  if (has("frames")) erase("frames");
-  if (has("topology")) erase("topology");
   save();
 }
 
@@ -555,8 +553,8 @@ void Unit::readViewerTop() {
   string filename = getDirectory() + "/viewerTop.json";
 
   if (existsAndOlderThan(filename, 10)) {
-    insert("topology", JSON::Reader(filename).parse());
-    insertList("frames");
+    topology = JSON::Reader(filename).parse();
+    frames.clear();
   }
 }
 
@@ -566,7 +564,8 @@ void Unit::readViewerFrame() {
     getDirectory() + String::printf("/viewerFrame%d.json", viewerFrame);
 
   if (existsAndOlderThan(filename, 10)) {
-    get("frames")->append(JSON::Reader(filename).parse());
+    frames.push_back(JSON::Reader(filename).parse());
+    insert("frames", frames.size());
     viewerFrame++;
   }
 }
@@ -630,8 +629,8 @@ bool Unit::finalizeRun() {
 void Unit::monitor() {
   if (process->isRunning()) {
     TRY_CATCH_ERROR(readInfo());
-    if (!has("topology")) TRY_CATCH_ERROR(readViewerTop());
-    if (has("frames")) TRY_CATCH_ERROR(readViewerFrame());
+    if (topology.isNull()) TRY_CATCH_ERROR(readViewerTop());
+    else TRY_CATCH_ERROR(readViewerFrame());
 
     // Update ETA and PPD
     insert("eta", TimeInterval(getETA()).toString());

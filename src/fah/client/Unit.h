@@ -59,6 +59,8 @@ namespace FAH {
       std::string id;
 
       cb::JSON::ValuePtr data;
+      cb::JSON::ValuePtr topology;
+      std::vector<cb::JSON::ValuePtr> frames;
       cb::SmartPointer<Core> core;
 
       unsigned viewerFrame = 0;
@@ -88,6 +90,8 @@ namespace FAH {
       ~Unit();
 
       const std::string &getID() const {return id;}
+      cb::JSON::ValuePtr getTopology() const {return topology;}
+      const std::vector<cb::JSON::ValuePtr> &getFrames() const {return frames;}
       unsigned getRetries() const {return retries;}
 
       void setState(UnitState state);

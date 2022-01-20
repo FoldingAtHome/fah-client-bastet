@@ -52,6 +52,9 @@ namespace FAH {
       uint32_t failures = 0;
       uint64_t waitUntil = 0;
 
+      cb::SmartPointer<cb::JSON::ObservableList> viz =
+        new cb::JSON::ObservableList;
+
     public:
       Units(App &app);
 
@@ -59,6 +62,8 @@ namespace FAH {
       bool hasFailure() const;
 
       void add(const cb::SmartPointer<Unit> &unit);
+      unsigned getUnitIndex(const std::string &id) const;
+      Unit &getUnit(unsigned index) const;
       void unitComplete(bool success);
       void update();
       void triggerUpdate(bool updateUnits = false);

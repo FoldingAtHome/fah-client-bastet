@@ -51,12 +51,16 @@ Config::Config(App &app) : app(app) {
   insertBoolean("paused", false);
   insert("cause", "any");
   insert("cpus", cpus);
-  insert("options", "");
   insertDict("gpus");
 }
 
 
 void Config::init() {
+  // TODO Set config defaults
+  //auto &options = app.getOptions();
+  //insert("user", options["user"].toString(getString("user")));
+  //insert("team", options["team"].toInteger(getString("team")));
+
   // Load saved data
   auto &db = app.getDB("config");
 
@@ -91,7 +95,6 @@ JSON::ValuePtr Config::getGPU(const string &id) {
 
   if (!gpus.has(id)) {
     JSON::ValuePtr gpu = new JSON::Dict;
-    gpu->insert("options", "");
     gpu->insertBoolean("enabled", false);
     gpus.insert(id, gpu);
   }
