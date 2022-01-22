@@ -209,7 +209,7 @@ double Unit::getCreditEstimate() const {
   if (credit <= 0) return 0;
 
   double bonus = 1;
-  uint64_t kFactor = 0.75;
+  double kFactor = 0.75;
 
   if (kFactor) {
     uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
@@ -565,7 +565,7 @@ void Unit::readViewerFrame() {
 
   if (existsAndOlderThan(filename, 10)) {
     frames.push_back(JSON::Reader(filename).parse());
-    insert("frames", frames.size());
+    insert("frames", (uint64_t)frames.size());
     viewerFrame++;
   }
 }
