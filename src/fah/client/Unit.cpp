@@ -155,7 +155,7 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 bool Unit::isPaused() const {
   return app.getConfig().getPaused() || isIdling() ||
-          getBoolean("paused", true);
+    getBoolean("paused", true);
 }
 
 
@@ -173,26 +173,26 @@ const char *Unit::getPauseReason() const {
 
 uint64_t Unit::getRunTimeEstimate() const {
   double progress = getKnownProgress();
-  if (progress) return (runTime / progress);
+  if (progress) return runTime / progress;
+
   uint64_t estimate = data->selectU64("assignment.data.estimate", 0);
   if (estimate <= 0)
     estimate = 0.2 * data->selectU64("assignment.data.timeout", 0);
+
   return estimate;
 }
 
 
 uint64_t Unit::getCurrentFrameTime() const {
-  uint64_t now = Time::now();
-  if (isFrameTimerRunning) return frameTime + now - lastTimeUpdate;
+  if (isFrameTimerRunning) return frameTime + Time::now() - lastTimeUpdate;
   return frameTime;
 }
 
 
 double Unit::getCurrentFrameProgress() const {
   double estimate = getRunTimeEstimate();
-  double frameProgress = estimate ?  getCurrentFrameTime() / estimate: 0;
-  if (0.01 < frameProgress) return 0.01;
-  return frameProgress;
+  double frameProgress = estimate ? getCurrentFrameTime() / estimate : 0;
+  return 0.01 < frameProgress ? 0.01 : frameProgress;
 }
 
 
@@ -209,18 +209,14 @@ double Unit::getCreditEstimate() const {
   if (credit <= 0) return 0;
 
   double bonus = 1;
-  uint64_t kFactor = 0.75;
+  uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
+  uint64_t timeout = data->selectU64("assignment.data.timeout", 0);
+  uint64_t deadline = data->selectU64("assignment.data.deadline", 0);
+  uint64_t delta = Time::now() - timeAssigned + getETA();
 
-  if (kFactor) {
-    uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
-    uint64_t timeout = data->selectU64("assignment.data.timeout", 0);
-    uint64_t deadline = data->selectU64("assignment.data.deadline", 0);
-    uint64_t delta = Time::now() - timeAssigned + getETA();
-
-    if (delta && delta < timeout) {
-      bonus = sqrt(kFactor * (double)deadline / delta);
-      if (bonus < 1) bonus = 1;
-    }
+  if (0 < delta && delta < timeout) {
+    bonus = sqrt(0.75 * (double)deadline / delta);
+    if (bonus < 1) bonus = 1;
   }
 
   return bonus * credit;
@@ -229,13 +225,13 @@ double Unit::getCreditEstimate() const {
 
 uint64_t Unit::getETA() const {
   double progress = getEstimatedProgress();
-  if (1.0 <= progress) return 0;
+  if (1 <= progress) return 0;
 
-  return (uint64_t)(getRunTimeEstimate()*(1.0 - progress));
+  return (uint64_t)(getRunTimeEstimate() * (1 - progress));
 }
 
 
-double Unit::getPPD() const {
+uint64_t Unit::getPPD() const {
   double estimate = getRunTimeEstimate();
   return estimate <= 0 ? 0 : getCreditEstimate() / estimate * Time::SEC_PER_DAY;
 }
@@ -293,7 +289,7 @@ void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
 void Unit::triggerExit() {
   insert("run-time", runTime);
-  insert("frameTime", getCurrentFrameTime());
+  insert("frame-time", getCurrentFrameTime());
   save();
 }
 
@@ -347,23 +343,23 @@ void Unit::next() {
 
 
 void Unit::startFrameTimer() {
-  if (!isFrameTimerRunning) {
-    isFrameTimerRunning = true;
-    if (!startTime) frameTime = getU64("frameTime", 0);
-    startTime = Time::now();
-    lastUpdate = lastTimeUpdate = 0;
-  }
+  if (isFrameTimerRunning) return;
+
+  isFrameTimerRunning = true;
+  if (!startTime) frameTime = getU64("frame-time", 0);
+  startTime = Time::now();
+  lastUpdate = lastTimeUpdate = 0;
 }
 
 
 void Unit::stopFrameTimer() {
-  if (isFrameTimerRunning) {
-    isFrameTimerRunning = false;
-    if (lastTimeUpdate) {
-      uint64_t now = Time::now();
-      frameTime += now - lastTimeUpdate;
-      lastTimeUpdate = now;
-    }
+  if (!isFrameTimerRunning) return;
+  isFrameTimerRunning = false;
+
+  if (lastTimeUpdate) {
+    uint64_t now = Time::now();
+    frameTime += now - lastTimeUpdate;
+    lastTimeUpdate = now;
   }
 }
 
@@ -374,6 +370,7 @@ void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
     startFrameTimer();
     return;
   }
+
   if (!total || total < frame) return;
   uint64_t now = Time::now();
 
@@ -389,6 +386,7 @@ void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
       frameTime += lastUpdate - lastTimeUpdate;
       lastTimeUpdate = now;
     }
+
     lastUpdate = now;
   }
 
@@ -565,7 +563,7 @@ void Unit::readViewerFrame() {
 
   if (existsAndOlderThan(filename, 10)) {
     frames.push_back(JSON::Reader(filename).parse());
-    insert("frames", frames.size());
+    insert("frames", (uint32_t)frames.size());
     viewerFrame++;
   }
 }
@@ -634,7 +632,7 @@ void Unit::monitor() {
 
     // Update ETA and PPD
     insert("eta", TimeInterval(getETA()).toString());
-    insert("ppd", String::printf("%.0f", getPPD()));
+    insert("ppd", getPPD());
 
     triggerNext(1);
 

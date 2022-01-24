@@ -114,7 +114,7 @@ namespace FAH {
       double getEstimatedProgress() const;
       double getCreditEstimate() const;
       uint64_t getETA() const;
-      double getPPD() const;
+      uint64_t getPPD() const;
 
       std::string getLogPrefix() const;
       std::string getDirectory() const {return "work/" + id;}
