@@ -115,12 +115,5 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 }
 
 
-void Remote::onOpen() {
-  SmartPointer<JSON::Dict> data = new JSON::Dict;
-  data->merge(app.getServer());
-  data->erase("viz");
-  send(*data);
-}
-
-
+void Remote::onOpen() {send(app.getServer());}
 void Remote::onComplete() {app.getServer().remove(*this);}
