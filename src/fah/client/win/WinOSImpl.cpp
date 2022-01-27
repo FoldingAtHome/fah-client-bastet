@@ -221,7 +221,7 @@ const char *WinOSImpl::getCPU() const {
   case PROCESSOR_ARCHITECTURE_ARM64: return "arm64";
 #endif
   case PROCESSOR_ARCHITECTURE_INTEL: return "x86";
-  default: OS::getCPU();
+  default: return OS::getCPU();
   }
 }
 
