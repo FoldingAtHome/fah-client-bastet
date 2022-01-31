@@ -405,13 +405,11 @@ void Unit::setProgress(double complete, int total) {
   if (complete && total <= 0) return;
 
   double progress = complete ? (double)complete / total : 0;
-
   double oldValue = getNumber("progress", 0);
   if (oldValue != progress) {
     insert("progress", progress);
-    if(floor(oldValue * 100) < floor(progress * 100)) {
+    if(floor(oldValue * 100) < floor(progress * 100))
       LOG_INFO(1, getState() << String::printf(" %0.2f%% ", progress * 100));
-    }
   }
 }
 
@@ -633,8 +631,10 @@ void Unit::monitor() {
     else TRY_CATCH_ERROR(readViewerFrame());
 
     // Update ETA and PPD
-    insert("eta", TimeInterval(getETA()).toString());
-    insert("ppd", getPPD());
+    string eta = TimeInterval(getETA()).toString();
+    uint64_t ppd = getPPD();
+    if (eta != getString("eta", "")) insert("eta", eta);
+    if (ppd != getU64("ppd", 0)) insert("ppd", getPPD());
 
     triggerNext(1);
 

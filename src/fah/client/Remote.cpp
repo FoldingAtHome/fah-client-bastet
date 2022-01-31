@@ -113,6 +113,4 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
 
 void Remote::onOpen() {send(app.getServer());}
-
-
 void Remote::onComplete() {app.getServer().remove(*this);}
