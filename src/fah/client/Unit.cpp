@@ -402,13 +402,11 @@ void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
 
 
 void Unit::setProgress(double complete, int total) {
-  if (complete && total <= 0) return;
-
-  double progress = complete ? (double)complete / total : 0;
+  double progress = (double)complete / total;
   double oldValue = getNumber("progress", 0);
   if (oldValue != progress) {
     insert("progress", progress);
-    if(floor(oldValue * 100) < floor(progress * 100))
+    if (floor(oldValue * 100) < floor(progress * 100))
       LOG_INFO(1, getState() << String::printf(" %0.2f%% ", progress * 100));
   }
 }
@@ -634,7 +632,7 @@ void Unit::monitor() {
     string eta = TimeInterval(getETA()).toString();
     uint64_t ppd = getPPD();
     if (eta != getString("eta", "")) insert("eta", eta);
-    if (ppd != getU64("ppd", 0)) insert("ppd", getPPD());
+    if (ppd != getU64("ppd", 0)) insert("ppd", ppd);
 
     triggerNext(1);
 
