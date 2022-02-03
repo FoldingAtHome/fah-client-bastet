@@ -80,10 +80,7 @@ void Remote::sendViz() {
 
 
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
-  SmartPointer<JSON::Dict> data = new JSON::Dict;
-  data->insert("id", app.getInfo().getString("id"));
-  data->insert("changes", changes);
-  send(*data);
+  send(*changes);
 
   // Check for viz frame changes: ["units", <unit index>, "frames", #]
   if (changes->size() == 4 && changes->getString(0) == "units" &&
