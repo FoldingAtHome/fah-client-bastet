@@ -45,6 +45,8 @@
 
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
+#include <cbang/os/CPUInfo.h>
+#include <cbang/os/CPURegsX86.h>
 
 #include <cbang/event/Event.h>
 #include <cbang/event/HTTPConnOut.h>
@@ -739,6 +741,8 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
 void Unit::writeRequest(JSON::Sink &sink) {
   auto &info = SystemInfo::instance();
+  auto cpuInfo = CPUInfo::create();
+  CPURegsX86 cpuRegsX86;
 
   sink.beginDict();
 
@@ -770,11 +774,11 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insertDict("cpu");
   sink.insert("cpu",            app.getOS().getCPU());
   sink.insert("cpus",           getU32("cpus"));
-  sink.insert("extended",       info.getCPUExtendedFeatures());
-  sink.insert("vendor",         info.getCPUVendor());
-  sink.insert("features",       info.getCPUFeatures());
-  sink.insert("signature",      info.getCPUSignature());
-  sink.insert("80000001",       info.getCPUFeatures80000001());
+  sink.insert("vendor",         cpuInfo->getVendor());
+  sink.insert("signature",      cpuInfo->getSignature());
+  sink.insert("features",       cpuRegsX86.getCPUFeatures());
+  sink.insert("extended",       cpuRegsX86.getCPUExtendedFeatures());
+  sink.insert("80000001",       cpuRegsX86.getCPUFeatures80000001());
 
   // Project
   sink.insertDict("project");
