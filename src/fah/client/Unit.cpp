@@ -123,11 +123,11 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   id = idFromSig64(this->data->selectString("request.signature"));
   insert("id", id);
 
-  runTime = getU64("run-time", 0);
+  // Check that we still have the required core
+  if (getState() == UNIT_RUN) setState(UNIT_CORE);
 
-  setState(UNIT_CORE);
+  // Start out paused, wait for Units to decide the resource allocation
   insertBoolean("paused", true);
-  insert("pause-reason", "Initializing.");
 }
 
 
@@ -157,7 +157,7 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 bool Unit::isPaused() const {
   return app.getConfig().getPaused() || isIdling() ||
-    getBoolean("paused", true);
+    getBoolean("paused", true) || app.shouldQuit();
 }
 
 
@@ -166,76 +166,87 @@ void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
 
 const char *Unit::getPauseReason() const {
   if (app.getConfig().getPaused()) return "Paused by user.";
-  if (getBoolean("paused", true)) return "Resources not available.";
-  if (isWaiting()) return "Waiting to retry.";
-  if (isIdling()) return "Waiting for idle system.";
+  if (getBoolean("paused", true))  return "Resources not available.";
+  if (app.shouldQuit())            return "Shutting down.";
+  if (isWaiting())                 return "Waiting to retry.";
+  if (isIdling())                  return "Waiting for idle system.";
   return "Not paused";
 }
 
 
+bool Unit::isRunning() const {return process.isSet();}
+
+
+uint64_t Unit::getRunTime() const {
+  // Stored ``run-time`` is run time up to the end of the last run
+  int64_t runTime = getU64("run-time", 0);
+
+  // If core process is currently running, add accumulated time
+  if (processStartTime) runTime += Time::now() - processStartTime - clockSkew;
+
+  return 0 < runTime ? runTime : 0;
+}
+
+
 uint64_t Unit::getRunTimeEstimate() const {
-  double progress = getKnownProgress();
-  if (progress) return runTime / progress;
+  // If valid, use estimate provided by the WS
+  uint64_t estimate = data->selectU64("wu.data.estimate", 0);
+  if (estimate) return estimate;
 
-  uint64_t estimate = data->selectU64("assignment.data.estimate", 0);
-  if (estimate <= 0)
-    estimate = 0.2 * data->selectU64("assignment.data.timeout", 0);
+  // Make our own estimate
+  if (getKnownProgress())
+    return lastKnownProgressUpdateRunTime / getKnownProgress();
 
-  return estimate;
-}
-
-
-uint64_t Unit::getCurrentFrameTime() const {
-  if (isFrameTimerRunning) return frameTime + Time::now() - lastTimeUpdate;
-  return frameTime;
-}
-
-
-double Unit::getCurrentFrameProgress() const {
-  double estimate = getRunTimeEstimate();
-  double frameProgress = estimate ? getCurrentFrameTime() / estimate : 0;
-  return 0.01 < frameProgress ? 0.01 : frameProgress;
+  // Make a wild guess based on timeout
+  return 0.2 * data->selectU64("assignment.data.timeout", 0);
 }
 
 
 double Unit::getEstimatedProgress() const {
   if (isFinished()) return has("error") ? 0 : 1;
-  if (getState() == UNIT_RUN)
-    return getKnownProgress() + getCurrentFrameProgress();
-  return 0;
+
+  // If the core process is not currently running, return saved "progress"
+  if (!processStartTime || !lastKnownProgressUpdate)
+    return getNumber("progress", 0);
+
+  // Get estimated progress since last update from core
+  double delta = getRunTime() - lastKnownProgressUpdateRunTime;
+  double deltaProgress = delta / getRunTimeEstimate();
+  if (0.01 < deltaProgress) deltaProgress = 0.01; // No more than 1%
+
+  double progress = getKnownProgress() + deltaProgress;
+  return progress < 1 ? progress : 1; // No more than 100%
 }
 
 
-double Unit::getCreditEstimate() const {
+uint64_t Unit::getCreditEstimate() const {
   uint64_t credit = data->selectU64("assignment.data.credit", 0);
-  if (credit <= 0) return 0;
 
-  double bonus = 1;
-  uint64_t timeAssigned = data->selectU64("assignment.data.assigned", 0);
-  uint64_t timeout = data->selectU64("assignment.data.timeout", 0);
-  uint64_t deadline = data->selectU64("assignment.data.deadline", 0);
-  uint64_t delta = Time::now() - timeAssigned + getETA();
+  // Compute bonus estimate
+  // Use request time to account for potential client/AS clock offset
+  // Note, if the client's clock has changed ``requested`` may be < now
+  uint64_t requested = Time::parse(data->selectString("request.data.time"));
+  uint64_t timeout   = data->selectU64("assignment.data.timeout",  0);
+  uint64_t deadline  = data->selectU64("assignment.data.deadline", 0);
+  int64_t  delta     = (int64_t)Time::now() - requested + getETA();
 
-  if (0 < delta && delta < timeout) {
-    bonus = sqrt(0.75 * (double)deadline / delta);
-    if (bonus < 1) bonus = 1;
+  // No bonus after timeout
+  if (0 < delta && delta < (int64_t)timeout) {
+    double bonus = sqrt(0.75 * (double)deadline / delta); // Bonus forumula
+    if (1 < bonus) credit *= bonus;
   }
 
-  return bonus * credit;
+  return credit;
 }
 
 
 uint64_t Unit::getETA() const {
-  double progress = getEstimatedProgress();
-  if (1 <= progress) return 0;
-
-  return (uint64_t)(getRunTimeEstimate() * (1 - progress));
+  return getRunTimeEstimate() * (1 - getEstimatedProgress());
 }
 
 
 uint64_t Unit::getPPD() const {
-  double estimate = getRunTimeEstimate();
-  return estimate <= 0 ? 0 : getCreditEstimate() / estimate * Time::SEC_PER_DAY;
+  return getCreditEstimate() / getRunTimeEstimate() * Time::SEC_PER_DAY;
 }
 
 
@@ -252,7 +263,8 @@ string Unit::getWSBaseURL() const {
 
 
 uint64_t Unit::getDeadline() const {
-  return Time(data->selectString("assignment.data.time")) +
+  // Use request time to account for potential client/AS clock offset
+  return Time::parse(data->selectString("request.data.time")) +
     data->selectU64("assignment.data.deadline");
 }
 
@@ -260,6 +272,7 @@ uint64_t Unit::getDeadline() const {
 bool Unit::isFinished() const {
   switch (getState()) {
   case UNIT_UPLOAD:
+  case UNIT_DUMP:
   case UNIT_CLEAN:
   case UNIT_DONE:
     return true;
@@ -272,6 +285,7 @@ bool Unit::isFinished() const {
 bool Unit::isExpired() const {
   switch (getState()) {
   case UNIT_ASSIGN:
+  case UNIT_DUMP:
   case UNIT_CLEAN:
   case UNIT_DONE:
     return false;
@@ -289,11 +303,32 @@ bool Unit::isIdling() const {
 void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
 
 
-void Unit::triggerExit() {
-  insert("run-time", runTime);
-  insert("frame-time", getCurrentFrameTime());
-  save();
+void Unit::dumpWU() {
+  switch (getState()) {
+  case UNIT_ASSIGN: case UNIT_DOWNLOAD:            setState(UNIT_CLEAN); break;
+  case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP);  break;
+  case UNIT_DUMP: case UNIT_CLEAN: case UNIT_DONE: return; // Do nothing
+  }
+
+  pr.release(); // Terminate any active connections
+  triggerNext();
 }
+
+
+void Unit::save() {
+  if (getState() == UNIT_ASSIGN || getState() == UNIT_DONE) return;
+
+  JSON::BufferWriter writer;
+
+  writer.beginDict();
+  writer.insert("state", *this);
+  if (data.isSet()) writer.insert("data", *data);
+  writer.endDict();
+  writer.flush();
+
+  app.getDB("units").set(id, writer.toString());
+}
+
 
 void Unit::next() {
   // Check if WU has expired
@@ -307,23 +342,24 @@ void Unit::next() {
     insert("pause-reason", getPauseReason());
 
     // Stop the process
+    // TODO kill process after timeout
     if (process.isSet() && process->isRunning())
       process->interrupt();
 
-    // Stop the frameTimer
-    if (isFrameTimerRunning) stopFrameTimer();
+    if (getState() != UNIT_CLEAN && process.isNull()) return;
 
-    if (getState() != UNIT_CLEAN) return;
+  } else if (hasString("pause-reason")) erase("pause-reason");
 
-  } else {
-    if (!isFrameTimerRunning) startFrameTimer();
-    if (hasString("pause-reason")) erase("pause-reason");
+  // Monitor running core process
+  if (process.isSet()) {
+    if (process->isRunning()) return monitorRun();
+    else return finalizeRun();
   }
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting()) {
     uint64_t now = Time::now();
-    return triggerNext(now < wait ? (wait - now) : 0);
+    return triggerNext(now < wait ? wait - now : 0);
   }
 
   try {
@@ -333,6 +369,7 @@ void Unit::next() {
     case UNIT_CORE:     getCore();  break;
     case UNIT_RUN:      run();      break;
     case UNIT_UPLOAD:   upload();   break;
+    case UNIT_DUMP:     dump();     break;
     case UNIT_CLEAN:    clean();    break;
     case UNIT_DONE:                 break;
     }
@@ -344,77 +381,67 @@ void Unit::next() {
 }
 
 
-void Unit::startFrameTimer() {
-  if (isFrameTimerRunning) return;
-
-  isFrameTimerRunning = true;
-  if (!startTime) frameTime = getU64("frame-time", 0);
-  startTime = Time::now();
-  lastUpdate = lastTimeUpdate = 0;
+void Unit::processStarted() {
+  lastProcessTimer = processStartTime = Time::now();
+  lastKnownDone = lastKnownTotal = lastKnownProgressUpdate = clockSkew = 0;
 }
 
 
-void Unit::stopFrameTimer() {
-  if (!isFrameTimerRunning) return;
-  isFrameTimerRunning = false;
-
-  if (lastTimeUpdate) {
-    uint64_t now = Time::now();
-    frameTime += now - lastTimeUpdate;
-    lastTimeUpdate = now;
-  }
+void Unit::processEnded() {
+  insert("run-time", getRunTime());
+  processStartTime = 0;
 }
 
 
-void Unit::updateFrameTimer(uint64_t frame, uint64_t total) {
-  if (!isFrameTimerRunning) {
-    LOG_ERROR("Frame timer not running, starting it");
-    startFrameTimer();
-    return;
-  }
-
-  if (!total || total < frame) return;
+void Unit::processTimer() {
   uint64_t now = Time::now();
 
-  // Check for start
-  if (!lastUpdate) lastUpdate = lastTimeUpdate = now;
-  else {
-    // Detect and adjust for clock skew
-    int64_t delta = (int64_t)now - lastUpdate;
-    if (60 < delta) {
-      LOG_WARNING("Detected clock skew (" << TimeInterval(delta)
-                  << "), I/O delay, laptop hibernation or other slowdown "
-                  "noted, adjusting time estimates");
-      frameTime += lastUpdate - lastTimeUpdate;
-      lastTimeUpdate = now;
-    }
-
-    lastUpdate = now;
+  // Detect and adjust for clock skew
+  int64_t delta = (int64_t)now - lastProcessTimer;
+  if (data < 0 || 15 < delta) {
+    LOG_WARNING("Detected clock skew (" << TimeInterval(delta)
+                << "), I/O delay, laptop hibernation, other slowdown or "
+                "clock change noted, adjusting time estimates");
+    clockSkew += delta;
   }
 
-  if (currentFrame + 1 == frame) {
-    uint64_t currentFrameTime = getCurrentFrameTime();
-    if (currentFrameTime) runTime += currentFrameTime;
-    currentFrame = frame;
-    lastTimeUpdate = now;
-    startTime = now;
-    frameTime = 0;
+  lastProcessTimer = now;
+}
+
+
+double Unit::getKnownProgress() const {
+  return lastKnownTotal ? (double)lastKnownDone / lastKnownTotal : 0;
+}
+
+
+void Unit::updateKnownProgress(uint64_t done, uint64_t total) {
+  if (!total || total < done) return;
+
+  if (lastKnownDone != done || lastKnownTotal != total) {
+    lastKnownDone = done;
+    lastKnownTotal = total;
+    lastKnownProgressUpdate = Time::now();
+    lastKnownProgressUpdateRunTime = getRunTime();
   }
 }
 
 
-void Unit::setProgress(double complete, int total) {
-  double progress = (double)complete / total;
+void Unit::setProgress(double done, double total) {
+  double progress = done / total;
   double oldValue = getNumber("progress", 0);
+
   if (oldValue != progress) {
     insert("progress", progress);
-    if (floor(oldValue * 100) < floor(progress * 100))
-      LOG_INFO(1, getState() << String::printf(" %0.2f%% ", progress * 100));
+
+    if (floor(oldValue * 100) < floor(progress * 100) && getState() != UNIT_RUN)
+      LOG_INFO(1, getState() << String::printf(" %0.0f%% ", progress * 100));
   }
 }
 
 
 void Unit::getCore() {
+  if (core.isSet()) return; // Already have core
+
   core = app.getCores().get(data->select("assignment.data.core"));
 
   auto cb =
@@ -423,14 +450,12 @@ void Unit::getCore() {
 
       if (core->isInvalid()) {
         LOG_INFO(1, "Failed to download core");
-        dump();
+        setState(UNIT_DUMP);
         triggerNext();
       }
 
       if (core->isReady()) {
-        // TODO handle dump correctly
-        setState(
-          (data->has("results") || data->has("dump")) ? UNIT_UPLOAD : UNIT_RUN);
+        setState(UNIT_RUN);
         triggerNext();
       }
     };
@@ -440,7 +465,7 @@ void Unit::getCore() {
 
 
 void Unit::run() {
-  if (process.isSet()) return monitor();
+  if (process.isSet()) return; // Already running
 
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
@@ -512,9 +537,7 @@ void Unit::run() {
   logCopier = new TailFileToLog(logFile, getLogPrefix());
   logCopier->start();
 
-  // Start the frameTimer
-  startFrameTimer();
-
+  processStarted();
   triggerNext();
 
   insert("assignment", data->select("assignment.data"));
@@ -539,9 +562,7 @@ void Unit::readInfo() {
 
     if (f->gcount() == sizeof(WUInfo)) {
       if (info.type != core->getType()) THROW("Invalid WU info");
-      knownProgress = info.done * 1.0 / info.total;
-      updateFrameTimer(info.done, info.total);
-      setProgress(getEstimatedProgress(), 1);
+      updateKnownProgress(info.done, info.total);
     }
   }
 }
@@ -569,45 +590,38 @@ void Unit::readViewerFrame() {
 }
 
 
-void Unit::readResults() {
-  string filename = getDirectory() + "/wuresults_01.dat";
+void Unit::setResults(const string &status, const string &dataHash) {
+  auto request = data->get("request");
+  auto assign = data->get("assignment");
+  auto wu = data->get("wu");
+  string sigData =
+    request->toString() + assign->toString() + wu->toString() + status +
+    dataHash;
+  string sig64 = app.getKey().signBase64SHA256(sigData);
 
-  if (SystemUtilities::exists(filename)) {
-    string results = SystemUtilities::read(filename);
-    string hash64 = Digest::base64(results, "sha256");
-    auto request = data->get("request");
-    auto assign = data->get("assignment");
-    auto wu = data->get("wu");
-    string sigData =
-      request->toString() + assign->toString() + wu->toString() + hash64;
-    string sig64 = app.getKey().signBase64SHA256(sigData);
+  JSON::Builder builder;
+  builder.beginDict();
+  if (!status.empty()) builder.insert("status", status);
+  builder.insert("sha256", dataHash);
+  builder.insert("signature", sig64);
+  builder.endDict();
 
-    JSON::Builder builder;
-    builder.beginDict();
-    builder.insert("sha256", hash64);
-    builder.insert("signature", sig64);
-    builder.endDict();
-
-    data->insert("results", builder.getRoot());
-    data->insert("data", Base64().encode(results));
-
-    setState(UNIT_UPLOAD);
-
-  } else dump();
+  data->insert("results", builder.getRoot());
 }
 
 
-bool Unit::finalizeRun() {
+void Unit::finalizeRun() {
   if (logCopier.isSet()) logCopier->join();
   logCopier.release();
 
   ExitCode code = (ExitCode::enum_t)process->wait();
 
-  if (process->getWasKilled()) LOG_WARNING("Core was killed");
+  if (process->getWasKilled())  LOG_WARNING("Core was killed");
   if (process->getDumpedCore()) LOG_WARNING("Core crashed");
   if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1);
 
   process.release();
+  processEnded();
 
   bool ok = code == ExitCode::FINISHED_UNIT || code == ExitCode::INTERRUPTED;
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_WARNING,
@@ -620,50 +634,63 @@ bool Unit::finalizeRun() {
                 << ".  See https://bit.ly/2CXgWkZ for more information.");
 #endif
 
-  return code != ExitCode::INTERRUPTED;
+  // Notify parent
+  app.getUnits().triggerUpdate();
+
+  // WU not complete if core was interrupted
+  if (code == ExitCode::INTERRUPTED) return;
+
+  // Read result data
+  string filename = getDirectory() + "/wuresults_01.dat";
+
+  if (SystemUtilities::exists(filename)) {
+    string resultData = SystemUtilities::read(filename);
+    string hash64 = Digest::base64(resultData, "sha256");
+
+    // TODO Set status "ok" once WS are upgraded
+    // TODO Send multi-part data with JSON followed by binary data
+    setResults("", hash64);
+    data->insert("data", Base64().encode(resultData));
+    setState(UNIT_UPLOAD);
+
+  } else setState(UNIT_DUMP);
+
+  triggerNext();
 }
 
 
-void Unit::monitor() {
-  if (process->isRunning()) {
-    TRY_CATCH_ERROR(readInfo());
-    if (topology.isNull()) TRY_CATCH_ERROR(readViewerTop());
-    else TRY_CATCH_ERROR(readViewerFrame());
+void Unit::monitorRun() {
+  try {
+    // Time run
+    processTimer();
 
-    // Update ETA and PPD
+    // Read core shared info file
+    readInfo();
+
+    // Read visualization data
+    if (topology.isNull()) readViewerTop();
+    readViewerFrame();
+
+    // Update ETA, PPD and progress
     string eta = TimeInterval(getETA()).toString();
     uint64_t ppd = getPPD();
     if (eta != getString("eta", "")) insert("eta", eta);
     if (ppd != getU64("ppd", 0)) insert("ppd", ppd);
+    setProgress(getEstimatedProgress(), 1);
+  } CATCH_ERROR;
 
-    triggerNext(1);
-
-  } else {
-    if (finalizeRun()) {
-      stopFrameTimer();
-      readResults();
-    }
-    save();
-    triggerNext();
-  }
-}
-
-
-void Unit::dump() {
-  LOG_DEBUG(3, "Dumping WU");
-
-  // TODO Implement dumping with current WS
-  setState(UNIT_CLEAN);
+  triggerNext(1);
 }
 
 
 void Unit::clean() {
   LOG_DEBUG(3, "Cleaning WU");
 
-  try {
-    SystemUtilities::rmdir(getDirectory(), true);
-    remove();
-  } CATCH_ERROR;
+  // Remove from disk
+  TRY_CATCH_ERROR(SystemUtilities::rmdir(getDirectory(), true));
+
+  // Remove from DB
+  TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   setState(UNIT_DONE);
   app.getUnits().unitComplete(success);
@@ -687,22 +714,6 @@ void Unit::retry() {
 
   next();
 }
-
-
-void Unit::save() {
-  JSON::BufferWriter writer;
-
-  writer.beginDict();
-  writer.insert("state", *this);
-  if (data.isSet()) writer.insert("data", *data);
-  writer.endDict();
-  writer.flush();
-
-  app.getDB("units").set(id, writer.toString());
-}
-
-
-void Unit::remove() {app.getDB("units").unset(id);}
 
 
 void Unit::assignResponse(const JSON::ValuePtr &data) {
@@ -747,7 +758,6 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.beginDict();
 
   // Protect against replay
-  // TODO apply measured AS time offset
   sink.insert("time",           Time().toString());
   sink.insert("wu",             getU64("wu"));
 
@@ -808,6 +818,8 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
 
 void Unit::assign() {
+  if (pr.isSet()) return; // Already assigning
+
   data = JSON::build([this] (JSON::Sink &sink) {writeRequest(sink);});
   string signature = app.getKey().signSHA256(data->toString());
 
@@ -820,8 +832,9 @@ void Unit::assign() {
   // TODO validate peer certificate
   URI uri = "https://" + app.getNextAS().toString() + "/api/assign";
 
-  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                            this, &Unit::response);
+  pr = app.getClient()
+    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+
   auto writer = pr->getJSONWriter();
   writer->beginDict();
   writer->insert("data", *data);
@@ -869,11 +882,13 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
 
   setState(UNIT_CORE);
   this->data = data;
-  save();
+  save(); // Not strictly necessary
 }
 
 
 void Unit::download() {
+  if (pr.isSet()) return; // Already downloading
+
   LOG_INFO(1, "Downloading WU");
 
   // Monitor download progress
@@ -881,8 +896,9 @@ void Unit::download() {
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   URI uri = getWSBaseURL() + "/assign";
-  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                            this, &Unit::response);
+  pr = app.getClient()
+    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+
   data->write(*pr->getJSONWriter());
   setProgress(0, 0);
   pr->getConnection().getReadProgress().setCallback(progressCB, 1);
@@ -904,6 +920,8 @@ void Unit::uploadResponse(const JSON::ValuePtr &data) {
 
 
 void Unit::upload() {
+  if (pr.isSet()) return; // Already uploading
+
   LOG_INFO(1, "Uploading WU results");
 
   // Monitor upload progress
@@ -911,8 +929,8 @@ void Unit::upload() {
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   URI uri = getWSBaseURL() + "/results";
-  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_POST,
-                            this, &Unit::response);
+  pr = app.getClient()
+    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
 
   auto writer = pr->getJSONWriter();
   data->write(*writer);
@@ -924,7 +942,41 @@ void Unit::upload() {
 }
 
 
+void Unit::dumpResponse(const JSON::ValuePtr &data) {
+  LOG_INFO(1, "Dumped");
+  setState(UNIT_CLEAN);
+  success = true;
+
+  // Log dump record
+  try {
+    SystemUtilities::ensureDirectory("credits");
+    data->write(*SystemUtilities::oopen("credits/" + getID() + ".json"));
+  } CATCH_ERROR;
+}
+
+
+void Unit::dump() {
+  if (pr.isSet()) return; // Already dumping
+
+  LOG_INFO(1, "Sending dump report");
+
+  setResults("dumped", "");
+
+  URI uri = getWSBaseURL() + "/results";
+  pr = app.getClient()
+    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+
+  auto writer = pr->getJSONWriter();
+  data->write(*writer);
+  writer->close();
+
+  pr->send();
+}
+
+
 void Unit::response(Event::Request &req) {
+  pr.release(); // Deref request object
+
   try {
     if (req.getConnectionError()) {
       LOG_ERROR("Failed response: " << req.getConnectionError());
@@ -956,6 +1008,7 @@ void Unit::response(Event::Request &req) {
       case UNIT_ASSIGN:   assignResponse(req.getInputJSON());   break;
       case UNIT_DOWNLOAD: downloadResponse(req.getInputJSON()); break;
       case UNIT_UPLOAD:   uploadResponse(req.getInputJSON());   break;
+      case UNIT_DUMP:     dumpResponse(req.getInputJSON());     break;
       default: THROW("Unexpected unit state " << getState());
       }
     }

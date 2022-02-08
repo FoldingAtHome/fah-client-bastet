@@ -115,16 +115,10 @@ WinOSImpl::WinOSImpl(App &app) :
   options.addTarget("systray", systrayEnabled, "Set to false to disable the "
                     "Windows systray icon.");
   options.popCategory();
-
-  app.getEventBase().newEvent(this, &WinOSImpl::start, 0)->activate();
 }
 
 
-WinOSImpl::~WinOSImpl() {
-  if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
-  Thread::join();
-  singleton = 0;
-}
+WinOSImpl::~WinOSImpl() {singleton = 0;}
 
 
 WinOSImpl &WinOSImpl::instance() {
@@ -226,7 +220,14 @@ const char *WinOSImpl::getCPU() const {
 }
 
 
-void WinOSImpl::start() {if (systrayEnabled) Thread::start();}
+void WinOSImpl::dispatch() {
+  if (systrayEnabled) Thread::start();
+
+  OS::dispatch();
+
+  if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
+  Thread::join();
+}
 
 
 void WinOSImpl::run() {

@@ -68,18 +68,18 @@ namespace FAH {
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread> logCopier;
 
-      double knownProgress = 0;
       bool success = false;
       unsigned retries = 0;
       uint64_t wait = 0;
 
-      bool isFrameTimerRunning = false;
-      uint64_t currentFrame = 0; // Current frame
-      uint64_t frameTime = 0; // The accumulated time on this frame
-      uint64_t startTime = 0; // Last time the frame timer was started
-      uint64_t lastUpdate = 0; // Last time update() was called
-      uint64_t lastTimeUpdate = 0; // Last time frameTime was updated
-      uint64_t runTime = 0; // Total time the unit has been running
+      uint64_t processStartTime = 0; // Core process start time
+      uint64_t lastProcessTimer = 0; // For detecting clock skew
+      int64_t  clockSkew = 0;        // Due to sleeping or clock changes
+
+      uint64_t lastKnownDone = 0;
+      uint64_t lastKnownTotal = 0;
+      uint64_t lastKnownProgressUpdate = 0;
+      uint64_t lastKnownProgressUpdateRunTime = 0;
 
       Unit(App &app);
 
@@ -103,16 +103,15 @@ namespace FAH {
       bool isPaused() const;
       void setPause(bool pause);
       const char *getPauseReason() const;
+      bool isRunning() const;
 
       uint32_t getCPUs() const {return getU32("cpus");}
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
-      double getKnownProgress() const {return knownProgress;}
 
+      uint64_t getRunTime() const;
       uint64_t getRunTimeEstimate() const;
-      uint64_t getCurrentFrameTime() const;
-      double getCurrentFrameProgress() const;
-      double getEstimatedProgress() const;
-      double getCreditEstimate() const;
+      double   getEstimatedProgress() const;
+      uint64_t getCreditEstimate() const;
       uint64_t getETA() const;
       uint64_t getPPD() const;
 
@@ -125,30 +124,29 @@ namespace FAH {
       bool isIdling() const;
 
       void triggerNext(double secs = 0);
-      void triggerExit();
+      void dumpWU();
+      void save();
 
     protected:
       void next();
 
-      void startFrameTimer();
-      void stopFrameTimer();
-      void updateFrameTimer(uint64_t frame, uint64_t total);
+      void processStarted();
+      void processEnded();
+      void processTimer();
+      double getKnownProgress() const;
+      void updateKnownProgress(uint64_t done, uint64_t total);
 
-      void setProgress(double complete, int total);
+      void setProgress(double done, double total);
       void getCore();
       void run();
       void readInfo();
       void readViewerTop();
       void readViewerFrame();
-      void readResults();
-      bool finalizeRun();
-      void monitor();
-      void dump();
+      void setResults(const std::string &status, const std::string &dataHash);
+      void finalizeRun();
+      void monitorRun();
       void clean();
       void retry();
-
-      void save();
-      void remove();
 
       void assignResponse(const cb::JSON::ValuePtr &data);
       void writeProjectRestrictions(cb::JSON::Sink &sink,
@@ -159,6 +157,8 @@ namespace FAH {
       void download();
       void uploadResponse(const cb::JSON::ValuePtr &data);
       void upload();
+      void dumpResponse(const cb::JSON::ValuePtr &data);
+      void dump();
       void response(cb::Event::Request &req);
     };
   }

@@ -89,6 +89,16 @@ Unit &Units::getUnit(unsigned index) const {
 }
 
 
+void Units::dump(const string &unitID) {
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = get(i)->cast<Unit>();
+
+    if (unitID.empty() || unit.getID() == unitID)
+      unit.dumpWU();
+  }
+}
+
+
 void Units::unitComplete(bool success) {
   if (success) {
     failures = 0;
@@ -114,13 +124,34 @@ void Units::update() {
     else i++;
   }
 
+  // Handle graceful shutdown
+  if (app.shouldQuit()) {
+    for (unsigned i = 0; i < size(); i++)
+      if (get(i).cast<Unit>()->isRunning()) {
+        LOG_DEBUG(3, "Unit " << i << " running");
+        return event->add(1); // Check again later
+      }
+
+    if (shutdownCB) {
+      // Save state to DB
+      for (unsigned i = 0; i < size(); i++)
+        get(i).cast<Unit>()->save();
+
+      shutdownCB();
+      shutdownCB = 0;
+    }
+
+    return;
+  }
+
   // Wait on failures
   auto now = Time::now();
   if (now < waitUntil) return event->add(waitUntil - now);
 
-  // No further action if paused
-  if (app.getConfig().getPaused()) return;
-  if (app.getConfig().getOnIdle() && !app.getOS().isSystemIdle()) return;
+  // No further action if paused, finishing or idle
+  auto &config = app.getConfig();
+  if (config.getPaused() || config.getFinish()) return;
+  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return;
 
   // Find best fit
   state_t best;
@@ -167,9 +198,9 @@ void Units::triggerUpdate(bool updateUnits) {
 }
 
 
-void Units::triggerExit() {
-  for (unsigned i = 0; i < size(); i++)
-    get(i).cast<Unit>()->triggerExit();
+void Units::shutdown(function<void ()> cb) {
+  shutdownCB = cb;
+  triggerUpdate();
 }
 
 

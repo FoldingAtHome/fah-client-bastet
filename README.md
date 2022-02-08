@@ -23,6 +23,17 @@ themselves, or "fold." The process of protein folding, while critical
 and fundamental to virtually all of biology, in many ways remains a
 mystery.
 
+# This software
+This repository contains a new [Open-Source](https://opensource.org/osd)
+version of the Folding@home client software.  The complete client software
+consits of a frontend and and backend.  This repository contains the backend.
+The frontend is in a separate repository at
+[fah-web-client-bastet](https://github.com/foldingathome/fah-web-client-bastet).
+The backend can be configured to run on it's own with out any user interaction.
+The frontend is a web application which normally will run at
+https://app.foldingathome.org/ but can also be run locally for testing and
+development purposes.
+
 # Quick Start for Debian Linux
 
 ## Install the Prerequisites
@@ -38,21 +49,34 @@ git clone https://github.com/foldingathome/fah-client-bastet
 git clone https://github.com/foldingathome/fah-web-client-bastet
 ```
 
-## Build and Install the Folding@home Client
+## Build the Folding@home Client
 ```
 export CBANG_HOME=$PWD/cbang
 scons -C cbang
+scons -C fah-client-bastet
 scons -C fah-client-bastet package
-sudo dpkg -i fah-client-bastet/*.deb
 ```
 
-## Start the development web server
+## Install the pacakge
+The last build step builds the Debian package.  Before installing this package
+it is recommend that you first uninstall any previous Folding@home client
+software.  You can then install the package like this:
+
 ```
-cd fah-web-client
+sudo dpkg -i fah-client-bastet/fah-client_<version>_amd64.deb
+```
+
+Where ``<version>`` is the software version number.
+
+## Start the development web server
+Use these commands to run your own frontend server for testing purposes.  In
+production, this code will run at https://app.foldingathome.org/.
+
+```
+cd fah-web-client-bastet
 npm i
 npm run dev
 ```
 
-## Open the Browser
-
-With the development server running visit http://localhost:3000/
+With the development server running, open http://localhost:3000/ in a browser to
+view the client frontend.

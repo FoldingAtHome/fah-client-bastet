@@ -96,14 +96,17 @@ void Remote::sendChanges(const JSON::ValuePtr &changes) {
 void Remote::onMessage(const JSON::ValuePtr &msg) {
   LOG_DEBUG(3, "msg: " << *msg);
 
-  string cmd = msg->getString("cmd", "");
+  string cmd  = msg->getString("cmd", "");
+  string unit = msg->getString("unit", "");
 
   if (cmd == "viz") {
-    vizUnitID = msg->getString("unit", "");
-    vizFrame = msg->getU32("frame", 0);
+    vizUnitID = unit;
+    vizFrame  = msg->getU32("frame", 0);
     sendViz();
   }
 
+  if (cmd == "dump")    app.getUnits().dump(unit);
+  if (cmd == "finish")  app.getConfig().setFinish(true);
   if (cmd == "pause")   app.getConfig().setPaused(true);
   if (cmd == "unpause") app.getConfig().setPaused(false);
   if (cmd == "config")  app.getConfig().merge(*msg->get("config"));

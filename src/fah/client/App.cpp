@@ -53,9 +53,8 @@
 #include <cbang/openssl/CertificateStore.h>
 #include <cbang/openssl/CertificateStoreContext.h>
 
-#ifndef _WIN32
 #include <signal.h>
-#endif
+
 
 using namespace FAH::Client;
 using namespace cb;
@@ -117,17 +116,18 @@ App::App() :
   options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  base.newSignal(SIGINT, this, &App::signalEvent)->add();
+  base.newSignal(SIGINT,  this, &App::signalEvent)->add();
   base.newSignal(SIGTERM, this, &App::signalEvent)->add();
 
   // Network timeout
   client.setReadTimeout(45);
   client.setWriteTimeout(45);
 
-  // Ignore SIGPIPE
+  // Ignore SIGPIPE & SIGHUP
 #ifndef _WIN32
   ::signal(SIGPIPE, SIG_IGN);
 #endif
+  ::signal(SIGHUP, SIG_IGN);
 
   // Add custom certificate extension
   SSL::createObject("1.2.3.4.70.64.72", "fahKeyUsage",
@@ -299,15 +299,10 @@ void App::run() {
 }
 
 
-void App::signalEvent(Event::Event &e, int signal, unsigned flags) {
-  requestExit();
-}
-
-
 void App::requestExit() {
-  // TODO: Update the shutdown functionality.
-  getUnits().triggerExit();
-
+  getUnits().shutdown([this]() {base.loopExit();});
   Application::requestExit();
-  base.loopExit();
 }
+
+
+void App::signalEvent(Event::Event &, int, unsigned) {requestExit();}

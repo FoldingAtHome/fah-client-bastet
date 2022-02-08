@@ -73,7 +73,14 @@ void Config::init() {
 
 bool Config::getOnIdle() const {return getBoolean("on_idle");}
 void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
-void Config::setPaused(bool paused) {insertBoolean("paused", paused);}
+
+
+void Config::setPaused(bool paused) {
+  insertBoolean("paused", paused);
+  finishWUs = false;
+}
+
+
 bool Config::getPaused() const {return getBoolean("paused");}
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 

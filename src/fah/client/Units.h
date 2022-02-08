@@ -32,6 +32,7 @@
 
 #include <set>
 #include <string>
+#include <functional>
 
 
 namespace FAH {
@@ -52,8 +53,7 @@ namespace FAH {
       uint32_t failures = 0;
       uint64_t waitUntil = 0;
 
-      cb::SmartPointer<cb::JSON::ObservableList> viz =
-        new cb::JSON::ObservableList;
+      std::function<void ()> shutdownCB;
 
     public:
       Units(App &app);
@@ -64,10 +64,11 @@ namespace FAH {
       void add(const cb::SmartPointer<Unit> &unit);
       unsigned getUnitIndex(const std::string &id) const;
       Unit &getUnit(unsigned index) const;
+      void dump(const std::string &unitID);
       void unitComplete(bool success);
       void update();
       void triggerUpdate(bool updateUnits = false);
-      void triggerExit();
+      void shutdown(std::function<void ()> cb);
       void load();
 
     private:

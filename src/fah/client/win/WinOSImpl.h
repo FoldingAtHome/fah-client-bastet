@@ -68,9 +68,9 @@ namespace FAH {
       const char *getName() const;
       const char *getCPU() const;
       bool isSystemIdle() const {return inAwayMode || displayOff;}
+      void dispatch();
 
       // From cb::Thread
-      void start();
       void run();
 
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
