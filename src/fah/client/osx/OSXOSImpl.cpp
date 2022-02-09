@@ -276,7 +276,7 @@ void OSXOSImpl::dispatch() {
   }
 
   dispatch_async(queue, ^{
-      TRY_CATCH_ERROR(getApp().getEventBase().dispatch());
+      TRY_CATCH_ERROR(OS::dispatch());
 
       // stop the caller thread run loop
       CFRunLoopStop(rloop);
@@ -299,6 +299,7 @@ void OSXOSImpl::dispatch() {
 void OSXOSImpl::run() {
   init();
   CFRunLoopRun();
+  threadRunLoop = 0;
 }
 
 
@@ -319,7 +320,7 @@ void OSXOSImpl::finishInit() {
   }
 
   // Init console user if registration succeeded
-  if (consoleUserRLS && !consoleUser) consoleUserChanged(0, 0, 0);
+  if (consoleUserRLS) consoleUserChanged(0, 0, 0);
 }
 
 
@@ -606,7 +607,7 @@ bool OSXOSImpl::registerForDarwinNotifications() {
       nc, (void *)this, &noteQuitCB, name, 0,
       CFNotificationSuspensionBehaviorCoalesce);
     CFRelease(name);
-    LOG_DEBUG(1, "listening for notification " << n);
+    LOG_DEBUG(1, "listening for notification " << key);
 
     return true;
   }
