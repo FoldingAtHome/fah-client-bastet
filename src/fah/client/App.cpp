@@ -40,6 +40,7 @@
 #include <cbang/time/Time.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
+#include <cbang/os/SignalManager.h> // For SIGHUP on Windows
 #include <cbang/net/URI.h>
 #include <cbang/json/Sink.h>
 #include <cbang/Info.h>
