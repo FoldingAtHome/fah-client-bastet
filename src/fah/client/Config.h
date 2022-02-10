@@ -41,7 +41,6 @@ namespace FAH {
     class Config : public cb::JSON::ObservableDict,
                    public Power::Enum {
       App &app;
-      bool finishWUs = false;
 
     public:
       Config(App &app);
@@ -54,8 +53,8 @@ namespace FAH {
       void setPaused(bool paused);
       bool getPaused() const;
 
-      void setFinish(bool finish) {finishWUs = finish;}
-      bool getFinish() const {return finishWUs;}
+      void setFinish(bool finish);
+      bool getFinish() const;
 
       const std::string &getUsername() {return getString("user");}
       const std::string &getPasskey() {return getString("passkey");}

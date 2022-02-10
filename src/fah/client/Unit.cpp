@@ -194,11 +194,11 @@ uint64_t Unit::getRunTimeEstimate() const {
   if (estimate) return estimate;
 
   // Make our own estimate
-  if (getKnownProgress())
+  if (getKnownProgress() && lastKnownProgressUpdateRunTime)
     return lastKnownProgressUpdateRunTime / getKnownProgress();
 
   // Make a wild guess based on timeout
-  return 0.2 * data->selectU64("assignment.data.timeout", 0);
+  return 0.2 * data->selectU64("assignment.data.timeout", 1);
 }
 
 

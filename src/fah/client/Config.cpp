@@ -49,6 +49,7 @@ Config::Config(App &app) : app(app) {
   insert("checkpoint", 15);
   insertBoolean("on_idle", false);
   insertBoolean("paused", false);
+  insertBoolean("finish", false);
   insert("cause", "any");
   insert("cpus", cpus);
   insertDict("gpus");
@@ -77,11 +78,13 @@ void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 
 void Config::setPaused(bool paused) {
   insertBoolean("paused", paused);
-  finishWUs = false;
+  insertBoolean("finish", false);
 }
 
 
 bool Config::getPaused() const {return getBoolean("paused");}
+void Config::setFinish(bool finish) {insertBoolean("finish", finish);}
+bool Config::getFinish() const {return getBoolean("finish");}
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 

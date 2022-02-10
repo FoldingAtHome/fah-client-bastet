@@ -127,10 +127,8 @@ void Units::update() {
   // Handle graceful shutdown
   if (app.shouldQuit()) {
     for (unsigned i = 0; i < size(); i++)
-      if (get(i).cast<Unit>()->isRunning()) {
-        LOG_DEBUG(3, "Unit " << i << " running");
+      if (get(i).cast<Unit>()->isRunning())
         return event->add(1); // Check again later
-      }
 
     if (shutdownCB) {
       // Save state to DB
@@ -144,14 +142,14 @@ void Units::update() {
     return;
   }
 
+  // No further action if paused or idle
+  auto &config = app.getConfig();
+  if (config.getPaused()) return;
+  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return;
+
   // Wait on failures
   auto now = Time::now();
   if (now < waitUntil) return event->add(waitUntil - now);
-
-  // No further action if paused, finishing or idle
-  auto &config = app.getConfig();
-  if (config.getPaused() || config.getFinish()) return;
-  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return;
 
   // Find best fit
   state_t best;
@@ -171,6 +169,12 @@ void Units::update() {
 
   LOG_DEBUG(1, "Remaining CPUs: " << best.cpus << ", Remaining GPUs: "
             << best.gpus.size());
+
+  // Handle finish
+  if (config.getFinish()) {
+    if (best.wus.empty()) config.setPaused(true);
+    return; // Don't add any new WUs
+  }
 
   // Do not add WUs if any have not reached the CORE state
   for (unsigned i = 0; i < size(); i++)
