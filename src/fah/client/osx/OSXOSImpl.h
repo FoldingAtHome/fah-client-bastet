@@ -58,7 +58,6 @@ namespace FAH {
       CFRunLoopSourceRef consoleUserRLS = 0;
       CFStringRef consoleUser = 0;
 
-      CFRunLoopRef threadRunLoop = 0;
       CFRunLoopTimerRef updateTimer = 0;
 
       int idleDelay = 5;
@@ -90,7 +89,6 @@ namespace FAH {
       void updateTimerFired(CFRunLoopTimerRef timer, void *info);
 
     protected:
-      void init();
       void initialize();
       void addHeartbeatTimerToRunLoop(CFRunLoopRef loop);
       bool registerForConsoleUserNotifications();
