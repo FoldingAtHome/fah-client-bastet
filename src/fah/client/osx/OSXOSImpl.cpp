@@ -79,13 +79,6 @@ namespace {
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
   }
 
-  void finishInitTimerCB(CFRunLoopTimerRef timer, void *info) {
-    LOG_DEBUG(5, "finishInitTimerCB on thread "  << pthread_self() <<
-              (pthread_main_np() ? " main" : ""));
-    CFRunLoopTimerInvalidate(timer); // in case it would repeat
-    OSXOSImpl::instance().finishInit();
-  }
-
   void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
     LOG_DEBUG(5, "updateTimerCB on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
@@ -204,14 +197,6 @@ OSXOSImpl &OSXOSImpl::instance() {
 }
 
 
-void OSXOSImpl::init() {
-  // init subthread in run
-  threadRunLoop = CFRunLoopGetCurrent();
-  // add heartbeat timer to keep runloop from exiting early
-  addHeartbeatTimerToRunLoop(threadRunLoop);
-}
-
-
 void OSXOSImpl::initialize() {
   if (!registerForDisplayPowerNotifications())
     LOG_ERROR("Failed to register for display power changes");
@@ -224,17 +209,8 @@ void OSXOSImpl::initialize() {
   if (!registerForDarwinNotifications())
     LOG_ERROR("Failed to register for darwin notifications");
 
-  // finish init in a timer callback, we so can't have stale values
-  // a timer sometimes never fires if the start date is missed
-  CFRunLoopTimerRef timer =
-    CFRunLoopTimerCreate(0, CFAbsoluteTimeGetCurrent() + 10, 5,
-                         0, 0, finishInitTimerCB, 0);
-
-  if (timer) {
-    CFRunLoopAddTimer(CFRunLoopGetMain(), timer, kCFRunLoopDefaultMode);
-    CFRelease(timer);
-  } else
-    finishInit();
+  // finish init in main runloop, so we can't have stale values
+  dispatch_async(dispatch_get_main_queue(), ^{finishInit();});
 
   addHeartbeatTimerToRunLoop(CFRunLoopGetMain());
 }
@@ -257,59 +233,31 @@ const char *OSXOSImpl::getName() const {return "macosx";}
 
 
 void OSXOSImpl::dispatch() {
+  if (!pthread_main_np())
+    THROW("OSXOSImpl::dispatch() must be called on main thread");
+  LOG_DEBUG(5, "OSXOSImpl::dispatch()");
   Thread::start();
-
-  // integrate cb::Event (libevent) and CFRunLoop
-  // this is meant for main thread, but should work for any
-  // toss libevent loop to another thread so CFRunLoop can use this thread
-  // catch any exception and re-throw in calling thread
-  // uncaught exceptions in a dispatched block will terminate the program
-  CFRunLoopRef rloop = CFRunLoopGetCurrent();
-  // create a serial queue
-  dispatch_queue_t queue = dispatch_queue_create(0, 0);
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-
-  if (!queue) {
-    // out of memory! use a global concurrent queue
-    queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_retain(queue); // probably not needed
-  }
-
-  dispatch_async(queue, ^{
-      TRY_CATCH_ERROR(OS::dispatch());
-
-      // stop the caller thread run loop
-      CFRunLoopStop(rloop);
-
-      // signal this block is done
-      dispatch_semaphore_signal(semaphore);
-    });
-
   CFRunLoopRun();
-
-  // wait for event_base_dispatch() to finish
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  if (semaphore) dispatch_release(semaphore);
-  if (queue) dispatch_release(queue);
-
   Thread::join();
 }
 
 
 void OSXOSImpl::run() {
-  init();
-  CFRunLoopRun();
-  threadRunLoop = 0;
+  TRY_CATCH_ERROR(OS::dispatch());
+  CFRunLoopStop(CFRunLoopGetMain());
 }
 
 
 void OSXOSImpl::stop() {
   Thread::stop();
-  if (threadRunLoop) CFRunLoopStop(threadRunLoop);
+  getApp().getEventBase().loopExit();
 }
 
 
 void OSXOSImpl::finishInit() {
+    LOG_DEBUG(5, "OSXOSImpl::finishInit() on thread "  << pthread_self() <<
+              (pthread_main_np() ? " main" : ""));
+
   // Init display power state if registration succeeded
   if (displayNoteSource && displayPower == kDisplayPowerOn) {
     int state = getCurrentDisplayPower();
