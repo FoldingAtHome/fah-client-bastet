@@ -337,24 +337,22 @@ void Unit::next() {
     setState(UNIT_CLEAN);
   }
 
-  // Pause/unpause WU
-  if (isPaused()) {
-    insert("pause-reason", getPauseReason());
-
-    // Stop the process
-    // TODO kill process after timeout
-    if (process.isSet() && process->isRunning())
-      process->interrupt();
-
-    if (getState() != UNIT_CLEAN && process.isNull()) return;
-
-  } else if (hasString("pause-reason")) erase("pause-reason");
+  // Update pause reason
+  if (isPaused()) insert("pause-reason", getPauseReason());
+  else if (hasString("pause-reason")) erase("pause-reason");
 
   // Monitor running core process
   if (process.isSet()) {
-    if (process->isRunning()) return monitorRun();
-    else return finalizeRun();
+    if (process->isRunning()) {
+      if (isPaused() || getState() != UNIT_RUN) return stopRun();
+      return monitorRun();
+    }
+
+    return finalizeRun();
   }
+
+  // Handle pause
+  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP) return;
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting()) {
@@ -383,7 +381,8 @@ void Unit::next() {
 
 void Unit::processStarted() {
   lastProcessTimer = processStartTime = Time::now();
-  lastKnownDone = lastKnownTotal = lastKnownProgressUpdate = clockSkew = 0;
+  processInterruptTime = lastKnownDone = lastKnownTotal =
+    lastKnownProgressUpdate = clockSkew = 0;
 }
 
 
@@ -638,7 +637,7 @@ void Unit::finalizeRun() {
   app.getUnits().triggerUpdate();
 
   // WU not complete if core was interrupted
-  if (code == ExitCode::INTERRUPTED) return;
+  if (code == ExitCode::INTERRUPTED) return triggerNext();
 
   // Read result data
   string filename = getDirectory() + "/wuresults_01.dat";
@@ -656,6 +655,21 @@ void Unit::finalizeRun() {
   } else setState(UNIT_DUMP);
 
   triggerNext();
+}
+
+
+void Unit::stopRun() {
+  if (!processInterruptTime) {
+    processInterruptTime = Time::now();
+    process->interrupt();
+
+  } else if (Time::now() < processInterruptTime + 60) {
+    LOG_WARNING("Core did not shutdown gracefully, killing process");
+    process->kill();
+    processInterruptTime = 1; // Prevent further interrupt or kill
+  }
+
+  triggerNext(1);
 }
 
 

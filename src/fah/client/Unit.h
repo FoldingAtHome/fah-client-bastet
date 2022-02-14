@@ -72,9 +72,10 @@ namespace FAH {
       unsigned retries = 0;
       uint64_t wait = 0;
 
-      uint64_t processStartTime = 0; // Core process start time
-      uint64_t lastProcessTimer = 0; // For detecting clock skew
-      int64_t  clockSkew = 0;        // Due to sleeping or clock changes
+      uint64_t processStartTime = 0;     // Core process start time
+      uint64_t processInterruptTime = 0; // Core process interrupt time
+      uint64_t lastProcessTimer = 0;     // For detecting clock skew
+      int64_t  clockSkew = 0;            // Due to sleeping or clock changes
 
       uint64_t lastKnownDone = 0;
       uint64_t lastKnownTotal = 0;
@@ -144,6 +145,7 @@ namespace FAH {
       void readViewerFrame();
       void setResults(const std::string &status, const std::string &dataHash);
       void finalizeRun();
+      void stopRun();
       void monitorRun();
       void clean();
       void retry();
