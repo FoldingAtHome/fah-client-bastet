@@ -28,8 +28,6 @@
 
 #pragma once
 
-#include "Power.h"
-
 #include <cbang/json/Observable.h>
 #include <cbang/enum/ProcessPriority.h>
 
@@ -38,8 +36,7 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class Config : public cb::JSON::ObservableDict,
-                   public Power::Enum {
+    class Config : public cb::JSON::ObservableDict {
       App &app;
 
     public:

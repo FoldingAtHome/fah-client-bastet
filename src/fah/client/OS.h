@@ -28,8 +28,6 @@
 
 #pragma once
 
-#include "Power.h"
-
 #include <cbang/SmartPointer.h>
 
 
