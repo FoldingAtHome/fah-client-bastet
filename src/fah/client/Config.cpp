@@ -28,6 +28,8 @@
 
 #include "Config.h"
 #include "App.h"
+#include "CausePref.h"
+#include "PasskeyConstraint.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
@@ -36,6 +38,7 @@
 
 #include <cbang/config/MinMaxConstraint.h>
 #include <cbang/config/MinConstraint.h>
+#include <cbang/config/EnumConstraint.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -65,7 +68,7 @@ Config::Config(App &app) : app(app) {
   options.add("user", "Your user name.")->setDefault("Anonymous");
   options.add("team", "Your team number.",
               new MinMaxConstraint<int64_t>(0, 2147483647))->setDefault(0);
-  opt = options.add("passkey", "Your passkey.");
+  opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
   opt->setDefault("");
   opt->setObscured();
   options.popCategory();
@@ -74,7 +77,8 @@ Config::Config(App &app) : app(app) {
   options.add("project-key", "Key for access to restricted testing projects."
               )->setDefault(0);
   options.alias("project-key", "key");
-  options.add("cause", "The cause you prefer to support.")->setDefault("any");
+  options.add("cause", "The cause you prefer to support.",
+              new EnumConstraint<CausePref>)->setDefault("any");
   options.popCategory();
 
   options.pushCategory("Resource Settings");
