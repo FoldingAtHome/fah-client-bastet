@@ -32,6 +32,9 @@ case "$1" in
     # Create directories
     install -d -m 755 -o $CLIENT_USER -g $CLIENT_GROUP $CLIENT_HOME $CLIENT_LOGS
 
+    # Create a symbolic link to the configuration file
+    ln -sf /etc/fahclient/config.xml $CLIENT_HOME/config.xml
+
     # Install the service
     if [ ! -e /etc/systemd/system/$NAME.service ]; then
       ln -sf $CLIENT_SHARE/$NAME.service /etc/systemd/system/

@@ -28,10 +28,17 @@
 
 #include "Config.h"
 #include "App.h"
+#include "CausePref.h"
+#include "PasskeyConstraint.h"
 
 #include <cbang/Catch.h>
+#include <cbang/log/Logger.h>
 #include <cbang/json/Reader.h>
 #include <cbang/os/SystemInfo.h>
+
+#include <cbang/config/MinMaxConstraint.h>
+#include <cbang/config/MinConstraint.h>
+#include <cbang/config/EnumConstraint.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -53,14 +60,41 @@ Config::Config(App &app) : app(app) {
   insert("cause", "any");
   insert("cpus", cpus);
   insertDict("gpus");
+
+  SmartPointer<Option> opt;
+  auto &options = app.getOptions();
+
+  options.pushCategory("User Information");
+  options.add("user", "Your user name.")->setDefault("Anonymous");
+  options.add("team", "Your team number.",
+              new MinMaxConstraint<int64_t>(0, 2147483647))->setDefault(0);
+  opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
+  opt->setDefault("");
+  opt->setObscured();
+  options.popCategory();
+
+  options.pushCategory("Project Settings");
+  options.add("project-key", "Key for access to restricted testing projects."
+              )->setDefault(0);
+  options.alias("project-key", "key");
+  options.add("cause", "The cause you prefer to support.",
+              new EnumConstraint<CausePref>)->setDefault("any");
+  options.popCategory();
+
+  options.pushCategory("Resource Settings");
+  options.add("cpus", "Number of cpus FAH client will use.",
+              new MaxConstraint<int64_t>(cpus))->setDefault(cpus);
+  options.popCategory();
 }
 
 
 void Config::init() {
-  // TODO Set config defaults
-  //auto &options = app.getOptions();
-  //insert("user", options["user"].toString(getString("user")));
-  //insert("team", options["team"].toInteger(getString("team")));
+  // Load options from config file
+  auto &options = app.getOptions();
+  std::set<string> keys = {"user", "passkey", "team", "key", "cause", "cpus"};
+  for (auto key : keys)
+    if (options.has(key) && !options[key].isDefault())
+      insert(key, options[key]);
 
   // Load saved data
   auto &db = app.getDB("config");

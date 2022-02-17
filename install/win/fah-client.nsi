@@ -14,7 +14,7 @@
 
 !define UNINSTALLER             "Uninstall.exe"
 
-;!define PRODUCT_CONFIG          "config.xml"
+!define PRODUCT_CONFIG          "config.xml"
 !define PRODUCT_LICENSE         "${CLIENT_HOME}\LICENSE"
 !define PRODUCT_VENDOR          "foldingathome.org"
 !define PRODUCT_TARGET          "${CLIENT_HOME}\%(package)s"
