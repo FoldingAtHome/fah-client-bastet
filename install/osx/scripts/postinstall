@@ -10,11 +10,6 @@ chown -R nobody:nobody "$RUN_DIR"
 
 PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
 
-# remove old client and wrapper
-# SIP may prevent this
-[ -f /usr/bin/FAHClient ] && rm -f /usr/bin/FAHClient || true
-[ -f /usr/bin/FAHCoreWrapper ] && rm -f /usr/bin/FAHCoreWrapper || true
-
 # Start service
 chmod 0644 "$PLIST"
 launchctl load -w "$PLIST"
