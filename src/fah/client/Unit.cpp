@@ -663,7 +663,7 @@ void Unit::stopRun() {
     processInterruptTime = Time::now();
     process->interrupt();
 
-  } else if (Time::now() < processInterruptTime + 60) {
+  } else if (processInterruptTime + 60 < Time::now()) {
     LOG_WARNING("Core did not shutdown gracefully, killing process");
     process->kill();
     processInterruptTime = 1; // Prevent further interrupt or kill
