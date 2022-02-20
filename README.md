@@ -5,7 +5,7 @@ Folding@home is a distributed computing project -- people from
 throughout the world download and run software to band together to
 make one of the largest supercomputers in the world. Every computer
 takes the project closer to our goals. Folding@home uses novel
-computational methods coupled to distributed computing, to simulate
+computational methods, coupled to distributed computing, to simulate
 problems millions of times more challenging than previously achieved.
 
 Protein folding is linked to disease, such as Alzheimer's, ALS,
@@ -26,10 +26,10 @@ mystery.
 # This software
 This repository contains a new [Open-Source](https://opensource.org/osd)
 version of the Folding@home client software.  The complete client software
-consits of a frontend and and backend.  This repository contains the backend.
+consits of a frontend and a backend.  This repository contains the backend.
 The frontend is in a separate repository at
 [fah-web-client-bastet](https://github.com/foldingathome/fah-web-client-bastet).
-The backend can be configured to run on it's own with out any user interaction.
+The backend can be configured to run on its own without any user interaction.
 The frontend is a web application which normally will run at
 https://app.foldingathome.org/ but can also be run locally for testing and
 development purposes.
