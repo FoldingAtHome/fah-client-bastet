@@ -26,4 +26,3 @@ if [ $I -lt 2 ]; then sleep 2; fi
 
 # do action
 "$@"
-
