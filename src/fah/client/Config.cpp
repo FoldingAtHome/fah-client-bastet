@@ -119,6 +119,15 @@ void Config::setPaused(bool paused) {
 bool Config::getPaused() const {return getBoolean("paused");}
 void Config::setFinish(bool finish) {insertBoolean("finish", finish);}
 bool Config::getFinish() const {return getBoolean("finish");}
+
+
+string Config::getUsername() const {
+  string user = getString("user", "Anonymous");
+  return user.empty() ? "Anonymous" : user;
+}
+
+
+string Config::getPasskey() const {return getString("passkey", "");}
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 
@@ -129,7 +138,7 @@ uint32_t Config::getCPUs() const {
 }
 
 
-ProcessPriority Config::getCorePriority() {
+ProcessPriority Config::getCorePriority() const {
   return ProcessPriority::parse(getString("priority", "idle"));
 }
 

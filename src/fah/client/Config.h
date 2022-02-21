@@ -53,13 +53,13 @@ namespace FAH {
       void setFinish(bool finish);
       bool getFinish() const;
 
-      const std::string &getUsername() {return getString("user");}
-      const std::string &getPasskey() {return getString("passkey");}
-      uint32_t getTeam() {return getU32("team");}
+      std::string getUsername() const;
+      std::string getPasskey() const;
+      uint32_t getTeam() const {return getU32("team", 0);}
+      uint64_t getProjectKey() const;
 
       uint32_t getCPUs() const;
-      uint64_t getProjectKey() const;
-      cb::ProcessPriority getCorePriority();
+      cb::ProcessPriority getCorePriority() const;
       cb::JSON::ValuePtr getGPU(const std::string &id);
     };
   }
