@@ -330,7 +330,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
 
 void WinOSImpl::updateIcon() {
   if (OS::hasFailure())
-    setSysTray(IDI_FAILURE, "One or more folding slot failed");
+    setSysTray(IDI_FAILURE, "One or more folding slots failed");
 
   else if (OS::isIdle())
     setSysTray(IDI_INACTIVE, "No active folding slots");
@@ -376,7 +376,7 @@ void WinOSImpl::popup(HWND hWnd) {
   TrackPopupMenu
     (hMenu, TPM_RIGHTALIGN | TPM_RIGHTBUTTON, point.x, point.y, 0, hWnd, 0);
 
-  // So the 2nd time the menu is displayed it wont disappear
+  // So the 2nd time the menu is displayed it won't disappear
   PostMessage(hWnd, WM_NULL, 0, 0);
 
   // Free menu

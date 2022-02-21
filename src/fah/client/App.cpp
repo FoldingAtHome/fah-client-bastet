@@ -89,7 +89,7 @@ App::App() :
               "open the Web Control in a browser once client is fully loaded"
               )->setDefault(false);
   options.add("allowed-origins", "Web origins (URLs) allowed to access this "
-              "client.  Only trused origins should be added.  Web pages at "
+              "client.  Only trusted origins should be added.  Web pages at "
               "added origins will be able to control the client.")
     ->setDefault("https://app.foldingathome.org");
   options.add("web-root", "Path to files to be served by the client's Web "
@@ -262,7 +262,7 @@ void App::loadServers() {
     try {IPAddress::ipsFromString(*it, servers);} CATCH_ERROR;
 
   if (servers.empty())
-    THROW("Failed to find any assignment servers IP addresses");
+    THROW("Failed to find any assignment server IP addresses");
 }
 
 

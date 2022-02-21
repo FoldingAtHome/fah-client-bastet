@@ -19,7 +19,7 @@ The new client:
   * consists of two parts, a web frontend
     (https://github.com/FoldingAtHome/fah-web-client-bastet) and a backend
     (https://github.com/FoldingAtHome/fah-client-bastet).  The features
-    of FAHViewer and FAHClient are or will be implemented in the frontend.
+    of FAHViewer and FAHControl are or will be implemented in the frontend.
   * is [Open-Source](https://opensource.org/osd).
   * uses a new API to talk to the servers at foldingathome.org.
   * records a cryptographicly signed record of all F@H credits earned.
@@ -48,7 +48,7 @@ title alone is enough to understand the issue.
 Bad titles:
 
   * Problem on Windows
-  * Wont install on my machine
+  * Won't install on my machine
   * Button doesn't work
 
 Good titles:
@@ -77,13 +77,13 @@ Now you can submit your issue.
 After you've submitted an issue, be sure to follow up.  You may be asked to
 provide more information, perform further testing or test out a fix.
 
-## Running the client with out the frontend
+## Running the client without the frontend
 
 It is possible to run
-[fah-client-bastet](https://github.com/FoldingAtHome/fah-client-bastet) with out
+[fah-client-bastet](https://github.com/FoldingAtHome/fah-client-bastet) without
 the frontend.  You can then configure either by passing options on the
 command line or using a ``config.xml`` file.  In Linux there will be a
-configuration file at ``/etc/fah-client/config.xml``.  Here is an example file:
+configuration file at ``/etc/fahclient/config.xml``.  Here is an example file:
 
 ```xml
 <config>
@@ -96,6 +96,6 @@ configuration file at ``/etc/fah-client/config.xml``.  Here is an example file:
 Note, that the ``config.xml`` configuration file will be overridden if a user
 sets the configuration via the frontend.
 
-In Linux, the ``fah-client`` service can be stop and started using service
+In Linux, the ``fah-client`` service can be stopped and started using service
 control commands.  In Windows, a system tray icon will appear when the client
 is running.  This can be used to stop the client.
