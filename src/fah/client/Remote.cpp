@@ -66,7 +66,7 @@ void Remote::sendViz() {
   }
 
   // Send frames
-  while (vizFrame < frames.size() - 1) {
+  while (vizFrame < frames.size()) {
     SmartPointer<JSON::List> changes = new JSON::List;
     changes->append("viz");
     changes->append(vizUnitID);
