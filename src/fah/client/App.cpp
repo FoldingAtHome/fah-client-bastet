@@ -301,8 +301,8 @@ void App::run() {
 
 
 void App::requestExit() {
-  getUnits().shutdown([this]() {base.loopExit();});
   Application::requestExit();
+  getUnits().shutdown([this]() {base.loopExit();});
 }
 
 

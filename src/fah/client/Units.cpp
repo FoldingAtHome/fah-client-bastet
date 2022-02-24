@@ -142,10 +142,10 @@ void Units::update() {
     return;
   }
 
-  // No further action if paused or idle
+  // No further action if paused. Check later if waiting for idle
   auto &config = app.getConfig();
   if (config.getPaused()) return;
-  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return;
+  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return event->add(5);
 
   // Wait on failures
   auto now = Time::now();
@@ -190,6 +190,12 @@ void Units::update() {
   }
 
   lastWU = Time::now();
+
+  // If we were waiting for idle, trigger just unit updates so they may unpause
+  // Do not use triggerUpdate(), which would cause a loop with this method
+  if (config.getOnIdle())
+    for (unsigned i = 0; i < size(); i++)
+      get(i).cast<Unit>()->triggerNext();
 }
 
 
