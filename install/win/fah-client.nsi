@@ -256,10 +256,12 @@ SectionEnd
 
 ; Functions
 Function .onInit
-  ${IfNot} ${AtLeastWinXP}
-    MessageBox MB_OK "Windows XP or newer required"
+  ${IfNot} ${AtLeastWin7}
+    MessageBox MB_OK "Windows 7 or newer required"
     Quit
   ${EndIf}
+
+  SetShellVarContext all
 FunctionEnd
 
 
@@ -435,6 +437,8 @@ FunctionEnd
 
 
 Function un.onInit
+  SetShellVarContext all
+
   ; Get Data Directory
   ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
     "DataDirectory"
