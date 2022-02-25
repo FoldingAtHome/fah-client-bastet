@@ -37,10 +37,13 @@ namespace FAH {
 
     class OS {
       App &app;
+      bool idle = false;
 
     public:
-      OS(App &app) : app(app) {}
+      OS(App &app);
       virtual ~OS() {}
+
+      static cb::SmartPointer<OS> create(App &app);
 
       App &getApp() {return app;}
 
@@ -57,7 +60,8 @@ namespace FAH {
       bool isIdle() const;
       bool hasFailure() const;
 
-      static cb::SmartPointer<OS> create(App &app);
+    protected:
+      void updateIdle();
     };
   }
 }

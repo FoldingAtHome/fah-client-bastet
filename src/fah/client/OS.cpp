@@ -49,6 +49,11 @@ using namespace cb;
 using namespace std;
 
 
+OS::OS(App &app) : app(app) {
+  app.getEventBase().setTimeout([this] () {updateIdle();}, 0);
+}
+
+
 SmartPointer<OS> OS::create(App &app) {
 #if defined(_WIN32)
   return new WinOSImpl(app);
@@ -86,3 +91,14 @@ void OS::setPaused(bool paused) {
 bool OS::getPaused()  const {return app.getConfig().getPaused();}
 bool OS::isIdle()     const {return app.getUnits().isIdle();}
 bool OS::hasFailure() const {return app.getUnits().hasFailure();}
+
+
+void OS::updateIdle() {
+  app.getEventBase().setTimeout([this] () {updateIdle();}, 2);
+
+  bool idle = isSystemIdle() && app.getConfig().getOnIdle();
+  if (idle == this->idle) return;
+
+  this->idle = idle;
+  app.getUnits().triggerUpdate(true);
+}
