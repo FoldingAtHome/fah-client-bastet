@@ -35,6 +35,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
+#include <cbang/os/PowerManagement.h>
 
 #include <IOKit/IOMessage.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -102,46 +103,6 @@ namespace {
 
 }
 
-#pragma mark c functions
-
-
-static unsigned getIdleSeconds() {
-  // copied from PowerManagement, without throttling
-  unsigned idleSeconds = 0;
-  io_iterator_t iter = 0;
-
-  if (IOServiceGetMatchingServices
-      (kIOMasterPortDefault, IOServiceMatching("IOHIDSystem"), &iter) ==
-      KERN_SUCCESS) {
-    io_registry_entry_t entry = IOIteratorNext(iter);
-
-    if (entry)  {
-      CFMutableDictionaryRef dict = 0;
-      if (IORegistryEntryCreateCFProperties
-          (entry, &dict, kCFAllocatorDefault, 0) == KERN_SUCCESS) {
-        CFNumberRef obj =
-          (CFNumberRef)CFDictionaryGetValue(dict, CFSTR("HIDIdleTime"));
-
-        if (obj) {
-          int64_t nanoseconds = 0;
-          if (CFNumberGetValue(obj, kCFNumberSInt64Type, &nanoseconds))
-            idleSeconds = (unsigned)(nanoseconds / 1000000000);
-        }
-
-        CFRelease(dict);
-      }
-
-      IOObjectRelease(entry);
-    }
-
-    IOObjectRelease(iter);
-  }
-
-  return idleSeconds;
-}
-
-
-#pragma mark class OSXOSImpl
 
 OSXOSImpl *OSXOSImpl::singleton = 0;
 
@@ -281,7 +242,7 @@ void OSXOSImpl::updateSystemIdle() {
     // Go idle on logout after idleOnLoginwindowDelay seconds of no activity.
     // Note: idleSeconds can miss mouse moves, so this might trigger early
     // VNC activity does not affect idleSeconds
-    unsigned idleSeconds = getIdleSeconds();
+    unsigned idleSeconds = PowerManagement::instance().getIdleSeconds();
 
     if (idleSeconds < (unsigned)idleOnLoginwindowDelay)
       delayedUpdateSystemIdle(idleOnLoginwindowDelay - idleSeconds);
