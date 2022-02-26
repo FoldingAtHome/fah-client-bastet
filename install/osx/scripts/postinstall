@@ -20,7 +20,6 @@ launchctl start org.foldingathome.fahclient || true
 # Don't launch GUI if CLI install
 [ "$COMMAND_LINE_INSTALL" == "1" ] && exit 0
 
-# open in user's default web browser
 SUDO=""
 if [ "$SUDO_USER" != "" ]; then
   SUDO="sudo -u $SUDO_USER"
@@ -28,4 +27,13 @@ elif [ "$USER" != "" ]; then
   SUDO="sudo -u $USER"
 fi
 SCRIPTS="$(dirname "$0")"
-"$SCRIPTS"/onquit $SUDO open https://app.foldingathome.org/
+
+# this won't work in onquit
+# the temp pkg with scripts gets deleted when this script exits
+BROWSER=$($SUDO "$SCRIPTS"/defaultbrowser.sh) || BROWSER=""
+# partial url decode, just the %nn
+# https://stackoverflow.com/a/70560850
+: "${BROWSER}"; printf -v BROWSER '%b' "${_//%/\\x}"
+
+export SUDO BROWSER
+"$SCRIPTS"/onquit &

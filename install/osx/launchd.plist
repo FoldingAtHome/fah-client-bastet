@@ -7,7 +7,10 @@
 	<key>GroupName</key>
 	<string>nobody</string>
 	<key>KeepAlive</key>
-	<false/>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
 	<key>Label</key>
 	<string>org.foldingathome.fahclient</string>
 	<key>LaunchEvents</key>
