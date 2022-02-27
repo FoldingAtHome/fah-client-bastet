@@ -2,12 +2,8 @@
 
 # fah-client-bastet onquit
 
-if [ "$1" != "--delayed-action" ]; then
-  "$0" --delayed-action "$@" &
-  exit 0
-fi
-
-shift
+# open frontend page, which won't work in Safari
+# if the user's default browser is Safari, try opening other browsers
 
 # sleep is needed for some reason for OSX 10.8 to wait properly
 # the control and viewer onquit scripts work fine without it
@@ -21,8 +17,22 @@ while $(ps axww|grep -v grep|grep Installer.app >/dev/null 2>&1); do
   if [ $I -ge 60 ]; then break; fi
 done
 
-# give client time to start before web control page is opened
-if [ $I -lt 2 ]; then sleep 2; fi
+# try alleged default and other known compatible browsers; skip Safari
+APPS=("$BROWSER" "Brave Browser" "Google Chrome" "Firefox" "Microsoft Edge")
+BROWSER=""
+for APP in "${APPS[@]}"; do
+  [ -z "$APP" ] && break # there was an error getting default browser
+  [ "$APP" == "Safari" ] && continue
+  $SUDO open -a "${APP}.app" && BROWSER="$APP" && break
+done
 
-# do action
-"$@"
+if [ -z "$BROWSER" ]; then
+  # error or failed to open a browser; open default
+  # page may open behind other windows
+  $SUDO open https://app.foldingathome.org/
+else
+  # most browsers, when launched, will open previous session in front
+  # wait for app to hopfully finish launch before opening page
+  sleep 2
+  $SUDO open -a "${BROWSER}.app" https://app.foldingathome.org/
+fi
