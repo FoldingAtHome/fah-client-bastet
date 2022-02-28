@@ -113,7 +113,6 @@ App::App() :
   options["log-thread-prefix"].setDefault(true);
   options["log-short-level"].setDefault(true);
   options["log-rotate-max"].setDefault(16);
-  options["log-rotate-dir"].setDefault("");
   options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal

@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=fah-client
-ExecStart=/usr/bin/fah-client --log=/var/log/fah-client/log.txt
+ExecStart=/usr/bin/fah-client --log=/var/log/fah-client/log.txt --log-rotate-dir=/var/log/fah-client/
 WorkingDirectory=/var/lib/fah-client
 Restart=always
 StandardOutput=null
