@@ -156,7 +156,7 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return app.getConfig().getPaused() || isIdling() ||
+  return app.getConfig().getPaused() || app.getOS().shouldIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -166,7 +166,7 @@ void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
 
 const char *Unit::getPauseReason() const {
   if (app.getConfig().getPaused()) return "Paused by user";
-  if (isIdling())                  return "Waiting for idle system";
+  if (app.getOS().shouldIdle())    return "Waiting for idle system";
   if (getBoolean("paused", true))  return "Resources not available";
   if (app.shouldQuit())            return "Shutting down";
   if (isWaiting())                 return "Waiting to retry";
@@ -292,11 +292,6 @@ bool Unit::isExpired() const {
 
   default: return getDeadline() < Time::now();
   }
-}
-
-
-bool Unit::isIdling() const {
-  return app.getConfig().getOnIdle() && !app.getOS().isSystemIdle();
 }
 
 

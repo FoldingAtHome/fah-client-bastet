@@ -51,11 +51,11 @@ Units::Units(App &app) :
 }
 
 
-bool Units::isIdle() const {
+bool Units::isActive() const {
   for (unsigned i = 0; i < size(); i++)
-    if (!get(i).cast<Unit>()->isPaused()) return false;
+    if (!get(i).cast<Unit>()->isPaused()) return true;
 
-  return true;
+  return false;
 }
 
 
@@ -143,9 +143,7 @@ void Units::update() {
   }
 
   // No further action if paused or idle
-  auto &config = app.getConfig();
-  if (config.getPaused()) return;
-  if (config.getOnIdle() && !app.getOS().isSystemIdle()) return;
+  if (app.getConfig().getPaused() || app.getOS().shouldIdle()) return;
 
   // Wait on failures
   auto now = Time::now();
@@ -171,8 +169,8 @@ void Units::update() {
             << best.gpus.size());
 
   // Handle finish
-  if (config.getFinish()) {
-    if (best.wus.empty()) config.setPaused(true);
+  if (app.getConfig().getFinish()) {
+    if (best.wus.empty()) app.getConfig().setPaused(true);
     return; // Don't add any new WUs
   }
 

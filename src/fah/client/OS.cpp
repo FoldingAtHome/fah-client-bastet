@@ -89,7 +89,7 @@ void OS::setPaused(bool paused) {
 
 
 bool OS::getPaused()  const {return app.getConfig().getPaused();}
-bool OS::isIdle()     const {return app.getUnits().isIdle();}
+bool OS::isActive()   const {return app.getUnits().isActive();}
 bool OS::hasFailure() const {return app.getUnits().hasFailure();}
 
 

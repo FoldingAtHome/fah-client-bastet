@@ -122,7 +122,6 @@ namespace FAH {
       uint64_t getDeadline() const;
       bool isFinished() const;
       bool isExpired() const;
-      bool isIdling() const;
 
       void triggerNext(double secs = 0);
       void dumpWU();

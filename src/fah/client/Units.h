@@ -58,7 +58,7 @@ namespace FAH {
     public:
       Units(App &app);
 
-      bool isIdle() const;
+      bool isActive() const;
       bool hasFailure() const;
 
       void add(const cb::SmartPointer<Unit> &unit);

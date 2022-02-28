@@ -57,8 +57,9 @@ namespace FAH {
       void setPaused(bool paused);
       bool getPaused() const;
 
-      bool isIdle() const;
+      bool isActive() const;
       bool hasFailure() const;
+      bool shouldIdle() const {return idle;}
 
     protected:
       void updateIdle();
