@@ -96,7 +96,7 @@ bool OS::hasFailure() const {return app.getUnits().hasFailure();}
 void OS::updateIdle() {
   app.getEventBase().setTimeout([this] () {updateIdle();}, 2);
 
-  bool idle = isSystemIdle() && app.getConfig().getOnIdle();
+  bool idle = !isSystemIdle() && app.getConfig().getOnIdle();
   if (idle == this->idle) return;
 
   this->idle = idle;
