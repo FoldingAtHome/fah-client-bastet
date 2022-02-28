@@ -36,6 +36,7 @@
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
 #include <cbang/os/PowerManagement.h>
+#include <cbang/os/MacOSUtilities.h>
 
 #include <IOKit/IOMessage.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -68,20 +69,20 @@ namespace {
 #pragma mark c callbacks
 
   void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
-    LOG_DEBUG(5, "consoleUserCB on thread "  << pthread_self() <<
+    LOG_DEBUG(4, "consoleUserCB on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().consoleUserChanged(s, keys, info);
   }
 
   void displayPowerCB(void *ctx, io_service_t service,
                       natural_t mtype, void *marg) {
-    LOG_DEBUG(5, "displayPowerCB on thread "  << pthread_self() <<
+    LOG_DEBUG(4, "displayPowerCB on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
   }
 
   void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
-    LOG_DEBUG(5, "updateTimerCB on thread "  << pthread_self() <<
+    LOG_DEBUG(4, "updateTimerCB on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().updateTimerFired(timer, info);
   }
@@ -94,7 +95,7 @@ namespace {
   void noteQuitCB(CFNotificationCenterRef center, void *observer,
                   CFNotificationName name, const void *object,
                   CFDictionaryRef info) {
-    LOG_DEBUG(5, "noteQuitCB on thread "  << pthread_self() <<
+    LOG_DEBUG(4, "noteQuitCB on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
     std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
     LOG_INFO(3, "Received notification " << n);
@@ -182,7 +183,7 @@ void OSXOSImpl::addHeartbeatTimerToRunLoop(CFRunLoopRef loop) {
   if (!loop) return;
 
   CFRunLoopTimerRef timer =
-    CFRunLoopTimerCreate(0, 0, 600, 0, 0, heartbeatTimerCB, 0);
+    CFRunLoopTimerCreate(0, 0, 3600, 0, 0, heartbeatTimerCB, 0);
   if (timer) {
     CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
     CFRelease(timer);
@@ -234,22 +235,8 @@ void OSXOSImpl::finishInit() {
 
 
 void OSXOSImpl::updateSystemIdle() {
-  // Once idle on loginwindow, stay idle
-  bool shouldBeIdle = displayPower == kDisplayPowerOff || screensaverIsActive ||
-    screenIsLocked || (systemIsIdle && loginwindowIsActive);
-
-  if (!shouldBeIdle && loginwindowIsActive) {
-    // Go idle on logout after idleOnLoginwindowDelay seconds of no activity.
-    // Note: idleSeconds can miss mouse moves, so this might trigger early
-    // VNC activity does not affect idleSeconds
-    unsigned idleSeconds = PowerManagement::instance().getIdleSeconds();
-
-    if (idleSeconds < (unsigned)idleOnLoginwindowDelay)
-      delayedUpdateSystemIdle(idleOnLoginwindowDelay - idleSeconds);
-    else shouldBeIdle = true;
-  }
-
-  systemIsIdle = shouldBeIdle;
+  systemIsIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
+    screensaverIsActive || screenIsLocked;
 }
 
 
@@ -274,8 +261,8 @@ void OSXOSImpl::delayedUpdateSystemIdle(int delay) {
       LOG_ERROR("Unable to create update timer");
       currentDelay = 0;
 
-      // Create failed. Do immediate update if we won't infinite loop
-      if (!loginwindowIsActive) updateSystemIdle();
+      // Create failed. Do immediate update
+      updateSystemIdle();
       return;
     }
 
@@ -446,6 +433,8 @@ void OSXOSImpl::consoleUserChanged(SCDynamicStoreRef store,
   if (consoleUser) CFRelease(consoleUser);
   consoleUser = SCDynamicStoreCopyConsoleUser(consoleUserDS, 0, 0);
 
+  LOG_DEBUG(4, __FUNCTION__ << "() " << MacOSUtilities::toString(consoleUser));
+
   bool wasActive = loginwindowIsActive;
   loginwindowIsActive = !consoleUser || !CFStringGetLength(consoleUser) ||
     CFEqual(consoleUser, CFSTR("loginwindow"));
@@ -453,7 +442,7 @@ void OSXOSImpl::consoleUserChanged(SCDynamicStoreRef store,
   bool changed = wasActive != loginwindowIsActive;
 
   if (changed || !store) {
-    if (loginwindowIsActive) delayedUpdateSystemIdle();
+    if (loginwindowIsActive) delayedUpdateSystemIdle(idleOnLoginwindowDelay);
     else updateSystemIdle(); // no delay when switching away from loginwindow
   }
 }
