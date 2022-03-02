@@ -151,7 +151,9 @@ void GPUResources::detect() {
   }
 
   // Match with detected devices
+#ifndef __APPLE__
   match<CUDALibrary>(*this, "cuda");
+#endif
   match<OpenCLLibrary>(*this, "opencl");
 
   LOG_INFO(3, "gpus = " << *this);
