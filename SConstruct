@@ -89,6 +89,49 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     if 'SIGNTOOL' in os.environ: env['SIGNTOOL'] = os.environ['SIGNTOOL']
 
+    distpkg_target = None
+    distpkg_components = []
+    if env['PLATFORM'] == 'darwin':
+        # Specify components for the osx distribution pkg
+        client_home = '.'
+        client_root = client_home + '/build/pkg/root'
+        pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
+                 ['install/osx/fahclient.url',
+                  'Applications/Folding@home/fahclient.url', 0o644],
+                 ['install/osx/launchd.plist', 'Library/LaunchDaemons/' +
+                  'org.foldingathome.fahclient.plist', 0o644]]
+        distpkg_components = [
+            {
+                # name is component pkg file name and name shown in installer
+                'name'        : 'FAHClient',
+                'pkg_id'      : 'org.foldingathome.fahclient.pkg',
+                'description' : short_description,
+                # abs path or relative to PWD
+                # client repo directory
+                'home'        : client_home,
+                # relative to home
+                'pkg_scripts' : 'install/osx/scripts',
+                # abs path or relative to PWD
+                # default build/pkg/root, as per cbang config pkg module
+                'root'        : client_root,
+                # relative to root
+                'sign_tools'  : ['usr/local/bin/fah-client'],
+                'must_close_apps': [
+                    'org.foldingathome.fahviewer',
+                    'org.foldingathome.fahcontrol',
+                    'edu.stanford.folding.fahviewer',
+                    'edu.stanford.folding.fahcontrol',
+                    ],
+                'pkg_files'   : pkg_files,
+            },
+        ]
+
+        # min pkg target macos 10.13
+        distpkg_target = env.get('osx_min_ver', '10.13')
+        ver = tuple([int(x) for x in distpkg_target.split('.')])
+        if ver < (10,13):
+            distpkg_target = '10.13'
+
     # Package
     pkg = env.Packager(
         package_info.get('name', 'fah-client'),
@@ -132,20 +175,21 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_post           = 'install/rpm/post',
         rpm_preun          = 'install/rpm/preun',
 
-        pkg_id             = 'org.foldingathome.fahclient.pkg',
-        pkg_scripts        = 'install/osx/scripts',
-        pkg_resources      = 'install/osx/Resources',
-        pkg_distribution   = 'install/osx/distribution.xml',
-        pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
-                     ['install/osx/fahclient.url',
-                      'Applications/Folding@home/fahclient.url', 0o644],
-                     ['install/osx/launchd.plist', 'Library/LaunchDaemons/' +
-                      'org.foldingathome.fahclient.plist', 0o644]],
+        pkg_type           = 'dist',
+        distpkg_resources  = [['install/osx/Resources', '.']],
+        distpkg_welcome    = 'Welcome.rtf',
+        distpkg_license    = 'License.rtf',
+        distpkg_background = 'fah-opacity-50.png',
+        distpkg_customize  = 'always',
+        distpkg_target     = distpkg_target,
+        distpkg_arch       = env.get('package_arch', 'x86_64'),
+        distpkg_components = distpkg_components,
     )
 
     AlwaysBuild(pkg)
     env.Alias('package', pkg)
-    Clean(pkg, ['build/pkg', 'package.txt', 'package-description.txt'])
+    Clean(pkg, ['build/pkg', 'build/flatdistpkg', 'package-description.txt'])
+    NoClean(pkg, [Glob('*.zip'), 'package.txt'])
 
     with open('package-description.txt', 'w') as f:
         f.write(short_description.strip())
