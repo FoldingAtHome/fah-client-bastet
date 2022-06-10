@@ -98,6 +98,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
                  ['install/osx/fahclient.url',
                   'Applications/Folding@home/fahclient.url', 0o644],
+                 ['install/osx/uninstall.url',
+                  'Applications/Folding@home/uninstall.url', 0o644],
                  ['install/osx/launchd.plist', 'Library/LaunchDaemons/' +
                   'org.foldingathome.fahclient.plist', 0o644]]
         distpkg_components = [
