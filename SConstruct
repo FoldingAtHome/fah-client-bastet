@@ -157,7 +157,6 @@ if 'package' in COMMAND_LINE_TARGETS:
         platform_independent = ['install/lin/fah-client.service'],
 
         nsi                = 'install/win/fah-client.nsi',
-        nsi_dll_deps       = [str(client[0])],
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
         code_sign_key      = os.environ.get('CODE_SIGN_KEY', None),
         code_sign_key_pass = code_sign_key_pass,
