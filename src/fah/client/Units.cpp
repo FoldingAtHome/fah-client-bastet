@@ -224,16 +224,7 @@ void Units::load() {
 }
 
 
-uint64_t Units::getProjectKey() const {
-  uint64_t key = app.getConfig().getProjectKey();
-
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = *get(i).cast<Unit>();
-    if (key == unit.getProjectKey()) return 0;
-  }
-
-  return key;
-}
+uint64_t Units::getProjectKey() const {return app.getConfig().getProjectKey();}
 
 
 bool Units::isBetter(const state_t &a, const state_t &b) {

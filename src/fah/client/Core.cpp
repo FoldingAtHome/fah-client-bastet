@@ -157,7 +157,7 @@ void Core::downloadResponse(const string &pkg) {
       if (tar.isEOF()) break;
 
       switch (tar.getType()) {
-      case Tar::NORMAL_FILE: break;
+      case Tar::NORMAL_FILE: case Tar::CONTIGUOUS_FILE: break;
       case Tar::DIRECTORY: continue;
       default: THROW("Unexpected file type in core package: " << tar.getType());
       }
