@@ -305,7 +305,6 @@ bool Unit::isExpired() const {
 
 void Unit::triggerNext(double secs) {
   if (event->isPending()) return;
-  LOG_DEBUG(3, __func__ << "(" << secs << ")");
   event->add(secs);
 }
 
