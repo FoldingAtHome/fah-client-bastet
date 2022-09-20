@@ -86,7 +86,7 @@ namespace FAH {
 
     public:
       Unit(App &app, uint64_t wu, uint32_t cpus,
-           const std::set<std::string> &gpus, uint64_t projectKey);
+           const std::set<std::string> &gpus);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
@@ -117,7 +117,7 @@ namespace FAH {
       uint64_t getPPD() const;
 
       std::string getLogPrefix() const;
-      std::string getDirectory() const {return "work/" + id;}
+      std::string getDirectory() const;
       std::string getWSBaseURL() const;
       uint64_t getDeadline() const;
       bool isFinished() const;
@@ -140,13 +140,15 @@ namespace FAH {
       void getCore();
       void run();
       void readInfo();
+      void readViewerData();
       void readViewerTop();
-      void readViewerFrame();
+      bool readViewerFrame();
       void setResults(const std::string &status, const std::string &dataHash);
       void finalizeRun();
       void stopRun();
       void monitorRun();
       void clean();
+      void setWait(double delay);
       void retry();
 
       void assignResponse(const cb::JSON::ValuePtr &data);

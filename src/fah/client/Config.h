@@ -43,6 +43,7 @@ namespace FAH {
       Config(App &app);
 
       void init();
+      void update(const cb::JSON::Value &config);
 
       bool getOnIdle() const;
       void setOnIdle(bool onIdle);
@@ -61,6 +62,10 @@ namespace FAH {
       uint32_t getCPUs() const;
       cb::ProcessPriority getCorePriority() const;
       cb::JSON::ValuePtr getGPU(const std::string &id);
+
+      // From ObservableDict
+      unsigned insert(const std::string &key, const cb::JSON::ValuePtr &value);
+      using cb::JSON::ObservableDict::insert;
     };
   }
 }

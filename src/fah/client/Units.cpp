@@ -89,6 +89,9 @@ Unit &Units::getUnit(unsigned index) const {
 }
 
 
+Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
+
+
 void Units::dump(const string &unitID) {
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = get(i)->cast<Unit>();
@@ -146,6 +149,7 @@ void Units::update() {
   if (app.getConfig().getPaused() || app.getOS().shouldIdle()) return;
 
   // Wait on failures
+  // TODO report wait time to remote clients
   auto now = Time::now();
   if (now < waitUntil) return event->add(waitUntil - now);
 
@@ -166,7 +170,7 @@ void Units::update() {
     get(i).cast<Unit>()->setPause(!best.wus.count(i));
 
   LOG_DEBUG(1, "Remaining CPUs: " << best.cpus << ", Remaining GPUs: "
-            << best.gpus.size());
+            << best.gpus.size() << ", Active WUs: " << best.wus.size());
 
   // Handle finish
   if (app.getConfig().getFinish()) {
@@ -183,7 +187,7 @@ void Units::update() {
   const unsigned maxWUs = allGPUs.size() + 6;
   if (size() < maxWUs && best.cpus) {
     app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, best.cpus, best.gpus, getProjectKey()));
+    add(new Unit(app, wus, best.cpus, best.gpus));
     LOG_INFO(1, "Added new work unit");
   }
 
@@ -224,13 +228,10 @@ void Units::load() {
 }
 
 
-uint64_t Units::getProjectKey() const {return app.getConfig().getProjectKey();}
-
-
 bool Units::isBetter(const state_t &a, const state_t &b) {
   if (a.gpus.size() < b.gpus.size()) return true;
   if (a.gpus.size() == b.gpus.size() && a.cpus < b.cpus) return true;
-  else if (a.cpus == b.cpus && a.wus.size() < b.wus.size()) return true;
+  if (a.cpus == b.cpus && a.wus.size() < b.wus.size()) return true;
 
   // TODO some GPUs are better, we could look at GPU type & species
   // TODO running WUs are preferable to non-running WUs
@@ -248,7 +249,7 @@ Units::state_t Units::findBestFit(const state_t &current, unsigned i) const {
     state_t next = current;
 
     // Check and remove CPUs
-    if (current.cpus < unit.getCPUs()) continue;
+    if (next.cpus < unit.getCPUs()) continue;
     next.cpus -= unit.getCPUs();
 
     // Check and remove GPUs

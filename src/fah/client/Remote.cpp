@@ -33,7 +33,9 @@
 #include "Units.h"
 #include "Config.h"
 
+#include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
+#include <cbang/os/SystemUtilities.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -45,11 +47,13 @@ Remote::Remote(App &app, Event::RequestMethod method, const URI &uri,
   Event::JSONWebsocket(method, uri, version), app(app) {}
 
 
+Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
+
+
 void Remote::sendViz() {
   if (vizUnitID.empty()) return;
 
-  auto unitIndex = app.getUnits().getUnitIndex(vizUnitID);
-  auto &unit = app.getUnits().getUnit(unitIndex);
+  auto &unit = app.getUnits().getUnit(vizUnitID);
   auto topology = unit.getTopology();
   auto frames = unit.getFrames();
 
@@ -79,6 +83,70 @@ void Remote::sendViz() {
 }
 
 
+void Remote::sendLog() {
+  if (!followLog) return;
+
+  if (logEvent.isNull())
+    logEvent = app.getEventBase().newEvent(this, &Remote::sendLog, 0);
+
+  if (log.isNull()) {
+    try {
+      string filename = app.getOptions()["log"];
+      log = SystemUtilities::open(filename, ios::in);
+
+      // Check offset bounds
+      streamsize len = SystemUtilities::getFileSize(filename);
+      if (len < logOffset) logOffset = len;
+      if (logOffset < -len) logOffset = -len;
+
+      log->seekg(logOffset, logOffset < 0 ? ios::end : ios::beg);
+      sendLog();
+    } CATCH_ERROR;
+
+    return;
+  }
+
+  try {
+    for (int i = 0; i < 64; i++) {
+      const unsigned size = 4096;
+      char buffer[size];
+
+      log->getline(buffer, size);
+      streamsize count = log->gcount();
+
+      bool done = false;
+      if (log->eof() && !log->bad()) {
+        log->clear();
+        done = true;
+      }
+
+      if (count) {
+        if (buffer[count - 1] == '\r') buffer[count - 1] = 0;
+
+        SmartPointer<JSON::List> changes = new JSON::List;
+        changes->append("log");
+        changes->append(-1);
+        changes->append(buffer);
+        sendChanges(changes);
+      }
+
+      logOffset = log->tellg();
+
+      if (done) {
+        logEvent->add(1);
+        return;
+      }
+    }
+
+    logEvent->activate();
+    return;
+  } CATCH_ERROR;
+
+  log.release();
+  logEvent->add(5);
+}
+
+
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
   send(*changes);
 
@@ -105,11 +173,17 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     sendViz();
   }
 
+  if (cmd == "log") {
+    followLog = msg->getBoolean("enable", false);
+    logOffset = msg->getS64("offset", -(1 << 17));
+    sendLog();
+  }
+
   if (cmd == "dump")    app.getUnits().dump(unit);
   if (cmd == "finish")  app.getConfig().setFinish(true);
   if (cmd == "pause")   app.getConfig().setPaused(true);
   if (cmd == "unpause") app.getConfig().setPaused(false);
-  if (cmd == "config")  app.getConfig().merge(*msg->get("config"));
+  if (cmd == "config")  app.getConfig().update(*msg->get("config"));
 
   app.getUnits().triggerUpdate(true);
 }

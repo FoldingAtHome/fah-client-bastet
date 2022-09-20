@@ -64,6 +64,7 @@ namespace FAH {
       void add(const cb::SmartPointer<Unit> &unit);
       unsigned getUnitIndex(const std::string &id) const;
       Unit &getUnit(unsigned index) const;
+      Unit &getUnit(const std::string &id) const;
       void dump(const std::string &unitID);
       void unitComplete(bool success);
       void update();
@@ -72,7 +73,6 @@ namespace FAH {
       void load();
 
     private:
-      uint64_t getProjectKey() const;
       static bool isBetter(const state_t &a, const state_t &b);
       state_t findBestFit(const state_t &current, unsigned i) const;
     };

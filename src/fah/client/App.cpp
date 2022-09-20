@@ -70,8 +70,8 @@ namespace FAH {
 
 
 App::App() :
-  Application("Folding@home Client", App::_hasFeature), base(true), dns(base),
-  client(base, dns, new SSLContext), server(new Server(*this)),
+  Application("Folding@home Client", App::_hasFeature), base(true, 10),
+  dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
   gpus(new GPUResources(*this)), units(new Units(*this)),
   cores(new Cores(*this)), config(new Config(*this)), os(OS::create(*this)),
   info(new JSON::Dict) {

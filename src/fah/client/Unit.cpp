@@ -65,11 +65,13 @@ using namespace std;
 
 namespace {
   string idFromSig(const string &sig) {
+    if (sig.empty()) return "";
     return Digest::urlBase64(sig, "sha256");
   }
 
 
   string idFromSig64(const string &sig64) {
+    if (sig64.empty()) return "";
     return idFromSig(Base64().decode(sig64));
   }
 
@@ -100,12 +102,11 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus,
-           uint64_t projectKey) : Unit(app) {
+Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
+           const std::set<string> &gpus) : Unit(app) {
   this->wu = wu;
-  insert("wu", wu);
+  insert("number", wu);
   insert("cpus", cpus);
-  if (projectKey) insert("key", projectKey);
 
   auto l = createList();
   for (auto it = gpus.begin(); it != gpus.end(); it++) l->append(*it);
@@ -119,9 +120,9 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   this->data = data->get("data");
   merge(*data->get("state"));
 
-  wu = getU64("wu", -1);
-  id = idFromSig64(this->data->selectString("request.signature"));
-  insert("id", id);
+  wu = getU64("number", -1);
+  id = getString("id", "");
+  if (id.empty()) setState(UNIT_DONE); // Invalid WU
 
   // Check that we still have the required core
   if (getState() == UNIT_RUN) setState(UNIT_CORE);
@@ -151,7 +152,7 @@ void Unit::setState(UnitState state) {
 
 
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
-uint64_t Unit::getProjectKey() const {return getU64("key", 0);}
+uint64_t Unit::getProjectKey() const {return app.getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
@@ -161,7 +162,10 @@ bool Unit::isPaused() const {
 }
 
 
-void Unit::setPause(bool pause) {insertBoolean("paused", pause);}
+void Unit::setPause(bool pause) {
+  insertBoolean("paused", pause);
+  if (!pause) triggerNext();
+}
 
 
 const char *Unit::getPauseReason() const {
@@ -252,6 +256,10 @@ uint64_t Unit::getPPD() const {
 
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
+string Unit::getDirectory() const {
+  if (id.empty()) THROW("WU does not have an ID");
+  return "work/" + id;
+}
 
 string Unit::getWSBaseURL() const {
   string addr    = data->selectString("assignment.data.ws");
@@ -295,7 +303,11 @@ bool Unit::isExpired() const {
 }
 
 
-void Unit::triggerNext(double secs) {if (!event->isPending()) event->add(secs);}
+void Unit::triggerNext(double secs) {
+  if (event->isPending()) return;
+  LOG_DEBUG(3, __func__ << "(" << secs << ")");
+  event->add(secs);
+}
 
 
 void Unit::dumpWU() {
@@ -304,6 +316,11 @@ void Unit::dumpWU() {
   case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP);  break;
   case UNIT_DUMP: case UNIT_CLEAN: case UNIT_DONE: return; // Do nothing
   }
+
+  // Stop waiting
+  setWait(0);
+  retries = 0;
+  event->del();
 
   pr.release(); // Terminate any active connections
   triggerNext();
@@ -347,7 +364,8 @@ void Unit::next() {
   }
 
   // Handle pause
-  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP) return;
+  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP)
+    return readViewerData();
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting()) {
@@ -562,6 +580,12 @@ void Unit::readInfo() {
 }
 
 
+void Unit::readViewerData() {
+  if (topology.isNull()) readViewerTop();
+  if (readViewerFrame()) triggerNext();
+}
+
+
 void Unit::readViewerTop() {
   string filename = getDirectory() + "/viewerTop.json";
 
@@ -572,15 +596,27 @@ void Unit::readViewerTop() {
 }
 
 
-void Unit::readViewerFrame() {
+bool Unit::readViewerFrame() {
   string filename =
     getDirectory() + String::printf("/viewerFrame%d.json", viewerFrame);
 
   if (existsAndOlderThan(filename, 10)) {
-    frames.push_back(JSON::Reader(filename).parse());
-    insert("frames", (uint32_t)frames.size());
+    auto frame = JSON::Reader(filename).parse();
+
+    if (!frames.empty() && *frames.back() == *frame)
+      LOG_WARNING("Visualization frame " << viewerFrame
+                  << " unchanged, skipping");
+
+    else {
+      frames.push_back(frame);
+      insert("frames", (uint32_t)frames.size());
+    }
+
     viewerFrame++;
+    return true;
   }
+
+  return false;
 }
 
 
@@ -677,8 +713,7 @@ void Unit::monitorRun() {
     readInfo();
 
     // Read visualization data
-    if (topology.isNull()) readViewerTop();
-    readViewerFrame();
+    readViewerData();
 
     // Update ETA, PPD and progress
     string eta = TimeInterval(getETA()).toString();
@@ -706,16 +741,23 @@ void Unit::clean() {
 }
 
 
+void Unit::setWait(double delay) {
+  wait = Time::now() + delay;
+  insert("delay", delay);
+  insert("wait", Time(wait).toString());
+}
+
+
 void Unit::retry() {
   if (++retries < 10) {
     double delay = pow(2, retries);
-    wait = Time::now() + delay;
+    setWait(delay);
     LOG_INFO(1, "Retrying in " << TimeInterval(delay));
 
   } else {
     LOG_INFO(1, "Too many retries, failing WU");
+    setWait(0);
     retries = 0;
-    wait = 0;
     setState(UNIT_CLEAN);
   }
 
@@ -768,7 +810,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
   // Protect against replay
   sink.insert("time",           Time().toString());
-  sink.insert("wu",             getU64("wu"));
+  sink.insert("wu",             getU64("number"));
 
   // Client
   sink.insert("version",        app.getVersion().toString());
@@ -786,6 +828,16 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("memory",         info.getFreeMemory());
   sink.endDict();
 
+  // Project
+  auto &config = app.getConfig();
+  sink.insertDict("project");
+  if (config.hasString("release"))
+    sink.insert("release", config.getString("release"));
+  if (config.hasString("cause"))
+    sink.insert("cause", config.getString("cause"));
+  if (getProjectKey()) sink.insert("key", getProjectKey());
+  sink.endDict(); // project
+
   // Compute resources
   sink.insertDict("resources");
 
@@ -798,18 +850,6 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("features",       cpuRegsX86.getCPUFeatures());
   sink.insert("extended",       cpuRegsX86.getCPUExtendedFeatures());
   sink.insert("80000001",       cpuRegsX86.getCPUFeatures80000001());
-
-  // Project
-  sink.insertDict("project");
-
-  auto &config = app.getConfig();
-  if (config.hasString("release"))
-    sink.insert("release", config.getString("release"));
-  if (config.hasString("cause"))
-    sink.insert("cause", config.getString("cause"));
-  if (getProjectKey()) sink.insert("key", getProjectKey());
-
-  sink.endDict(); // project
   sink.endDict(); // cpu
 
   // GPU
@@ -997,7 +1037,11 @@ void Unit::response(Event::Request &req) {
 
       try {
         auto msg = req.getJSONMessage();
-        insert("error", msg->selectString("error.message"));
+
+        if (msg->hasDict("error"))
+          insert("error", msg->selectString("error.message"));
+        else if (msg->hasString("error"))
+          insert("error", msg->getString("error"));
       } CATCH_ERROR;
 
       // Handle HTTP reponse codes

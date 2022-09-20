@@ -60,6 +60,7 @@ Config::Config(App &app) : app(app) {
   insert("cause", "any");
   insert("cpus", cpus);
   insertDict("gpus");
+  insertList("peers");
 
   SmartPointer<Option> opt;
   auto &options = app.getOptions();
@@ -103,6 +104,12 @@ void Config::init() {
     if (db.has("config"))
       merge(*JSON::Reader::parseString(db.getString("config")));
   } CATCH_ERROR;
+}
+
+
+void Config::update(const JSON::Value &config) {
+  for (unsigned i = 0; i < config.size(); i++)
+    insert(config.keyAt(i), config.get(i));
 }
 
 
@@ -153,4 +160,18 @@ JSON::ValuePtr Config::getGPU(const string &id) {
   }
 
   return gpus.get(id);
+}
+
+
+unsigned Config::insert(const string &key, const JSON::ValuePtr &value) {
+  if (key == "user" && (!value->isString() || value->getString().empty()))
+    return JSON::ObservableDict::insert(key, "Anonymous");
+
+  if (key == "team" && !value->isU32())
+    return JSON::ObservableDict::insert(key, 0);
+
+  if (key == "key" && !value->isU64())
+    return JSON::ObservableDict::insert(key, 0);
+
+  return JSON::ObservableDict::insert(key, value);
 }

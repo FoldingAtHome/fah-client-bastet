@@ -43,6 +43,8 @@ Server::Server(App &app) :
   Event::WebServer(app.getOptions(), app.getEventBase()), app(app) {
   app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
 
+  setEventPriority(3);
+
   addMember(this, &Server::corsCB);
 }
 

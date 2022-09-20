@@ -39,14 +39,22 @@ namespace FAH {
 
     class Remote : public cb::Event::JSONWebsocket {
       App &app;
+
       std::string vizUnitID;
       unsigned vizFrame = 0;
+
+      bool followLog = false;
+      std::streamoff logOffset = 0;
+      cb::SmartPointer<std::iostream> log;
+      cb::SmartPointer<cb::Event::Event> logEvent;
 
     public:
       Remote(App &app, cb::Event::RequestMethod method, const cb::URI &uri,
              const cb::Version &version);
+      ~Remote();
 
       void sendViz();
+      void sendLog();
       void sendChanges(const cb::JSON::ValuePtr &changes);
 
       // From cb::Event::JSONWebsocket
