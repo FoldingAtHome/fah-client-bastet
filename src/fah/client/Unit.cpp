@@ -441,6 +441,8 @@ void Unit::setProgress(double done, double total) {
   double progress = done / total;
   double oldValue = getNumber("progress", 0);
 
+  progress = round(progress * 1000) / 1000;
+
   if (oldValue != progress) {
     insert("progress", progress);
 

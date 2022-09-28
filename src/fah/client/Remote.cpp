@@ -190,4 +190,9 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
 
 void Remote::onOpen() {send(app.getServer());}
-void Remote::onComplete() {app.getServer().remove(*this);}
+
+
+void Remote::onComplete() {
+  if (logEvent.isSet()) logEvent->del();
+  app.getServer().remove(*this);
+}
