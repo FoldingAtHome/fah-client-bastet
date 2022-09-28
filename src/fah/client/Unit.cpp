@@ -848,6 +848,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("cpus",           getU32("cpus"));
   sink.insert("vendor",         cpuInfo->getVendor());
   sink.insert("signature",      cpuInfo->getSignature());
+  sink.insert("family",         cpuInfo->getFamily());
+  sink.insert("model",          cpuInfo->getModel());
+  sink.insert("stepping",       cpuInfo->getStepping());
   sink.insert("features",       cpuRegsX86.getCPUFeatures());
   sink.insert("extended",       cpuRegsX86.getCPUExtendedFeatures());
   sink.insert("80000001",       cpuRegsX86.getCPUFeatures80000001());
