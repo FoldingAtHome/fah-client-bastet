@@ -68,7 +68,7 @@ Config::Config(App &app) : app(app) {
   options.pushCategory("User Information");
   options.add("user", "Your user name.")->setDefault("Anonymous");
   options.add("team", "Your team number.",
-              new MinMaxConstraint<int64_t>(0, 2147483647))->setDefault(0);
+              new MinMaxConstraint<int32_t>(0, 2147483647))->setDefault(0);
   opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
   opt->setDefault("");
   opt->setObscured();
@@ -84,7 +84,7 @@ Config::Config(App &app) : app(app) {
 
   options.pushCategory("Resource Settings");
   options.add("cpus", "Number of cpus FAH client will use.",
-              new MaxConstraint<int64_t>(cpus))->setDefault(cpus);
+              new MaxConstraint<int32_t>(cpus))->setDefault(cpus);
   options.popCategory();
 }
 
@@ -95,7 +95,11 @@ void Config::init() {
   std::set<string> keys = {"user", "passkey", "team", "key", "cause", "cpus"};
   for (auto key : keys)
     if (options.has(key) && !options[key].isDefault())
-      insert(key, options[key]);
+      switch (options[key].getType()) {
+      case Option::INTEGER_TYPE: insert(key, options[key].toInteger()); break;
+      case Option::DOUBLE_TYPE:  insert(key, options[key].toDouble());  break;
+      default:                   insert(key, options[key]);             break;
+      }
 
   // Load saved data
   auto &db = app.getDB("config");
