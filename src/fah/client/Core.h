@@ -68,7 +68,7 @@ namespace FAH {
       bool isInvalid() const {return state == CORE_INVALID;}
 
       std::string getURL() const;
-      uint8_t getType() const;
+      uint32_t getType() const;
       std::string getPath() const;
       std::string getFilename() const;
 

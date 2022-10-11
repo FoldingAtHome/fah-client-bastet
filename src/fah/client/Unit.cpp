@@ -148,6 +148,7 @@ void Unit::setState(UnitState state) {
   if (hasString("state") && state == getState()) return;
   app.getUnits().triggerUpdate();
   insert("state", state.toString());
+  setProgress(0, 0);
 }
 
 
@@ -787,12 +788,14 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
   // Update CPUs
   unsigned cpus = assign->getU32("cpus");
-  LOG_DEBUG(3, "Assignment for " << cpus << " cpus");
   insert("cpus", cpus);
 
   // Update GPUs
   if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
   else get("gpus")->clear();
+
+  LOG_DEBUG(3, "Received assignment for " << cpus << " cpus and "
+            << getList("gpus").size() << " gpus");
 
   // Try to allocate more units now that our resources have been updated
   app.getUnits().triggerUpdate();

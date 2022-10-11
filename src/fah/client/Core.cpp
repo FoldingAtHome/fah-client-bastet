@@ -56,7 +56,7 @@ Core::Core(App &app, const JSON::ValuePtr &data) :
 
 
 string Core::getURL() const {return data->getString("url");}
-uint8_t Core::getType() const {return data->getU8("type");}
+uint32_t Core::getType() const {return data->getU32("type");}
 string Core::getPath() const {return data->getString("path");}
 
 
