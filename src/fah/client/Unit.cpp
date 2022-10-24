@@ -257,10 +257,12 @@ uint64_t Unit::getPPD() const {
 
 string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
 
+
 string Unit::getDirectory() const {
   if (id.empty()) THROW("WU does not have an ID");
   return "work/" + id;
 }
+
 
 string Unit::getWSBaseURL() const {
   string addr    = data->selectString("assignment.data.ws");
@@ -555,7 +557,7 @@ void Unit::run() {
   triggerNext();
 
   insert("assignment", data->select("assignment.data"));
-  insert("wu", data->select("wu.data"));
+  insert("wu",         data->select("wu.data"));
 }
 
 
@@ -624,8 +626,8 @@ bool Unit::readViewerFrame() {
 
 void Unit::setResults(const string &status, const string &dataHash) {
   auto request = data->get("request");
-  auto assign = data->get("assignment");
-  auto wu = data->get("wu");
+  auto assign  = data->get("assignment");
+  auto wu      = data->get("wu");
   string sigData =
     request->toString() + assign->toString() + wu->toString() + status +
     dataHash;
@@ -633,8 +635,8 @@ void Unit::setResults(const string &status, const string &dataHash) {
 
   JSON::Builder builder;
   builder.beginDict();
-  if (!status.empty()) builder.insert("status", status);
-  builder.insert("sha256", dataHash);
+  if (!status.empty())   builder.insert("status", status);
+  if (!dataHash.empty()) builder.insert("sha256", dataHash);
   builder.insert("signature", sig64);
   builder.endDict();
 
@@ -751,6 +753,8 @@ void Unit::setWait(double delay) {
 
 
 void Unit::retry() {
+  // TODO retry results with CS
+
   if (++retries < 10) {
     double delay = pow(2, retries);
     setWait(delay);
@@ -775,8 +779,8 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
   // Check certificate, key usage and signature
   auto request = data->get("request");
-  auto assign = data->get("assignment");
-  string cert = assign->getString("certificate");
+  auto assign  = data->get("assignment");
+  string cert  = assign->getString("certificate");
   string sig64 = assign->getString("signature");
   assign = assign->get("data");
   app.checkBase64SHA256(cert, "", sig64,
@@ -908,9 +912,9 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
 
   // Check certificate, F@H usage & signature
   auto request = data->get("request");
-  auto assign = data->get("assignment");
-  auto wu = data->get("wu");
-  string cert = wu->getString("certificate");
+  auto assign  = data->get("assignment");
+  auto wu      = data->get("wu");
+  string cert  = wu->getString("certificate");
   string inter = wu->getString("intermediate");
   string sig64 = wu->getString("signature");
   wu = wu->get("data");
@@ -984,6 +988,7 @@ void Unit::upload() {
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
+  // TODO try CS if WS fails
   URI uri = getWSBaseURL() + "/results";
   pr = app.getClient()
     .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
@@ -1015,6 +1020,7 @@ void Unit::dump() {
   if (pr.isSet()) return; // Already dumping
 
   LOG_INFO(1, "Sending dump report");
+  LOG_DEBUG(3, *data);
 
   setResults("dumped", "");
 
