@@ -143,7 +143,6 @@ Section -Install
         IDRETRY install_files IDCANCEL abort
 
   ; Add to PATH
-  SetShellVarContext current
   ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
 
   ; Data directory
