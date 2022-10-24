@@ -505,7 +505,6 @@ bool OSXOSImpl::registerForDarwinNotifications() {
       nc, (void *)this, &noteQuitCB, name, 0,
       CFNotificationSuspensionBehaviorCoalesce);
     CFRelease(name);
-    LOG_DEBUG(1, "listening for notification " << key);
 
     return true;
   }

@@ -37,8 +37,7 @@ if not env.GetOption('clean'):
 
     # OSX
     if env['PLATFORM'] == 'darwin':
-        if not conf.CheckOSXFramework('SystemConfiguration'):
-            raise Exception('Need SystemConfiguration framework')
+        conf.RequireOSXFramework('SystemConfiguration')
 
     # Windows Systray
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
@@ -142,7 +141,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         maintainer         = env['PACKAGE_AUTHOR'],
         vendor             = env['PACKAGE_ORG'],
         url                = env['PACKAGE_HOMEPAGE'],
-        license            = 'copyright',
+        license            = 'LICENSE',
         bug_url            = 'https://github.com/FoldingAtHome/fah-client',
         summary            = 'Folding@home Client ' + version,
         description        = description,
@@ -177,9 +176,10 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_preun          = 'install/rpm/preun',
 
         pkg_type           = 'dist',
-        distpkg_resources  = [['install/osx/Resources', '.']],
+        distpkg_resources  = [['install/osx/Resources', '.'],
+                              ['LICENSE', 'en.lproj/LICENSE.txt']],
         distpkg_welcome    = 'Welcome.rtf',
-        distpkg_license    = 'License.rtf',
+        distpkg_license    = 'LICENSE.txt',
         distpkg_background = 'fah-opacity-50.png',
         distpkg_customize  = 'always',
         distpkg_target     = distpkg_target,
