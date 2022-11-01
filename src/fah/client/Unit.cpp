@@ -264,12 +264,13 @@ string Unit::getDirectory() const {
 }
 
 
-string Unit::getWSBaseURL() const {
-  string addr    = data->selectString("assignment.data.ws");
+URI Unit::getWSURL(const string &path) const {
+  string host    = data->selectString("assignment.data.ws");
   uint32_t port  = data->selectU32("assignment.data.port", 443);
-  string portStr = port == 443 ? "" : (":" + String(port));
   string scheme  = (port == 443 || port == 8084) ? "https" : "http";
-  return scheme + "://" + addr + portStr + "/api";
+  IPAddress addr(host, port);
+
+  return URI(scheme, addr, "/api" + path);
 }
 
 
@@ -306,10 +307,7 @@ bool Unit::isExpired() const {
 }
 
 
-void Unit::triggerNext(double secs) {
-  if (event->isPending()) return;
-  event->add(secs);
-}
+void Unit::triggerNext(double secs) {event->add(secs);}
 
 
 void Unit::dumpWU() {
@@ -370,10 +368,8 @@ void Unit::next() {
     return readViewerData();
 
   // Handle event backoff
-  if (getState() != UNIT_DONE && isWaiting()) {
-    uint64_t now = Time::now();
-    return triggerNext(now < wait ? wait - now : 0);
-  }
+  if (getState() != UNIT_DONE && isWaiting())
+    return triggerNext(wait - Time::now());
 
   try {
     switch (getState()) {
@@ -753,7 +749,19 @@ void Unit::setWait(double delay) {
 
 
 void Unit::retry() {
-  // TODO retry results with CS
+  // Clear any pending requests
+  pr.release();
+
+  // Retry results with CS
+  if (getState() == UNIT_UPLOAD && data->select("wu.data")->hasList("cs")) {
+    auto const &csList = data->selectList("wu.data.cs");
+
+    if (csList.size()) {
+      if (cs < (int)csList.size()) cs++;
+      if (cs == (int)csList.size()) cs = -1;
+      return next();
+    }
+  }
 
   if (++retries < 10) {
     double delay = pow(2, retries);
@@ -955,9 +963,9 @@ void Unit::download() {
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
-  URI uri = getWSBaseURL() + "/assign";
   pr = app.getClient()
-    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+    .call(getWSURL("/assign"), Event::RequestMethod::HTTP_POST, this,
+          &Unit::response);
 
   data->write(*pr->getJSONWriter());
   setProgress(0, 0);
@@ -988,8 +996,15 @@ void Unit::upload() {
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
-  // TODO try CS if WS fails
-  URI uri = getWSBaseURL() + "/results";
+  // Get WS or CS URI
+  URI uri;
+  if (cs == -1) uri = getWSURL("/results");
+  else {
+    auto const &csList = data->selectList("wu.data.cs");
+    IPAddress addr = csList.getString(cs);
+    uri = URI(addr.hasHost() ? "https" : "http", addr, "/api/results");
+  }
+
   pr = app.getClient()
     .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
 
@@ -1024,9 +1039,9 @@ void Unit::dump() {
 
   setResults("dumped", "");
 
-  URI uri = getWSBaseURL() + "/results";
   pr = app.getClient()
-    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+    .call(getWSURL("/results"), Event::RequestMethod::HTTP_POST, this,
+          &Unit::response);
 
   auto writer = pr->getJSONWriter();
   data->write(*writer);

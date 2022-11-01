@@ -5,6 +5,8 @@ Folding@home Client Changelog
  - Load team and other numerical options from old ``config.xml`` correctly.
  - Fix for failing core downloads.
  - Fix for Windows install for all users.
+ - Try CS if upload to WS fails.
+ - Fixed WU stall after dns lookup failure.
 
 ## v8.1.2
  - Fix Windows CPU features reporting.

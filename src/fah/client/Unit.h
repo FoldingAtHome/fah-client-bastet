@@ -39,6 +39,8 @@
 #include <cbang/os/Subprocess.h>
 #include <cbang/os/Thread.h>
 
+#include <cbang/net/URI.h>
+
 
 namespace FAH {
   namespace Client {
@@ -52,34 +54,35 @@ namespace FAH {
       public UnitState::Enum {
       App &app;
 
-      cb::SmartPointer<cb::Event::Event> event;
+      cb::SmartPointer<cb::Event::Event>           event;
       cb::SmartPointer<cb::Event::OutgoingRequest> pr;
 
-      uint64_t wu;
+      uint64_t    wu;
       std::string id;
 
-      cb::JSON::ValuePtr data;
-      cb::JSON::ValuePtr topology;
+      cb::JSON::ValuePtr              data;
+      cb::JSON::ValuePtr              topology;
       std::vector<cb::JSON::ValuePtr> frames;
-      cb::SmartPointer<Core> core;
+      cb::SmartPointer<Core>          core;
 
       unsigned viewerFrame = 0;
 
       cb::SmartPointer<cb::Subprocess> process;
-      cb::SmartPointer<cb::Thread> logCopier;
+      cb::SmartPointer<cb::Thread>     logCopier;
 
-      bool success = false;
+      bool     success = false;
       unsigned retries = 0;
-      uint64_t wait = 0;
+      double   wait    = 0;
+      int      cs      = -1;
 
-      uint64_t processStartTime = 0;     // Core process start time
+      uint64_t processStartTime     = 0; // Core process start time
       uint64_t processInterruptTime = 0; // Core process interrupt time
-      uint64_t lastProcessTimer = 0;     // For detecting clock skew
-      int64_t  clockSkew = 0;            // Due to sleeping or clock changes
+      uint64_t lastProcessTimer     = 0; // For detecting clock skew
+      int64_t  clockSkew            = 0; // Due to sleeping or clock changes
 
-      uint64_t lastKnownDone = 0;
-      uint64_t lastKnownTotal = 0;
-      uint64_t lastKnownProgressUpdate = 0;
+      uint64_t lastKnownDone                  = 0;
+      uint64_t lastKnownTotal                 = 0;
+      uint64_t lastKnownProgressUpdate        = 0;
       uint64_t lastKnownProgressUpdateRunTime = 0;
 
       Unit(App &app);
@@ -118,7 +121,7 @@ namespace FAH {
 
       std::string getLogPrefix() const;
       std::string getDirectory() const;
-      std::string getWSBaseURL() const;
+      cb::URI getWSURL(const std::string &path) const;
       uint64_t getDeadline() const;
       bool isFinished() const;
       bool isExpired() const;
