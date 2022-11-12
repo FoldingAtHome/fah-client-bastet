@@ -49,6 +49,9 @@ Config::Config(App &app) : app(app) {
   unsigned cpus = SystemInfo::instance().getCPUCount();
   if (1 < cpus) cpus--; // Reserve one CPU by default
 
+  unsigned pcount = SystemInfo::instance().getPerformanceCPUCount();
+  if (0 < pcount && pcount < cpus) cpus = pcount;
+
   // Defaults
   insert("user", "Anonymous");
   insert("team", 0);
