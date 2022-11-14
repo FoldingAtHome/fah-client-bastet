@@ -30,7 +30,6 @@
 
 #include "Unit.h"
 
-#include <set>
 #include <string>
 #include <functional>
 
@@ -38,12 +37,6 @@
 namespace FAH {
   namespace Client {
     class Units : public cb::JSON::ObservableList {
-      typedef struct {
-        std::set<unsigned> wus;     // Selected WU indices
-        unsigned cpus;              // Unused CPUs
-        std::set<std::string> gpus; // Unused GPUs
-      } state_t;
-
       App &app;
 
       cb::SmartPointer<cb::Event::Event> event;
@@ -71,10 +64,6 @@ namespace FAH {
       void triggerUpdate(bool updateUnits = false);
       void shutdown(std::function<void ()> cb);
       void load();
-
-    private:
-      static bool isBetter(const state_t &a, const state_t &b);
-      state_t findBestFit(const state_t &current, unsigned i) const;
     };
   }
 }

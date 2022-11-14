@@ -70,10 +70,11 @@ namespace FAH {
       cb::SmartPointer<cb::Subprocess> process;
       cb::SmartPointer<cb::Thread>     logCopier;
 
-      bool     success = false;
-      unsigned retries = 0;
-      double   wait    = 0;
-      int      cs      = -1;
+      bool     success     = false;
+      unsigned retries     = 0;
+      double   wait        = 0;
+      int      cs          = -1;
+      uint32_t runningCPUs = 0;
 
       uint64_t processStartTime     = 0; // Core process start time
       uint64_t processInterruptTime = 0; // Core process interrupt time
@@ -98,8 +99,9 @@ namespace FAH {
       const std::vector<cb::JSON::ValuePtr> &getFrames() const {return frames;}
       unsigned getRetries() const {return retries;}
 
-      void setState(UnitState state);
       UnitState getState() const;
+      bool atRunState() const;
+      bool hasRun() const;
 
       uint64_t getProjectKey() const;
 
@@ -109,8 +111,14 @@ namespace FAH {
       const char *getPauseReason() const;
       bool isRunning() const;
 
+      void setCPUs(uint32_t cpus);
       uint32_t getCPUs() const {return getU32("cpus");}
+      uint32_t getMinCPUs() const;
+      uint32_t getMaxCPUs() const;
+      void setGPUs(const std::set<std::string> &gpus);
       const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
+      bool hasGPU(const std::string &id) const;
+      bool hasGPUs() const {return getGPUs()->size();}
 
       uint64_t getRunTime() const;
       uint64_t getRunTimeEstimate() const;
@@ -131,6 +139,8 @@ namespace FAH {
       void save();
 
     protected:
+      void cancelRequest();
+      void setState(UnitState state);
       void next();
 
       void processStarted();

@@ -39,6 +39,7 @@
 #include <cbang/log/Logger.h>
 
 #include <algorithm>
+#include <set>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -53,7 +54,7 @@ Units::Units(App &app) :
 
 bool Units::isActive() const {
   for (unsigned i = 0; i < size(); i++)
-    if (!get(i).cast<Unit>()->isPaused()) return true;
+    if (!getUnit(i).isPaused()) return true;
 
   return false;
 }
@@ -61,7 +62,7 @@ bool Units::isActive() const {
 
 bool Units::hasFailure() const {
   for (unsigned i = 0; i < size(); i++)
-    if (get(i).cast<Unit>()->getRetries()) return true;
+    if (getUnit(i).getRetries()) return true;
 
   return false;
 }
@@ -74,10 +75,8 @@ void Units::add(const SmartPointer<Unit> &unit) {
 
 
 unsigned Units::getUnitIndex(const std::string &id) const {
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = get(i)->cast<Unit>();
-    if (unit.getID() == id) return i;
-  }
+  for (unsigned i = 0; i < size(); i++)
+    if (getUnit(i).getID() == id) return i;
 
   THROW("Unit " << id << " not found.");
 }
@@ -94,7 +93,7 @@ Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
 
 void Units::dump(const string &unitID) {
   for (unsigned i = 0; i < size(); i++) {
-    auto &unit = get(i)->cast<Unit>();
+    auto &unit = getUnit(i);
 
     if (unitID.empty() || unit.getID() == unitID)
       unit.dumpWU();
@@ -121,28 +120,36 @@ void Units::update() {
   if (!isConfigLoaded) return;
 
   // Remove completed units
-  for (unsigned i = 0; i < size();) {
-    auto &unit = *get(i).cast<Unit>();
-    if (unit.getState() == UnitState::UNIT_DONE) erase(i);
+  for (unsigned i = 0; i < size();)
+    if (getUnit(i).getState() == UnitState::UNIT_DONE) erase(i);
     else i++;
-  }
 
   // Handle graceful shutdown
   if (app.shouldQuit()) {
     for (unsigned i = 0; i < size(); i++)
-      if (get(i).cast<Unit>()->isRunning())
+      if (getUnit(i).isRunning())
         return event->add(1); // Check again later
 
     if (shutdownCB) {
       // Save state to DB
       for (unsigned i = 0; i < size(); i++)
-        get(i).cast<Unit>()->save();
+        getUnit(i).save();
 
       shutdownCB();
       shutdownCB = 0;
     }
 
     return;
+  }
+
+  // Handle finish
+  if (app.getConfig().getFinish()) {
+    bool running = false;
+
+    for (unsigned i = 0; i < size() && !running; i++)
+      running = getUnit(i).isPaused();
+
+    if (!running) app.getConfig().setPaused(true);
   }
 
   // No further action if paused or idle
@@ -153,41 +160,112 @@ void Units::update() {
   auto now = Time::now();
   if (now < waitUntil) return event->add(waitUntil - now);
 
-  // Find best fit
-  state_t best;
-  best.cpus = app.getConfig().getCPUs();
+  // Allocate resources
+  unsigned           remainingCPUs = app.getConfig().getCPUs();
+  std::set<string>   remainingGPUs;
+  std::set<unsigned> enabledWUs;
 
   auto &allGPUs = app.getGPUs();
   for (unsigned i = 0; i < allGPUs.size(); i++) {
     auto &gpu = *allGPUs.get(i).cast<GPUResource>();
-    if (gpu.isEnabled()) best.gpus.insert(gpu.getID());
+    if (gpu.isEnabled()) remainingGPUs.insert(gpu.getID());
   }
 
-  best = findBestFit(best, 0);
+  // Allocate GPUs with minimum CPU requirements
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = getUnit(i);
+    if (!unit.atRunState()) continue;
 
-  // Start/stop WUs
-  for (unsigned i = 0; i < size(); i++)
-    get(i).cast<Unit>()->setPause(!best.wus.count(i));
+    auto &unitGPUs = *unit.getGPUs();
+    if (unitGPUs.empty()) continue;
 
-  LOG_DEBUG(1, "Remaining CPUs: " << best.cpus << ", Remaining GPUs: "
-            << best.gpus.size() << ", Active WUs: " << best.wus.size());
+    uint32_t minCPUs = unit.getMinCPUs();
+    bool     runable = minCPUs <= remainingCPUs;
 
-  // Handle finish
-  if (app.getConfig().getFinish()) {
-    if (best.wus.empty()) app.getConfig().setPaused(true);
-    return; // Don't add any new WUs
+    std::set<string> gpusWithWU = remainingGPUs;
+    for (unsigned j = 0; j < unitGPUs.size() && runable; j++)
+      runable = gpusWithWU.erase(unitGPUs.getString(j));
+
+    if (runable) {
+      remainingGPUs = gpusWithWU;
+      remainingCPUs -= minCPUs; // Initially allocate only minimum CPUs
+      enabledWUs.insert(i);
+    }
   }
 
-  // Do not add WUs if any have not reached the CORE state
+  // Reserve one CPU for any unused GPUs
+  uint32_t reservedCPUs = min(remainingCPUs, (uint32_t)remainingGPUs.size());
+  remainingCPUs -= reservedCPUs;
+
+  // Allocate extra CPUs to GPU WUs
+  for (unsigned i = 0; i < size(); i++) {
+    if (!enabledWUs.count(i)) continue; // GPU WUs that were enabled above
+    auto &unit = getUnit(i);
+
+    uint32_t minCPUs = unit.getMinCPUs();
+    uint32_t maxCPUs = unit.getMaxCPUs();
+    uint32_t cpus    = min(maxCPUs, remainingCPUs + minCPUs);
+
+    unit.setCPUs(cpus);
+    remainingCPUs -= cpus - minCPUs; // Minimum CPUs subtracted above
+  }
+
+  // Allocate remaining CPUs to existing CPU WUs
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = getUnit(i);
+    if (!unit.getGPUs()->empty() || remainingCPUs < unit.getMinCPUs()) continue;
+    if (!unit.atRunState()) continue;
+
+    uint32_t maxCPUs = unit.getMaxCPUs();
+    uint32_t cpus    = min(maxCPUs, remainingCPUs);
+
+    unit.setCPUs(cpus);
+    remainingCPUs -= cpus;
+    enabledWUs.insert(i);
+  }
+
+  // Restore reserved CPUs
+  remainingCPUs += reservedCPUs;
+
+  // Start and stop WUs
   for (unsigned i = 0; i < size(); i++)
-    if (get(i).cast<Unit>()->getState() < UnitState::UNIT_CORE) return;
+    getUnit(i).setPause(getUnit(i).atRunState() && !enabledWUs.count(i));
+
+  // Report allocation status
+  LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
+            << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
+
+#if 0
+  // Dump WU with different resource allocation if not yet running
+  for (unsigned i = 0; i < size(); i++) {
+    auto &unit = getUnit(i);
+    if (unit.hasRun()) continue;
+
+    if (remainingCPUs != unit.getCPUs() ||
+        remainingGPUs.size() != unit.getGPUs()->size()) unit.dumpWU();
+
+    else
+      for (auto id : remainingGPUs)
+        if (!unit.hasGPU(id)) {
+          unit.dumpWU();
+          break;
+        }
+  }
+#endif
+
+  // Do not add WUs when finishing
+  if (app.getConfig().getFinish()) return;
+
+  // Do not add WUs if any still have not run
+  for (unsigned i = 0; i < size(); i++)
+    if (!getUnit(i).hasRun()) return;
 
   // Add new WU if we don't have too many WUs.
   // Assume all WUs need at least one CPU
   const unsigned maxWUs = allGPUs.size() + 6;
-  if (size() < maxWUs && best.cpus) {
+  if (size() < maxWUs && remainingCPUs) {
     app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, best.cpus, best.gpus));
+    add(new Unit(app, wus, remainingCPUs, remainingGPUs));
     LOG_INFO(1, "Added new work unit");
   }
 
@@ -200,7 +278,7 @@ void Units::triggerUpdate(bool updateUnits) {
 
   if (updateUnits)
     for (unsigned i = 0; i < size(); i++)
-      get(i).cast<Unit>()->triggerNext();
+      getUnit(i).triggerNext();
 }
 
 
@@ -225,51 +303,4 @@ void Units::load() {
   LOG_INFO(3, "Loaded " << size() << " wus.");
 
   triggerUpdate();
-}
-
-
-bool Units::isBetter(const state_t &a, const state_t &b) {
-  if (a.gpus.size() < b.gpus.size()) return true;
-  if (a.gpus.size() == b.gpus.size() && a.cpus < b.cpus) return true;
-  if (a.cpus == b.cpus && a.wus.size() < b.wus.size()) return true;
-
-  // TODO some GPUs are better, we could look at GPU type & species
-  // TODO running WUs are preferable to non-running WUs
-  // TODO WUs closer to completion are preferable
-
-  return false;
-}
-
-
-Units::state_t Units::findBestFit(const state_t &current, unsigned i) const {
-  state_t best = current;
-
-  for (unsigned j = i; j < size(); j++) {
-    auto &unit = *get(j).cast<Unit>();
-    state_t next = current;
-
-    // Check and remove CPUs
-    if (next.cpus < unit.getCPUs()) continue;
-    next.cpus -= unit.getCPUs();
-
-    // Check and remove GPUs
-    auto &unitGPUs = *unit.getGPUs();
-    bool haveGPUs = true;
-
-    for (unsigned k = 0; k < unitGPUs.size() && haveGPUs; k++)
-      haveGPUs = next.gpus.erase(unitGPUs.getString(k));
-
-    if (!haveGPUs) continue;
-
-    // TODO It would be more optimal to skip WU states which are equivalent
-
-    // Find best WU set containing this WU
-    next.wus.insert(j);
-    next = findBestFit(next, j + 1);
-
-    // Keep it if it's better
-    if (isBetter(next, best)) best = next;
-  }
-
-  return best;
 }

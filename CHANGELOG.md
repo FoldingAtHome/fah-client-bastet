@@ -7,6 +7,7 @@ Folding@home Client Changelog
  - Fix for Windows install for all users.
  - Try CS if upload to WS fails.
  - Fixed WU stall after dns lookup failure.
+ - Adjust CPU allocation rather than request new WU.
 
 ## v8.1.2
  - Fix Windows CPU features reporting.

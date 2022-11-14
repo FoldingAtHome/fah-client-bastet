@@ -106,12 +106,8 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
            const std::set<string> &gpus) : Unit(app) {
   this->wu = wu;
   insert("number", wu);
-  insert("cpus", cpus);
-
-  auto l = createList();
-  for (auto it = gpus.begin(); it != gpus.end(); it++) l->append(*it);
-  insert("gpus", l);
-
+  setCPUs(cpus);
+  setGPUs(gpus);
   setState(UNIT_ASSIGN);
 }
 
@@ -133,26 +129,26 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 
 
 Unit::~Unit() {
-  if (pr.isSet()) {
-    pr->setCallback(0);
-    pr->getConnection().close();
-  }
-
+  cancelRequest();
   if (logCopier.isSet()) logCopier->join();
-
   event->del();
 }
 
 
-void Unit::setState(UnitState state) {
-  if (hasString("state") && state == getState()) return;
-  app.getUnits().triggerUpdate();
-  insert("state", state.toString());
-  setProgress(0, 0);
+UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
+
+
+bool Unit::atRunState() const {
+  auto state = getState();
+  return (state == UNIT_CORE && getRunTime()) || state == UNIT_RUN;
 }
 
 
-UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
+bool Unit::hasRun() const {
+  return getRunTime() || UnitState::UNIT_RUN <= getState();
+}
+
+
 uint64_t Unit::getProjectKey() const {return app.getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
@@ -180,6 +176,38 @@ const char *Unit::getPauseReason() const {
 
 
 bool Unit::isRunning() const {return process.isSet();}
+
+
+void Unit::setCPUs(uint32_t cpus) {
+  if (!hasU32("cpus") || cpus != getCPUs()) insert("cpus", cpus);
+}
+
+
+uint32_t Unit::getMinCPUs() const {
+  return data.isSet() ? data->selectU32("assignment.data.min_cpus", 1) : 1;
+}
+
+
+uint32_t Unit::getMaxCPUs() const {
+  return data.isSet() ? data->selectU32("assignment.data.max_cpus", 64) : 64;
+}
+
+
+void Unit::setGPUs(const std::set<string> &gpus) {
+  auto l = createList();
+  for (auto id : gpus) l->append(id);
+  insert("gpus", l);
+}
+
+
+bool Unit::hasGPU(const string &id) const {
+  auto const &gpus = *getGPUs();
+
+  for (unsigned i = 0; i < gpus.size(); i++)
+    if (gpus.getString(i) == id) return true;
+
+  return false;
+}
 
 
 uint64_t Unit::getRunTime() const {
@@ -216,7 +244,8 @@ double Unit::getEstimatedProgress() const {
 
   // Get estimated progress since last update from core
   double delta = getRunTime() - lastKnownProgressUpdateRunTime;
-  double deltaProgress = delta / getRunTimeEstimate();
+  double runtime = getRunTimeEstimate();
+  double deltaProgress = runtime ? delta / runtime : 0;
   if (0.01 < deltaProgress) deltaProgress = 0.01; // No more than 1%
 
   double progress = getKnownProgress() + deltaProgress;
@@ -322,7 +351,7 @@ void Unit::dumpWU() {
   retries = 0;
   event->del();
 
-  pr.release(); // Terminate any active connections
+  cancelRequest(); // Terminate any active connections
   triggerNext();
 }
 
@@ -342,6 +371,23 @@ void Unit::save() {
 }
 
 
+void Unit::cancelRequest() {
+  if (pr.isSet()) {
+    pr->setCallback(0);
+    pr->getConnection().close();
+    pr.release();
+  }
+}
+
+
+void Unit::setState(UnitState state) {
+  if (hasString("state") && state == getState()) return;
+  app.getUnits().triggerUpdate();
+  insert("state", state.toString());
+  setProgress(0, 0);
+}
+
+
 void Unit::next() {
   // Check if WU has expired
   if (isExpired()) {
@@ -356,7 +402,8 @@ void Unit::next() {
   // Monitor running core process
   if (process.isSet()) {
     if (process->isRunning()) {
-      if (isPaused() || getState() != UNIT_RUN) return stopRun();
+      if (isPaused() || getState() != UNIT_RUN || getCPUs() != runningCPUs)
+        return stopRun();
       return monitorRun();
     }
 
@@ -437,7 +484,7 @@ void Unit::updateKnownProgress(uint64_t done, uint64_t total) {
 
 
 void Unit::setProgress(double done, double total) {
-  double progress = done / total;
+  double progress = total ? done / total : 0;
   double oldValue = getNumber("progress", 0);
 
   progress = round(progress * 1000) / 1000;
@@ -515,6 +562,8 @@ void Unit::run() {
   args.push_back("-checkpoint");
   args.push_back(app.getConfig().getAsString("checkpoint"));
 
+  runningCPUs = getU32("cpus");
+
   auto &gpus = *get("gpus");
   if (gpus.size()) {
     auto &gpu = *app.getGPUs().get(gpus.getString(0)).cast<GPUResource>();
@@ -527,9 +576,8 @@ void Unit::run() {
     args.push_back(String(gpu.getOpenCL().deviceIndex));
 
   } else { // CPU
-    uint32_t cpus = getU32("cpus");
     args.push_back("-np");
-    args.push_back(String(cpus));
+    args.push_back(String(runningCPUs));
   }
 
   // Rotate old log file
@@ -750,7 +798,7 @@ void Unit::setWait(double delay) {
 
 void Unit::retry() {
   // Clear any pending requests
-  pr.release();
+  cancelRequest();
 
   // Retry results with CS
   if (getState() == UNIT_UPLOAD && data->select("wu.data")->hasList("cs")) {
@@ -800,14 +848,14 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
   // Update CPUs
   unsigned cpus = assign->getU32("cpus");
-  insert("cpus", cpus);
+  setCPUs(cpus);
 
   // Update GPUs
   if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
   else get("gpus")->clear();
 
   LOG_DEBUG(3, "Received assignment for " << cpus << " cpus and "
-            << getList("gpus").size() << " gpus");
+            << getGPUs()->size() << " gpus");
 
   // Try to allocate more units now that our resources have been updated
   app.getUnits().triggerUpdate();
@@ -860,7 +908,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
   // CPU
   sink.insertDict("cpu");
   sink.insert("cpu",            app.getOS().getCPU());
-  sink.insert("cpus",           getU32("cpus"));
+  sink.insert("cpus",           getCPUs());
   sink.insert("vendor",         cpuInfo->getVendor());
   sink.insert("signature",      cpuInfo->getSignature());
   sink.insert("family",         cpuInfo->getFamily());
@@ -898,7 +946,7 @@ void Unit::assign() {
   LOG_DEBUG(3, *data);
 
   // TODO validate peer certificate
-  URI uri = "https://" + app.getNextAS().toString() + "/api/assign";
+  URI uri("https", app.getNextAS(), "/api/assign");
 
   pr = app.getClient()
     .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
