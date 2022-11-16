@@ -25,6 +25,12 @@
   "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_DIR_REGKEY \
   "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}"
+; Language page settings
+!define MUI_LANGDLL_ALWAYSSHOW
+!define MUI_LANGDLL_ALLLANGUAGES
+!define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
+!define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_DIR_REGKEY}"
+!define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON "${CLIENT_HOME}\images\fahlogo.ico"
@@ -34,8 +40,10 @@
 !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
 
 
-; Plugins
-!addplugindir "plugins\ansi"
+; Additional Plugins and Include support
+!addincludedir "Include"
+!addplugindir "plugins\x86-unicode"
+Unicode true  ; For all languages to display correctly
 
 
 ; Variables
@@ -52,6 +60,7 @@ Var DataDirText
 !include LogicLib.nsh
 !include EnvVarUpdate.nsh
 !include WinVer.nsh
+!include nsProcess.nsh  ; Used to see if programs are running and close them
 
 
 ; Config
@@ -83,7 +92,75 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_UNPAGE_COMPONENTS
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!insertmacro MUI_LANGUAGE "English"
+;Language files
+!insertmacro MUI_LANGUAGE "English"  ; (default language listed first)
+!insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "Spanish"
+!insertmacro MUI_LANGUAGE "SpanishInternational"
+!insertmacro MUI_LANGUAGE "SimpChinese"
+!insertmacro MUI_LANGUAGE "TradChinese"
+!insertmacro MUI_LANGUAGE "Japanese"
+!insertmacro MUI_LANGUAGE "Korean"
+!insertmacro MUI_LANGUAGE "Italian"
+!insertmacro MUI_LANGUAGE "Dutch"
+!insertmacro MUI_LANGUAGE "Danish"
+!insertmacro MUI_LANGUAGE "Swedish"
+!insertmacro MUI_LANGUAGE "Norwegian"
+!insertmacro MUI_LANGUAGE "NorwegianNynorsk"
+!insertmacro MUI_LANGUAGE "Finnish"
+!insertmacro MUI_LANGUAGE "Greek"
+!insertmacro MUI_LANGUAGE "Russian"
+!insertmacro MUI_LANGUAGE "Portuguese"
+!insertmacro MUI_LANGUAGE "PortugueseBR"
+!insertmacro MUI_LANGUAGE "Polish"
+!insertmacro MUI_LANGUAGE "Ukrainian"
+!insertmacro MUI_LANGUAGE "Czech"
+!insertmacro MUI_LANGUAGE "Slovak"
+!insertmacro MUI_LANGUAGE "Croatian"
+!insertmacro MUI_LANGUAGE "Bulgarian"
+!insertmacro MUI_LANGUAGE "Hungarian"
+!insertmacro MUI_LANGUAGE "Thai"
+!insertmacro MUI_LANGUAGE "Romanian"
+!insertmacro MUI_LANGUAGE "Latvian"
+!insertmacro MUI_LANGUAGE "Macedonian"
+!insertmacro MUI_LANGUAGE "Estonian"
+!insertmacro MUI_LANGUAGE "Turkish"
+!insertmacro MUI_LANGUAGE "Lithuanian"
+!insertmacro MUI_LANGUAGE "Slovenian"
+!insertmacro MUI_LANGUAGE "Serbian"
+!insertmacro MUI_LANGUAGE "SerbianLatin"
+!insertmacro MUI_LANGUAGE "Arabic"
+!insertmacro MUI_LANGUAGE "Farsi"
+!insertmacro MUI_LANGUAGE "Hebrew"
+!insertmacro MUI_LANGUAGE "Indonesian"
+!insertmacro MUI_LANGUAGE "Mongolian"
+!insertmacro MUI_LANGUAGE "Luxembourgish"
+!insertmacro MUI_LANGUAGE "Albanian"
+!insertmacro MUI_LANGUAGE "Breton"
+!insertmacro MUI_LANGUAGE "Belarusian"
+!insertmacro MUI_LANGUAGE "Icelandic"
+!insertmacro MUI_LANGUAGE "Malay"
+!insertmacro MUI_LANGUAGE "Bosnian"
+!insertmacro MUI_LANGUAGE "Kurdish"
+!insertmacro MUI_LANGUAGE "Irish"
+!insertmacro MUI_LANGUAGE "Uzbek"
+!insertmacro MUI_LANGUAGE "Galician"
+!insertmacro MUI_LANGUAGE "Afrikaans"
+!insertmacro MUI_LANGUAGE "Catalan"
+!insertmacro MUI_LANGUAGE "Esperanto"
+;!insertmacro MUI_LANGUAGE "Asturian"  ; Disabled due to NSIS compiler v3.08 warning
+!insertmacro MUI_LANGUAGE "Basque"
+!insertmacro MUI_LANGUAGE "Pashto"
+!insertmacro MUI_LANGUAGE "ScotsGaelic"
+!insertmacro MUI_LANGUAGE "Georgian"
+!insertmacro MUI_LANGUAGE "Vietnamese"
+!insertmacro MUI_LANGUAGE "Welsh"
+!insertmacro MUI_LANGUAGE "Armenian"
+!insertmacro MUI_LANGUAGE "Corsican"
+!insertmacro MUI_LANGUAGE "Tatar"
+!insertmacro MUI_LANGUAGE "Hindi"
+!insertmacro MUI_RESERVEFILE_LANGDLL
 
 RequestExecutionLevel admin
 
@@ -97,17 +174,13 @@ Section -Install
     "Path"
 
   ; Remove service
-  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 +4
-    DetailPrint "Removing service, if previously installed. (This can take \
-        awhile)"
+  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 +3
+    DetailPrint "Removing service, if previously installed. (This can take awhile)"
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --stop-service'
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --uninstall-service'
 
   ; Terminate
-  FindProcDLL::KillProc    "$UninstDir\${CLIENT_EXE}"
-  FindProcDLL::WaitProcEnd "$UninstDir\${CLIENT_EXE}"
-  FindProcDLL::KillProc    "$UninstDir\FAHControl.exe"
-  FindProcDLL::WaitProcEnd "$UninstDir\FAHControl.exe"
+  Call CloseApps
 
   ; Remove Autostart
   Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
@@ -147,8 +220,9 @@ Section -Install
 
   ; Data directory
   CreateDirectory $DataDir
+  ; Set working directory for shortcuts, etc. Do before AccessControl::GrantOnFile
+  SetOutPath $DataDir
   AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
-  SetOutPath $DataDir ; Set working directory for shortcuts, etc.
 
   ; Delete old desktop links
   Delete "$DESKTOP\FAHControl.lnk"
@@ -200,7 +274,7 @@ write_uninstaller:
   WriteIniStr "$INSTDIR\Homepage.url" "InternetShortcut" "URL" \
     "${PRODUCT_WEBSITE}"
 
-  ;  Autostart
+  ; Autostart
   Delete "$SMSTARTUP\${CLIENT_NAME}.lnk" # Clean up old link
   ${If} $AutoStart == ${BST_CHECKED}
     CreateShortCut "$SMSTARTUP\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
@@ -261,6 +335,82 @@ Function .onInit
   ${EndIf}
 
   SetShellVarContext all
+
+  ; Language selection page
+  !insertmacro MUI_LANGDLL_DISPLAY
+FunctionEnd
+
+
+Function CloseApps
+  Push $R0
+RetryCloseClient:
+  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1000
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
+    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
+    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  Goto RetryCloseClient
+ClientClosed:
+
+RetryCloseControl:
+  ; Look for FAH Control v7.x running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "FAHControl.exe" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+  Sleep 2600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close the FAH Control program, \
+    and press 'Retry'." /SD IDCANCEL IDCANCEL FAHControlClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  ;MessageBox MB_OK "FAHControl.exe - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  Goto RetryCloseControl
+FAHControlClosed:
+
+  Pop $R0
+  ${nsProcess::Unload}
 FunctionEnd
 
 
@@ -441,4 +591,7 @@ Function un.onInit
   ; Get Data Directory
   ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
     "DataDirectory"
+
+  ; Use same language as installer
+  !insertmacro MUI_UNGETLANGUAGE
 FunctionEnd
