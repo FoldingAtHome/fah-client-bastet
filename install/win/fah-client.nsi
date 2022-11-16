@@ -61,6 +61,9 @@ Var DataDirText
 !include EnvVarUpdate.nsh
 !include WinVer.nsh
 !include nsProcess.nsh  ; Used to see if programs are running and close them
+!include FileFunc.nsh  ; File Functions Header used by RefreshShellIcons
+!insertmacro RefreshShellIcons
+!insertmacro un.RefreshShellIcons
 
 
 ; Config
@@ -224,9 +227,15 @@ Section -Install
   SetOutPath $DataDir
   AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
 
-  ; Delete old desktop links
+  ; Delete old desktop links for Current and All Users
+  SetShellVarContext current
   Delete "$DESKTOP\FAHControl.lnk"
   Delete "$DESKTOP\Folding@home.lnk"
+  Delete "$DESKTOP\Folding @Home.lnk"
+  SetShellVarContext all
+  Delete "$DESKTOP\FAHControl.lnk"
+  Delete "$DESKTOP\Folding@home.lnk"
+  Delete "$DESKTOP\Folding @Home.lnk"
 
   ; Desktop link
   CreateShortCut "$DESKTOP\Folding @Home.lnk" "$INSTDIR\HideConsole.exe" \
@@ -260,9 +269,16 @@ write_uninstaller:
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
     "DataDirectory" $DataDir
 
-  ; Start Menu
+  ; Delete old installed Start Menu links for Current and All Users
+  ; Current User, C:\Users\%user%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+  SetShellVarContext current
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
-  RMDir /r "${MENU_PATH}"
+  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"
+  ; All Users, C:\ProgramData\Microsoft\Windows\Start Menu\Programs
+  SetShellVarContext all
+  RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
+  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"  ; = ${MENU_PATH}
+  ; Start Menu
   CreateDirectory "${MENU_PATH}"
   CreateShortCut "${MENU_PATH}\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
     '"$INSTDIR\${CLIENT_EXE}" --open-web-control' "$INSTDIR\${CLIENT_ICON}"
@@ -274,14 +290,21 @@ write_uninstaller:
   WriteIniStr "$INSTDIR\Homepage.url" "InternetShortcut" "URL" \
     "${PRODUCT_WEBSITE}"
 
+  ; Delete old Autostart link for Current and All Users
+  SetShellVarContext current
+  Delete "$SMSTARTUP\Folding@home.lnk"
+  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
+  SetShellVarContext all
+  Delete "$SMSTARTUP\Folding@home.lnk"
+  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
   ; Autostart
-  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk" # Clean up old link
   ${If} $AutoStart == ${BST_CHECKED}
     CreateShortCut "$SMSTARTUP\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
       "$INSTDIR\${CLIENT_EXE}" "$INSTDIR\${CLIENT_ICON}"
-  ${Else}
-    Delete "$SMSTARTUP\Folding@home.lnk"
   ${EndIf}
+
+  ; Refresh desktop to cleanup any deleted desktop icons
+  ${RefreshShellIcons}
 
   Return
 
@@ -295,11 +318,14 @@ Section -un.Program
   DetailPrint "Shutting down any local clients"
   nsExec::Exec '"$INSTDIR\${CLIENT_EXE}" --send-command=shutdown'
 
+  ; Terminate
+  Call un.CloseApps
+
   ; Menu
   RMDir /r "${MENU_PATH}"
 
   ; Autostart
-  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
+  Delete "$SMSTARTUP\Folding@home.lnk"
 
   ; Desktop
   Delete "$DESKTOP\Folding @Home.lnk"
@@ -310,6 +336,9 @@ Section -un.Program
   ; Registry
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+
+  ; Refresh desktop to cleanup any deleted desktop icons
+  ${un.RefreshShellIcons}
 
   ; Program directory
   remove_dir:
@@ -580,7 +609,7 @@ FunctionEnd
 
 
 Function OnRunFAH
-  # Also opens Web Control
+  ; Also opens Web Control
   ExecShell "open" "${MENU_PATH}\Folding@home.lnk"
 FunctionEnd
 
@@ -594,4 +623,46 @@ Function un.onInit
 
   ; Use same language as installer
   !insertmacro MUI_UNGETLANGUAGE
+FunctionEnd
+
+Function un.CloseApps
+  Push $R0
+RetryCloseClient:
+  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1000
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
+    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
+    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  Goto RetryCloseClient
+ClientClosed:
+
+  Pop $R0
+  ${nsProcess::Unload}
 FunctionEnd
