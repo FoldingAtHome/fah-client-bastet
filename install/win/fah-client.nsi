@@ -26,16 +26,31 @@
 !define PRODUCT_DIR_REGKEY \
   "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}"
 
+; Language page settings
+!define MUI_LANGDLL_ALWAYSSHOW
+!define MUI_LANGDLL_ALLLANGUAGES
+!define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
+!define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_DIR_REGKEY}"
+!define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
+
+; Installer settings
 !define MUI_ABORTWARNING
 !define MUI_ICON "${CLIENT_HOME}\images\fahlogo.ico"
-!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "header.bmp"
+!define MUI_HEADERIMAGE_BITMAP "Resources\Header-150x57.bmp"
 !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+!define MUI_WELCOMEFINISHPAGE_BITMAP "Resources\Side-164x314.bmp"
 
+; Uninstaller settings
+!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+!define MUI_UNHEADERIMAGE
+!define MUI_UNHEADERIMAGE_BITMAP "Resources\Header-150x57.bmp"
+!define MUI_UNHEADERIMAGE_BITMAP_NOSTRETCH
 
-; Plugins
-!addplugindir "plugins\ansi"
+; Additional Plugins and Include support
+!addincludedir "Include"
+!addplugindir "plugins\x86-unicode"
+Unicode true  ; For all languages to display correctly
 
 
 ; Variables
@@ -52,15 +67,21 @@ Var DataDirText
 !include LogicLib.nsh
 !include EnvVarUpdate.nsh
 !include WinVer.nsh
+!include nsProcess.nsh  ; Used to see if programs are running and close them
+!include FileFunc.nsh  ; File Functions Header used by RefreshShellIcons
+!insertmacro RefreshShellIcons
+!insertmacro un.RefreshShellIcons
 
 
 ; Config
-Name "${DISPLAY_NAME} ${PRODUCT_VERSION}"
+Name "${DISPLAY_NAME} v${PRODUCT_VERSION}"
+BrandingText "${DISPLAY_NAME} v${PRODUCT_VERSION}"
 OutFile "${PRODUCT_TARGET}"
 InstallDir "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
+SetCompressor lzma
 
 
 ; Pages
@@ -83,7 +104,75 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_UNPAGE_COMPONENTS
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!insertmacro MUI_LANGUAGE "English"
+;Language files
+!insertmacro MUI_LANGUAGE "English"  ; (default language listed first)
+!insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "Spanish"
+!insertmacro MUI_LANGUAGE "SpanishInternational"
+!insertmacro MUI_LANGUAGE "SimpChinese"
+!insertmacro MUI_LANGUAGE "TradChinese"
+!insertmacro MUI_LANGUAGE "Japanese"
+!insertmacro MUI_LANGUAGE "Korean"
+!insertmacro MUI_LANGUAGE "Italian"
+!insertmacro MUI_LANGUAGE "Dutch"
+!insertmacro MUI_LANGUAGE "Danish"
+!insertmacro MUI_LANGUAGE "Swedish"
+!insertmacro MUI_LANGUAGE "Norwegian"
+!insertmacro MUI_LANGUAGE "NorwegianNynorsk"
+!insertmacro MUI_LANGUAGE "Finnish"
+!insertmacro MUI_LANGUAGE "Greek"
+!insertmacro MUI_LANGUAGE "Russian"
+!insertmacro MUI_LANGUAGE "Portuguese"
+!insertmacro MUI_LANGUAGE "PortugueseBR"
+!insertmacro MUI_LANGUAGE "Polish"
+!insertmacro MUI_LANGUAGE "Ukrainian"
+!insertmacro MUI_LANGUAGE "Czech"
+!insertmacro MUI_LANGUAGE "Slovak"
+!insertmacro MUI_LANGUAGE "Croatian"
+!insertmacro MUI_LANGUAGE "Bulgarian"
+!insertmacro MUI_LANGUAGE "Hungarian"
+!insertmacro MUI_LANGUAGE "Thai"
+!insertmacro MUI_LANGUAGE "Romanian"
+!insertmacro MUI_LANGUAGE "Latvian"
+!insertmacro MUI_LANGUAGE "Macedonian"
+!insertmacro MUI_LANGUAGE "Estonian"
+!insertmacro MUI_LANGUAGE "Turkish"
+!insertmacro MUI_LANGUAGE "Lithuanian"
+!insertmacro MUI_LANGUAGE "Slovenian"
+!insertmacro MUI_LANGUAGE "Serbian"
+!insertmacro MUI_LANGUAGE "SerbianLatin"
+!insertmacro MUI_LANGUAGE "Arabic"
+!insertmacro MUI_LANGUAGE "Farsi"
+!insertmacro MUI_LANGUAGE "Hebrew"
+!insertmacro MUI_LANGUAGE "Indonesian"
+!insertmacro MUI_LANGUAGE "Mongolian"
+!insertmacro MUI_LANGUAGE "Luxembourgish"
+!insertmacro MUI_LANGUAGE "Albanian"
+!insertmacro MUI_LANGUAGE "Breton"
+!insertmacro MUI_LANGUAGE "Belarusian"
+!insertmacro MUI_LANGUAGE "Icelandic"
+!insertmacro MUI_LANGUAGE "Malay"
+!insertmacro MUI_LANGUAGE "Bosnian"
+!insertmacro MUI_LANGUAGE "Kurdish"
+!insertmacro MUI_LANGUAGE "Irish"
+!insertmacro MUI_LANGUAGE "Uzbek"
+!insertmacro MUI_LANGUAGE "Galician"
+!insertmacro MUI_LANGUAGE "Afrikaans"
+!insertmacro MUI_LANGUAGE "Catalan"
+!insertmacro MUI_LANGUAGE "Esperanto"
+;!insertmacro MUI_LANGUAGE "Asturian"  ; Disabled due to NSIS compiler v3.08 warning
+!insertmacro MUI_LANGUAGE "Basque"
+!insertmacro MUI_LANGUAGE "Pashto"
+!insertmacro MUI_LANGUAGE "ScotsGaelic"
+!insertmacro MUI_LANGUAGE "Georgian"
+!insertmacro MUI_LANGUAGE "Vietnamese"
+!insertmacro MUI_LANGUAGE "Welsh"
+!insertmacro MUI_LANGUAGE "Armenian"
+!insertmacro MUI_LANGUAGE "Corsican"
+!insertmacro MUI_LANGUAGE "Tatar"
+!insertmacro MUI_LANGUAGE "Hindi"
+!insertmacro MUI_RESERVEFILE_LANGDLL
 
 RequestExecutionLevel admin
 
@@ -96,18 +185,20 @@ Section -Install
   ReadRegStr $UninstDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" \
     "Path"
 
-  ; Remove service
-  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 +4
-    DetailPrint "Removing service, if previously installed. (This can take \
-        awhile)"
+  ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
+  IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
+    ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
+    DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
+    DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+  ; Remove service (FAH Client v7.x only commands)
+  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
+    DetailPrint "Removing service, if previously installed. (This can take awhile)"
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --stop-service'
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --uninstall-service'
+skip_remove:
 
   ; Terminate
-  FindProcDLL::KillProc    "$UninstDir\${CLIENT_EXE}"
-  FindProcDLL::WaitProcEnd "$UninstDir\${CLIENT_EXE}"
-  FindProcDLL::KillProc    "$UninstDir\FAHControl.exe"
-  FindProcDLL::WaitProcEnd "$UninstDir\FAHControl.exe"
+  Call CloseApps
 
   ; Remove Autostart
   Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
@@ -121,7 +212,7 @@ Section -Install
   Call EmptyDir
 
   ; Install files
-  install_files:
+install_files:
   ClearErrors
   SetOverwrite try
   SetOutPath "$INSTDIR"
@@ -147,12 +238,19 @@ Section -Install
 
   ; Data directory
   CreateDirectory $DataDir
+  ; Set working directory for shortcuts, etc. Do before AccessControl::GrantOnFile
+  SetOutPath $DataDir
   AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
-  SetOutPath $DataDir ; Set working directory for shortcuts, etc.
 
-  ; Delete old desktop links
+  ; Delete old desktop links for Current and All Users
+  SetShellVarContext current
   Delete "$DESKTOP\FAHControl.lnk"
   Delete "$DESKTOP\Folding@home.lnk"
+  Delete "$DESKTOP\Folding @Home.lnk"
+  SetShellVarContext all
+  Delete "$DESKTOP\FAHControl.lnk"
+  Delete "$DESKTOP\Folding@home.lnk"
+  Delete "$DESKTOP\Folding @Home.lnk"
 
   ; Desktop link
   CreateShortCut "$DESKTOP\Folding @Home.lnk" "$INSTDIR\HideConsole.exe" \
@@ -186,9 +284,16 @@ write_uninstaller:
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
     "DataDirectory" $DataDir
 
-  ; Start Menu
+  ; Delete old installed Start Menu links for Current and All Users
+  ; Current User, C:\Users\%user%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+  SetShellVarContext current
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
-  RMDir /r "${MENU_PATH}"
+  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"
+  ; All Users, C:\ProgramData\Microsoft\Windows\Start Menu\Programs
+  SetShellVarContext all
+  RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
+  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"  ; = ${MENU_PATH}
+  ; Start Menu
   CreateDirectory "${MENU_PATH}"
   CreateShortCut "${MENU_PATH}\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
     '"$INSTDIR\${CLIENT_EXE}" --open-web-control' "$INSTDIR\${CLIENT_ICON}"
@@ -200,14 +305,21 @@ write_uninstaller:
   WriteIniStr "$INSTDIR\Homepage.url" "InternetShortcut" "URL" \
     "${PRODUCT_WEBSITE}"
 
-  ;  Autostart
-  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk" # Clean up old link
+  ; Delete old Autostart link for Current and All Users
+  SetShellVarContext current
+  Delete "$SMSTARTUP\Folding@home.lnk"
+  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
+  SetShellVarContext all
+  Delete "$SMSTARTUP\Folding@home.lnk"
+  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
+  ; Autostart
   ${If} $AutoStart == ${BST_CHECKED}
     CreateShortCut "$SMSTARTUP\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
       "$INSTDIR\${CLIENT_EXE}" "$INSTDIR\${CLIENT_ICON}"
-  ${Else}
-    Delete "$SMSTARTUP\Folding@home.lnk"
   ${EndIf}
+
+  ; Refresh desktop to cleanup any deleted desktop icons
+  ${RefreshShellIcons}
 
   Return
 
@@ -219,13 +331,15 @@ SectionEnd
 Section -un.Program
   ; Shutdown running client
   DetailPrint "Shutting down any local clients"
-  nsExec::Exec '"$INSTDIR\${CLIENT_EXE}" --send-command=shutdown'
+
+  ; Terminate
+  Call un.CloseApps
 
   ; Menu
   RMDir /r "${MENU_PATH}"
 
   ; Autostart
-  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
+  Delete "$SMSTARTUP\Folding@home.lnk"
 
   ; Desktop
   Delete "$DESKTOP\Folding @Home.lnk"
@@ -236,6 +350,9 @@ Section -un.Program
   ; Registry
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+
+  ; Refresh desktop to cleanup any deleted desktop icons
+  ${un.RefreshShellIcons}
 
   ; Program directory
   remove_dir:
@@ -261,6 +378,82 @@ Function .onInit
   ${EndIf}
 
   SetShellVarContext all
+
+  ; Language selection page
+  !insertmacro MUI_LANGDLL_DISPLAY
+FunctionEnd
+
+
+Function CloseApps
+  Push $R0
+RetryCloseClient:
+  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1000
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
+    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
+    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  Goto RetryCloseClient
+ClientClosed:
+
+RetryCloseControl:
+  ; Look for FAH Control v7.x running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "FAHControl.exe" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+  Sleep 2600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close the FAH Control program, \
+    and press 'Retry'." /SD IDCANCEL IDCANCEL FAHControlClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "FAHControl.exe" $R0
+  ;MessageBox MB_OK "FAHControl.exe - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 FAHControlClosed
+
+  Goto RetryCloseControl
+FAHControlClosed:
+
+  Pop $R0
+  ${nsProcess::Unload}
 FunctionEnd
 
 
@@ -430,7 +623,7 @@ FunctionEnd
 
 
 Function OnRunFAH
-  # Also opens Web Control
+  ; Also opens Web Control
   ExecShell "open" "${MENU_PATH}\Folding@home.lnk"
 FunctionEnd
 
@@ -441,4 +634,49 @@ Function un.onInit
   ; Get Data Directory
   ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
     "DataDirectory"
+
+  ; Use same language as installer
+  !insertmacro MUI_UNGETLANGUAGE
+FunctionEnd
+
+Function un.CloseApps
+  Push $R0
+RetryCloseClient:
+  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Close the program
+  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
+  Sleep 500
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1000
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+  Sleep 1600
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
+  IntCmp $R0 0 0 0 ClientClosed
+
+  ; Ask to close program
+  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
+    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
+    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
+
+  ; Look if program is running
+  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
+  IntCmp $R0 0 0 0 ClientClosed
+
+  Goto RetryCloseClient
+ClientClosed:
+
+  Pop $R0
+  ${nsProcess::Unload}
 FunctionEnd
