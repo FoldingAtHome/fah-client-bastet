@@ -25,6 +25,7 @@
   "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_DIR_REGKEY \
   "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}"
+
 ; Language page settings
 !define MUI_LANGDLL_ALWAYSSHOW
 !define MUI_LANGDLL_ALLLANGUAGES
@@ -32,13 +33,19 @@
 !define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_DIR_REGKEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
+; Installer settings
 !define MUI_ABORTWARNING
 !define MUI_ICON "${CLIENT_HOME}\images\fahlogo.ico"
-!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "header.bmp"
+!define MUI_HEADERIMAGE_BITMAP "Resources\Header-150x57.bmp"
 !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
+!define MUI_WELCOMEFINISHPAGE_BITMAP "Resources\Side-164x314.bmp"
 
+; Uninstaller settings
+!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+!define MUI_UNHEADERIMAGE
+!define MUI_UNHEADERIMAGE_BITMAP "Resources\Header-150x57.bmp"
+!define MUI_UNHEADERIMAGE_BITMAP_NOSTRETCH
 
 ; Additional Plugins and Include support
 !addincludedir "Include"
@@ -67,12 +74,14 @@ Var DataDirText
 
 
 ; Config
-Name "${DISPLAY_NAME} ${PRODUCT_VERSION}"
+Name "${DISPLAY_NAME} v${PRODUCT_VERSION}"
+BrandingText "${DISPLAY_NAME} v${PRODUCT_VERSION}"
 OutFile "${PRODUCT_TARGET}"
 InstallDir "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
+SetCompressor lzma
 
 
 ; Pages
