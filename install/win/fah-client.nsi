@@ -20,7 +20,6 @@
 !define PRODUCT_TARGET          "${CLIENT_HOME}\%(package)s"
 !define PRODUCT_VERSION         "%(version)s"
 !define PRODUCT_WEBSITE         "https://foldingathome.org/"
-!define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define PRODUCT_UNINST_KEY \
   "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_DIR_REGKEY \
@@ -182,13 +181,12 @@ Section -Install
   ; 32/64 bit registry
   SetRegView %(PACKAGE_ARCH)s
 
-  ReadRegStr $UninstDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" \
-    "Path"
+  ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
 
   ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
   IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
     ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
-    DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
+    DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
     DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
   ; Remove service (FAH Client v7.x only commands)
   IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
@@ -265,24 +263,15 @@ write_uninstaller:
       IDABORT abort IDRETRY write_uninstaller
 
   ; Save uninstall information
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "DisplayName" "${PRODUCT_NAME}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "UninstallString" "$INSTDIR\${UNINSTALLER}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "DisplayIcon" "$INSTDIR\${CLIENT_ICON}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "URLInfoAbout" "${PRODUCT_WEBSITE}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "Publisher" "${PRODUCT_VENDOR}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "DisplayVersion" "${PRODUCT_VERSION}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" "" \
-    "$INSTDIR\${CLIENT_EXE}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" "Path" \
-    "$INSTDIR"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "DataDirectory" $DataDir
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" "${PRODUCT_NAME}"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\${UNINSTALLER}"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\${CLIENT_ICON}"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEBSITE}"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_VENDOR}"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${CLIENT_EXE}"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Path" "$INSTDIR"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory" $DataDir
 
   ; Delete old installed Start Menu links for Current and All Users
   ; Current User, C:\Users\%user%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
@@ -348,7 +337,7 @@ Section -un.Program
   ${un.EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
 
   ; Registry
-  DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
+  DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   ; Refresh desktop to cleanup any deleted desktop icons
@@ -527,8 +516,7 @@ FunctionEnd
 Function OnInstallPageEnter
   ; Init
   ${If} $DataDir == ""
-    ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-      "DataDirectory"
+    ReadRegStr $DataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
     StrCpy $DataDir "$APPDATA\${PRODUCT_NAME}"
     StrCpy $AutoStart ${BST_CHECKED}
   ${EndIf}
@@ -632,8 +620,7 @@ Function un.onInit
   SetShellVarContext all
 
   ; Get Data Directory
-  ReadRegStr $DataDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-    "DataDirectory"
+  ReadRegStr $DataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
 
   ; Use same language as installer
   !insertmacro MUI_UNGETLANGUAGE
