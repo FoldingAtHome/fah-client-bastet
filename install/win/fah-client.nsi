@@ -176,11 +176,17 @@ Section -Install
   ReadRegStr $UninstDir ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" \
     "Path"
 
-  ; Remove service
-  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 +3
+  ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
+  IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
+    ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
+    DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
+    DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+  ; Remove service (FAH Client v7.x only commands)
+  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
     DetailPrint "Removing service, if previously installed. (This can take awhile)"
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --stop-service'
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --uninstall-service'
+skip_remove:
 
   ; Terminate
   Call CloseApps
@@ -197,7 +203,7 @@ Section -Install
   Call EmptyDir
 
   ; Install files
-  install_files:
+install_files:
   ClearErrors
   SetOverwrite try
   SetOutPath "$INSTDIR"
@@ -316,7 +322,6 @@ SectionEnd
 Section -un.Program
   ; Shutdown running client
   DetailPrint "Shutting down any local clients"
-  nsExec::Exec '"$INSTDIR\${CLIENT_EXE}" --send-command=shutdown'
 
   ; Terminate
   Call un.CloseApps
