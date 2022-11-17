@@ -31,6 +31,7 @@
 /*.pkg.zip
 /*.mpkg.zip
 /*.tar.bz2
+/*.deb
 
 # generic files to ignore
 *~
