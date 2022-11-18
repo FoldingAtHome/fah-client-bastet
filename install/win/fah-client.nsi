@@ -363,7 +363,7 @@ Function .onInit
   ${EndIf}
 
   ; 32/64 bit registry
-  ;SetRegView %(PACKAGE_ARCH)s
+  SetRegView %(PACKAGE_ARCH)s
 
   SetShellVarContext all
 
@@ -593,7 +593,7 @@ FunctionEnd
 
 Function un.onInit
   ; 32/64 bit registry
-  ;SetRegView %(PACKAGE_ARCH)s
+  SetRegView %(PACKAGE_ARCH)s
 
   SetShellVarContext all
 
