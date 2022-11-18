@@ -66,8 +66,7 @@ Var DataDirText
 !include LogicLib.nsh
 !include EnvVarUpdate.nsh
 !include WinVer.nsh
-!include nsProcess.nsh  ; Used to see if programs are running and close them
-!include FileFunc.nsh  ; File Functions Header used by RefreshShellIcons
+!include FileFunc.nsh ; File Functions Header used by RefreshShellIcons
 !insertmacro RefreshShellIcons
 !insertmacro un.RefreshShellIcons
 
@@ -373,76 +372,52 @@ Function .onInit
 FunctionEnd
 
 
-Function CloseApps
+!macro EndProcess un
+Function ${un}EndProcess
+  Exch $R1
   Push $R0
-RetryCloseClient:
-  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
+  Push $R2
 
-  ; Close the program
-  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
-  Sleep 500
+  Retry:
+    nsProcess::_FindProcess /NOUNLOAD "$R1"
+    Pop $R0
+    IntCmp $R0 0 0 0 End
 
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-  Sleep 1000
+    nsProcess::_KillProcess /NOUNLOAD "$R1"
+    Pop $R0
 
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-  Sleep 1600
+    StrCpy $R2 0
+    CheckAgain:
+      Sleep 250 ; 1/4s
+      nsProcess::_FindProcess /NOUNLOAD "$R1"
+      Pop $R0
+      IntCmp $R0 0 0 0 End
+      IntOp $R2 $R2 + 1
+      IntCmp $R2 120 0 CheckAgain ; Max 30s wait
 
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
-  IntCmp $R0 0 0 0 ClientClosed
+    MessageBox MB_RETRYCANCEL "Please close $R1, and press 'Retry'. \
+        $\r$\n$\r$\nNote: Folding@home maybe running in the system tray \
+        in the lower righthand corner of your screen." \
+        /SD IDCANCEL IDCANCEL End IDRETRY Retry
 
-  ; Ask to close program
-  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
-    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
-    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-
-  Goto RetryCloseClient
-ClientClosed:
-
-RetryCloseControl:
-  ; Look for FAH Control v7.x running
-  ${nsProcess::FindProcess} "FAHControl.exe" $R0
-  IntCmp $R0 0 0 0 FAHControlClosed
-
-  ; Close the program
-  ${nsProcess::KillProcess} "FAHControl.exe" $R0
-  Sleep 500
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "FAHControl.exe" $R0
-  IntCmp $R0 0 0 0 FAHControlClosed
-  Sleep 2600
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "FAHControl.exe" $R0
-  IntCmp $R0 0 0 0 FAHControlClosed
-
-  ; Ask to close program
-  MessageBox MB_RETRYCANCEL "Please close the FAH Control program, \
-    and press 'Retry'." /SD IDCANCEL IDCANCEL FAHControlClosed
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "FAHControl.exe" $R0
-  ;MessageBox MB_OK "FAHControl.exe - Found: $R0"  ; Enable for debugging
-  IntCmp $R0 0 0 0 FAHControlClosed
-
-  Goto RetryCloseControl
-FAHControlClosed:
-
+  End:
+  Pop $R2
   Pop $R0
-  ${nsProcess::Unload}
+  Pop $R1
+  nsProcess::_Unload
+FunctionEnd
+!macroend
+
+!insertmacro EndProcess ""
+!insertmacro EndProcess "un."
+
+
+Function CloseApps
+  Push "${CLIENT_EXE}"
+  Call EndProcess
+
+  Push "FAHControl.exe"
+  Call EndProcess
 FunctionEnd
 
 
@@ -626,44 +601,8 @@ Function un.onInit
   !insertmacro MUI_UNGETLANGUAGE
 FunctionEnd
 
+
 Function un.CloseApps
-  Push $R0
-RetryCloseClient:
-  ; Look for FAH Client running. Returns 0 when found, or some number when not found.
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-
-  ; Close the program
-  ${nsProcess::KillProcess} "${CLIENT_EXE}" $R0
-  Sleep 500
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-  Sleep 1000
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-  Sleep 1600
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  ;MessageBox MB_OK "${CLIENT_EXE} - Found: $R0"  ; Enable for debugging
-  IntCmp $R0 0 0 0 ClientClosed
-
-  ; Ask to close program
-  MessageBox MB_RETRYCANCEL "Please close Folding@home, and press 'Retry'. \
-    $\r$\n$\r$\nNote: Folding@home maybe running in the system tray in the lower \
-    righthand corner of your screen." /SD IDCANCEL IDCANCEL ClientClosed
-
-  ; Look if program is running
-  ${nsProcess::FindProcess} "${CLIENT_EXE}" $R0
-  IntCmp $R0 0 0 0 ClientClosed
-
-  Goto RetryCloseClient
-ClientClosed:
-
-  Pop $R0
-  ${nsProcess::Unload}
+  Push "${CLIENT_EXE}"
+  Call un.EndProcess
 FunctionEnd
