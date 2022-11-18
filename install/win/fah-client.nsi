@@ -49,7 +49,7 @@
 ; Additional Plugins and Include support
 !addincludedir "Include"
 !addplugindir "plugins\x86-unicode"
-Unicode true  ; For all languages to display correctly
+Unicode true ; For all languages to display correctly
 
 
 ; Variables
@@ -102,8 +102,8 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_UNPAGE_COMPONENTS
 !insertmacro MUI_UNPAGE_INSTFILES
 
-;Language files
-!insertmacro MUI_LANGUAGE "English"  ; (default language listed first)
+; Language files
+!insertmacro MUI_LANGUAGE "English" ; (default language listed first)
 !insertmacro MUI_LANGUAGE "French"
 !insertmacro MUI_LANGUAGE "German"
 !insertmacro MUI_LANGUAGE "Spanish"
@@ -159,7 +159,7 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_LANGUAGE "Afrikaans"
 !insertmacro MUI_LANGUAGE "Catalan"
 !insertmacro MUI_LANGUAGE "Esperanto"
-;!insertmacro MUI_LANGUAGE "Asturian"  ; Disabled due to NSIS compiler v3.08 warning
+;!insertmacro MUI_LANGUAGE "Asturian" ; Disabled due to NSIS compiler v3.08 warning
 !insertmacro MUI_LANGUAGE "Basque"
 !insertmacro MUI_LANGUAGE "Pashto"
 !insertmacro MUI_LANGUAGE "ScotsGaelic"
@@ -177,9 +177,6 @@ RequestExecutionLevel admin
 
 ; Sections
 Section -Install
-  ; 32/64 bit registry
-  SetRegView %(PACKAGE_ARCH)s
-
   ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
 
   ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
@@ -280,7 +277,7 @@ write_uninstaller:
   ; All Users, C:\ProgramData\Microsoft\Windows\Start Menu\Programs
   SetShellVarContext all
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
-  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"  ; = ${MENU_PATH}
+  RMDir /r "$SMPROGRAMS\${PROJECT_NAME}" ; = ${MENU_PATH}
   ; Start Menu
   CreateDirectory "${MENU_PATH}"
   CreateShortCut "${MENU_PATH}\Folding@home.lnk" "$INSTDIR\HideConsole.exe" \
@@ -364,6 +361,9 @@ Function .onInit
     MessageBox MB_OK "Windows 7 or newer required"
     Quit
   ${EndIf}
+
+  ; 32/64 bit registry
+  ;SetRegView %(PACKAGE_ARCH)s
 
   SetShellVarContext all
 
@@ -592,6 +592,9 @@ FunctionEnd
 
 
 Function un.onInit
+  ; 32/64 bit registry
+  ;SetRegView %(PACKAGE_ARCH)s
+
   SetShellVarContext all
 
   ; Get Data Directory
