@@ -55,6 +55,7 @@ Unicode true ; For all languages to display correctly
 ; Variables
 Var AutoStart
 Var UninstDir
+Var UnDataDir
 Var DataDir
 Var InstallDirText
 Var DataDirText
@@ -181,9 +182,18 @@ Section -Install
 
   ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
   IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
-    ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
+    ;FAH v7.x is in 32 bit registry
+    SetRegView 32
+    ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
+    ReadRegStr $UnDataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
+    ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $UninstDir
     DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
     DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+    ; 32/64 bit registry
+    SetRegView %(PACKAGE_ARCH)s
+    ;Set a flag indicating overwriting FAH v7.x
+    StrCpy $3 "v7"
+
   ; Remove service (FAH Client v7.x only commands)
   IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
     DetailPrint "Removing service, if previously installed. (This can take awhile)"
@@ -198,12 +208,46 @@ skip_remove:
   Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
   Delete "$SMSTARTUP\FAHControl.lnk"
 
+  ; Data directory
+  CreateDirectory $DataDir
+  ; Set working directory for files, etc. Do before AccessControl::GrantOnFile
+  SetOutPath $DataDir
+  AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
+
   ; Uninstall old software
   ; Avoid simply removing the whole directory as that causes subsequent file
   ; writes to fail for several seconds.
   DetailPrint "Uninstalling any conflicting Folding@home software"
-  Push $INSTDIR
-  Call EmptyDir
+  StrCmp $3 "v7" 0 skip_v7cleanup
+  ; Copy old FAH v7 settings to new v8 DataDir, if in different locations
+  StrCmp $DataDir $UnDataDir skip_copy_settings
+    IfFileExists "$UnDataDir\config.xml" 0 skip_copy_settings
+      DetailPrint "Copy old FAH settings to new location"
+      CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
+skip_copy_settings:
+
+  MessageBox MB_YESNO "Remove old Folding@home data folder?" \
+    /SD IDYES IDNO skip_data_remove
+  ; Remove subfolders recusively
+  DetailPrint "Removing old Folding@home data"
+  RMDir /r "$UnDataDir\configs"
+  RMDir /r "$UnDataDir\cores"
+  RMDir /r "$UnDataDir\logs"
+  RMDir /r "$UnDataDir\themes"
+  RMDir /r "$UnDataDir\work"
+  Delete "$UnDataDir\*"
+  ; Only remove DataDir when empty. Avoid recursive remove to DataDir
+  RMDir "$UnDataDir"
+skip_data_remove:
+
+  DetailPrint "Remove Folding@home program files"
+  ; Remove lib folder (FAH v7.x uninstaller was not run)
+  RMDir /r "$UninstDir\lib"
+skip_v7cleanup:
+  ; Delete program files. Leave the folder, if it's the new location
+  Delete "$UninstDir\*"
+  StrCmp $INSTDIR $UninstDir +2
+    RMDir "$UninstDir"
 
   ; Install files
 install_files:
@@ -230,11 +274,8 @@ install_files:
   ; Add to PATH
   ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
 
-  ; Data directory
-  CreateDirectory $DataDir
-  ; Set working directory for shortcuts, etc. Do before AccessControl::GrantOnFile
+  ; Set working directory for shortcuts, etc.
   SetOutPath $DataDir
-  AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
 
   ; Delete old desktop links for Current and All Users
   SetShellVarContext current
@@ -340,9 +381,11 @@ Section -un.Program
   ${un.RefreshShellIcons}
 
   ; Program directory
-  remove_dir:
+remove_dir:
   ClearErrors
-  RMDir /r "$INSTDIR"
+  Delete "$INSTDIR\*"
+  ; Only remove INSTDIR when empty. Avoid recursive remove to INSTDIR
+  RMDir "$INSTDIR"
   IfErrors 0 +3
     IfSilent +2
     MessageBox MB_RETRYCANCEL "Failed to remove $INSTDIR.  Please stop all \
@@ -351,7 +394,14 @@ SectionEnd
 
 
 Section /o un.Data
-  RMDir /r $DataDir
+  ; Remove subfolders recusively
+  RMDir /r "$DataDir\cores"
+  RMDir /r "$DataDir\credits"
+  RMDir /r "$DataDir\logs"
+  RMDir /r "$DataDir\work"
+  Delete "$DataDir\*"
+  ; Only remove DataDir when empty. Avoid recursive remove to DataDir
+  RMDir "$DataDir"
 SectionEnd
 
 
@@ -421,36 +471,6 @@ Function CloseApps
 FunctionEnd
 
 
-Function EmptyDir
-  Pop $0
-
-  FindFirst $1 $2 $0\*.*
-  empty_dir_loop:
-    StrCmp $2 "" empty_dir_done
-
-    ; Skip . and ..
-    StrCmp $2 "." empty_dir_next
-    StrCmp $2 ".." empty_dir_next
-
-    ; Remove subdirectories
-    IfFileExists $0\$2\*.* 0 +3
-    RmDir /r $0\$2
-    Goto empty_dir_next
-
-    ; Remove file
-    Delete $INSTDIR\$2
-
-    ; Next
-    empty_dir_next:
-    FindNext $1 $2
-    Goto empty_dir_loop
-
-  ; Done
-  empty_dir_done:
-  FindClose $1
-FunctionEnd
-
-
 Function ValidPath
   Pop $0
 
@@ -495,6 +515,9 @@ Function OnInstallPageEnter
     StrCpy $DataDir "$APPDATA\${PRODUCT_NAME}"
     StrCpy $AutoStart ${BST_CHECKED}
   ${EndIf}
+
+  ; Ensure correct path. Overwritting FAH v7.x typically uses 32 bit path
+  StrCpy "$INSTDIR" "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
 
   !insertmacro MUI_HEADER_TEXT "Installation Options" ""
 
