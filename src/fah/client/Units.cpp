@@ -147,7 +147,7 @@ void Units::update() {
     bool running = false;
 
     for (unsigned i = 0; i < size() && !running; i++)
-      running = getUnit(i).isPaused();
+      running = !getUnit(i).isPaused();
 
     if (!running) app.getConfig().setPaused(true);
   }
