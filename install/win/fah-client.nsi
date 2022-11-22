@@ -39,6 +39,8 @@
 !define MUI_HEADERIMAGE_BITMAP "Resources\Header-150x57.bmp"
 !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
 !define MUI_WELCOMEFINISHPAGE_BITMAP "Resources\Side-164x314.bmp"
+!define MUI_WELCOMEPAGE_TITLE_3LINES
+!define MUI_FINISHPAGE_TITLE_3LINES
 
 ; Uninstaller settings
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
@@ -182,7 +184,7 @@ Section -Install
 
   ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
   IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
-    ;FAH v7.x is in 32 bit registry
+    ; FAH v7.x is in 32 bit registry
     SetRegView 32
     ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
     ReadRegStr $UnDataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
@@ -191,7 +193,7 @@ Section -Install
     DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
     ; 32/64 bit registry
     SetRegView %(PACKAGE_ARCH)s
-    ;Set a flag indicating overwriting FAH v7.x
+    ; Set a flag indicating overwriting FAH v7.x
     StrCpy $3 "v7"
 
   ; Remove service (FAH Client v7.x only commands)
@@ -248,6 +250,11 @@ skip_v7cleanup:
   Delete "$UninstDir\*"
   StrCmp $INSTDIR $UninstDir +2
     RMDir "$UninstDir"
+
+  ; Remove v8 settings
+  ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $UninstDir
+  DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
+  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   ; Install files
 install_files:
