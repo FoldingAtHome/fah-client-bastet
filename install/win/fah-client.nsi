@@ -82,7 +82,7 @@ InstallDir "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
-SetCompressor lzma
+SetCompressor /SOLID lzma
 
 
 ; Pages
