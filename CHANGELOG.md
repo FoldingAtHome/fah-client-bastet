@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.4
+ - Fix "Finish" handling.
+
 ## v8.1.3
  - Load team and other numerical options from old ``config.xml`` correctly.
  - Fix for failing core downloads.
