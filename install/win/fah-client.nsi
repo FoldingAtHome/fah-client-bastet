@@ -247,7 +247,7 @@ LicenseLangString MUILicense ${LANG_TATAR} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_HINDI} "${PRODUCT_LICENSE}"
 
 ;[Use UTF-8 BOM encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
-LangString StartupText ${LANG_ENGLISH} "Adds: HideConsole.exe to Windows Startup Apps"
+LangString StartupText ${LANG_ENGLISH} "Adds: HideConsole.exe to Windows Startup Apps" ; Additional info for English
 LangString StartupText ${LANG_FRENCH} "Démarrer automatiquement à la connexion (recommandé)"
 LangString StartupText ${LANG_GERMAN} "Beim Login automatisch starten (empfohlen)"
 LangString StartupText ${LANG_SPANISH} "Iniciar automáticamente al iniciar sesión (recomendado)"
@@ -316,7 +316,7 @@ LangString StartupText ${LANG_TATAR} "Логиннан автоматик рәв
 LangString StartupText ${LANG_HINDI} "लॉगिन पर स्वचालित रूप से प्रारंभ करें (अनुशंसित)"
 
 ;[Use UTF-8 BOM encoding in Notepad++] Translated: "Data". If the same, then use " "
-LangString DataText ${LANG_ENGLISH} "Storage"
+LangString DataText ${LANG_ENGLISH} "Storage" ; Additional info for English
 LangString DataText ${LANG_FRENCH} "Données"
 LangString DataText ${LANG_GERMAN} "Daten"
 LangString DataText ${LANG_SPANISH} "Datos"
