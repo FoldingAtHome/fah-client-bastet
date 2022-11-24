@@ -4,7 +4,7 @@ NOTES:
 The NSIS installer license display works best for other languages in RTF
 file format (not TXT), and with free-form text (without forced line breaks).
 Most TXT files will not display all characters correctly, so small file size
-RTF files are preferred. The body text font size should be 10pt.
+RTF files are preferred. The body text font size should be 10pt (or as low as 7pt).
 
 
 
@@ -55,3 +55,94 @@ Finnish [fi]: http://www.turre.com/licenses/gpl_fi.php
 
 Spanish GPLv3 license unofficial translation was from: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva
 Spanish [es]: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva/GPLv3-spanish.html
+
+
+
+==========================================================
+NSIS custom installer page text was initially translated
+mostly using Google Translate. These were the mappings used:
+
+Google Translate  --  NSIS
+---------------------------
+Spanish  -->  Spanish & SpanishInternational
+Norwegian --> Norwegian & NorwegianNynorsk
+Portuguese  -->  Portuguese & PortugueseBR
+Serbian  -->  Serbian
+SerbianLatin  -->  Latin
+Persian  -->  Farsi
+[DNE], used https://www.stars21.com/translator/english/breton/  --> Breton
+Kurdish (Kurmanji) --> Kurdish
+[DNE], used https://www.stars21.com/translator/english/asturian/  --> Asturian
+
+
+
+---------------------------------
+Supported languages in NSIS (67):
+---------------------------------
+English
+French
+German
+Spanish
+SpanishInternational
+SimpChinese
+TradChinese
+Japanese
+Korean
+Italian
+Dutch
+Danish
+Swedish
+Norwegian
+NorwegianNynorsk
+Finnish
+Greek
+Russian
+Portuguese
+PortugueseBR
+Polish
+Ukrainian
+Czech
+Slovak
+Croatian
+Bulgarian
+Hungarian
+Thai
+Romanian
+Latvian
+Macedonian
+Estonian
+Turkish
+Lithuanian
+Slovenian
+Serbian
+SerbianLatin
+Arabic
+Farsi
+Hebrew
+Indonesian
+Mongolian
+Luxembourgish
+Albanian
+Breton
+Belarusian
+Icelandic
+Malay
+Bosnian
+Kurdish
+Irish
+Uzbek
+Galician
+Afrikaans
+Catalan
+Esperanto
+Asturian
+Basque
+Pashto
+ScotsGaelic
+Georgian
+Vietnamese
+Welsh
+Armenian
+Corsican
+Tatar
+Hindi

@@ -1,4 +1,4 @@
-; Defines
+﻿; Defines
 !define PRODUCT_NAME            "FAHClient"
 !define PROJECT_NAME            "Folding@home"
 !define DISPLAY_NAME            "Folding@home Client"
@@ -31,6 +31,8 @@
 !define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
 !define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_DIR_REGKEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
+; Fix warning message for N/A page LangString for ${LANG_ASTURIAN} Components
+!define MUI_COMPONENTSPAGE
 
 ; Installer settings
 !define MUI_ABORTWARNING
@@ -59,7 +61,6 @@ Var AutoStart
 Var UninstDir
 Var UnDataDir
 Var DataDir
-Var InstallDirText
 Var DataDirText
 
 
@@ -89,6 +90,7 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_PAGE_WELCOME
 
 !insertmacro MUI_PAGE_LICENSE "$(MUILicense)"
+!insertmacro MUI_PAGE_DIRECTORY
 Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 
@@ -96,6 +98,7 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !define MUI_FINISHPAGE_RUN_TEXT "Start Folding@home"
 !define MUI_FINISHPAGE_RUN_FUNCTION OnRunFAH
 !define MUI_FINISHPAGE_NOREBOOTSUPPORT
+;!define MUI_FINISHPAGE_NOAUTOCLOSE ; uncomment for install details
 !insertmacro MUI_PAGE_FINISH
 
 !define MUI_COMPONENTSPAGE_TEXT_DESCRIPTION_TITLE "Instructions"
@@ -162,7 +165,7 @@ Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_LANGUAGE "Afrikaans"
 !insertmacro MUI_LANGUAGE "Catalan"
 !insertmacro MUI_LANGUAGE "Esperanto"
-;!insertmacro MUI_LANGUAGE "Asturian" ; Disabled due to NSIS compiler v3.08 warning
+!insertmacro MUI_LANGUAGE "Asturian"
 !insertmacro MUI_LANGUAGE "Basque"
 !insertmacro MUI_LANGUAGE "Pashto"
 !insertmacro MUI_LANGUAGE "ScotsGaelic"
@@ -193,7 +196,7 @@ LicenseLangString MUILicense ${LANG_NORWEGIANNYNORSK} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_FINNISH} ".\Resources\GPL3_Finnish_fi.rtf"
 LicenseLangString MUILicense ${LANG_GREEK} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_RUSSIAN} ".\Resources\GPL3_Russian_ru.rtf"
-LicenseLangString MUILicense ${LANG_PORTUGUESE} "${PRODUCT_LICENSE}"
+LicenseLangString MUILicense ${LANG_PORTUGUESE} ".\Resources\GPL3_PortugueseBR_pt-br.rtf"
 LicenseLangString MUILicense ${LANG_PORTUGUESEBR} ".\Resources\GPL3_PortugueseBR_pt-br.rtf"
 LicenseLangString MUILicense ${LANG_POLISH} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_UKRAINIAN} "${PRODUCT_LICENSE}"
@@ -231,7 +234,7 @@ LicenseLangString MUILicense ${LANG_GALICIAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_AFRIKAANS} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_CATALAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_ESPERANTO} "${PRODUCT_LICENSE}"
-;LicenseLangString MUILicense ${LANG_ASTURIAN} "${PRODUCT_LICENSE}"
+LicenseLangString MUILicense ${LANG_ASTURIAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_BASQUE} ".\Resources\GPL3_Basque_eu.rtf"
 LicenseLangString MUILicense ${LANG_PASHTO} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_SCOTSGAELIC} "${PRODUCT_LICENSE}"
@@ -242,6 +245,144 @@ LicenseLangString MUILicense ${LANG_ARMENIAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_CORSICAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_TATAR} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_HINDI} "${PRODUCT_LICENSE}"
+
+;[Use UTF-8 BOM encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
+LangString StartupText ${LANG_ENGLISH} "Adds: HideConsole.exe to Windows Startup Apps"
+LangString StartupText ${LANG_FRENCH} "Démarrer automatiquement à la connexion (recommandé)"
+LangString StartupText ${LANG_GERMAN} "Beim Login automatisch starten (empfohlen)"
+LangString StartupText ${LANG_SPANISH} "Iniciar automáticamente al iniciar sesión (recomendado)"
+LangString StartupText ${LANG_SPANISHINTERNATIONAL} "Iniciar automáticamente al iniciar sesión (recomendado)"
+LangString StartupText ${LANG_SIMPCHINESE} "登录时自动启动（推荐）"
+LangString StartupText ${LANG_TRADCHINESE} "登錄時自動啟動（推薦）"
+LangString StartupText ${LANG_JAPANESE} "ログイン時に自動的に開始 (推奨)"
+LangString StartupText ${LANG_KOREAN} "로그인 시 자동 시작(권장)"
+LangString StartupText ${LANG_ITALIAN} "Avvia automaticamente all'accesso (consigliato)"
+LangString StartupText ${LANG_DUTCH} "Automatisch starten bij inloggen (aanbevolen)"
+LangString StartupText ${LANG_DANISH} "Start automatisk ved login (anbefales)"
+LangString StartupText ${LANG_SWEDISH} "Starta automatiskt vid inloggning (rekommenderas)"
+LangString StartupText ${LANG_NORWEGIAN} "Start automatisk ved pålogging (anbefalt)"
+LangString StartupText ${LANG_NORWEGIANNYNORSK} "Start automatisk ved pålogging (anbefalt)"
+LangString StartupText ${LANG_FINNISH} "Aloita automaattisesti sisäänkirjautumisen yhteydessä (suositus)"
+LangString StartupText ${LANG_GREEK} "Αυτόματη έναρξη κατά τη σύνδεση (Συνιστάται)"
+LangString StartupText ${LANG_RUSSIAN} "Автоматически запускать при входе в систему (рекомендуется)"
+LangString StartupText ${LANG_PORTUGUESE} "Iniciar automaticamente no login (recomendado)"
+LangString StartupText ${LANG_PORTUGUESEBR} "Iniciar automaticamente no login (recomendado)"
+LangString StartupText ${LANG_POLISH} "Automatycznie uruchamiaj przy logowaniu (zalecane)"
+LangString StartupText ${LANG_UKRAINIAN} "Автоматично запускати під час входу (рекомендовано)"
+LangString StartupText ${LANG_CZECH} "Automaticky spustit při přihlášení (doporučeno)"
+LangString StartupText ${LANG_SLOVAK} "Automaticky spustiť pri prihlásení (odporúča sa)"
+LangString StartupText ${LANG_CROATIAN} "Automatski pokreni pri prijavi (preporučeno)"
+LangString StartupText ${LANG_BULGARIAN} "Автоматично стартиране при влизане (препоръчително)"
+LangString StartupText ${LANG_HUNGARIAN} "Automatikus indítás bejelentkezéskor (ajánlott)"
+LangString StartupText ${LANG_THAI} "เริ่มต้นโดยอัตโนมัติเมื่อเข้าสู่ระบบ (แนะนำ)"
+LangString StartupText ${LANG_ROMANIAN} "Începe automat la conectare (recomandat)"
+LangString StartupText ${LANG_LATVIAN} "Automātiski sākt, piesakoties (ieteicams)"
+LangString StartupText ${LANG_MACEDONIAN} "Автоматски старт при најавување (препорачано)"
+LangString StartupText ${LANG_ESTONIAN} "Automaatne käivitamine sisselogimisel (soovitatav)"
+LangString StartupText ${LANG_TURKISH} "Oturum açıldığında otomatik olarak başlat (Önerilen)"
+LangString StartupText ${LANG_LITHUANIAN} "Automatiškai pradėti prisijungus (rekomenduojama)"
+LangString StartupText ${LANG_SLOVENIAN} "Samodejni zagon ob prijavi (priporočeno)"
+LangString StartupText ${LANG_SERBIAN} "Аутоматски почни при пријављивању (препоручено)"
+LangString StartupText ${LANG_SERBIANLATIN} "Automatice incipit a login (commendatur)"
+LangString StartupText ${LANG_ARABIC} "ابدأ تلقائيًا عند تسجيل الدخول (موصى به)"
+LangString StartupText ${LANG_FARSI} "شروع خودکار هنگام ورود به سیستم (توصیه می شود)"
+LangString StartupText ${LANG_HEBREW} "התחל אוטומטית בכניסה (מומלץ)"
+LangString StartupText ${LANG_INDONESIAN} "Mulai secara otomatis saat masuk (Disarankan)"
+LangString StartupText ${LANG_MONGOLIAN} "Нэвтрэх үед автоматаар эхлэх (Санал болгосон)"
+LangString StartupText ${LANG_LUXEMBOURGISH} "Start automatesch beim Login (recommandéiert)"
+LangString StartupText ${LANG_ALBANIAN} "Filloni automatikisht në hyrje (rekomandohet)"
+LangString StartupText ${LANG_BRETON} "Loc' hañ emgefreek pa ereañ (Doarezet)"
+LangString StartupText ${LANG_BELARUSIAN} "Аўтаматычны запуск пры ўваходзе (рэкамендуецца)"
+LangString StartupText ${LANG_ICELANDIC} "Byrja sjálfkrafa við innskráningu (ráðlagt)"
+LangString StartupText ${LANG_MALAY} "Mula secara automatik semasa log masuk (Disyorkan)"
+LangString StartupText ${LANG_BOSNIAN} "Automatski start pri prijavi (preporučeno)"
+LangString StartupText ${LANG_KURDISH} "Di têketinê de bixweber dest pê bike (Pêşniyar kirin)"
+LangString StartupText ${LANG_IRISH} "Tosaigh go huathoibríoch ag logáil isteach (Molta)"
+LangString StartupText ${LANG_UZBEK} "Kirish paytida avtomatik ishga tushirish (Tavsiya etiladi)"
+LangString StartupText ${LANG_GALICIAN} "Iniciar automaticamente ao iniciar sesión (recomendado)"
+LangString StartupText ${LANG_AFRIKAANS} "Begin outomaties by aanmelding (aanbeveel)"
+LangString StartupText ${LANG_CATALAN} "Comença automàticament a l'inici de sessió (recomanat)"
+LangString StartupText ${LANG_ESPERANTO} "Aŭtomate komenci ĉe ensaluto (Rekomendita)"
+LangString StartupText ${LANG_ASTURIAN} "Aniciar automáticamente al aniciar sesión (Recomendáu)"
+LangString StartupText ${LANG_BASQUE} "Hasi automatikoki saioa hasten denean (gomendatua)"
+LangString StartupText ${LANG_PASHTO} "په اوتومات ډول په ننوتلو پیل وکړئ (سپارښتنه)"
+LangString StartupText ${LANG_SCOTSGAELIC} "Tòisich gu fèin-ghluasadach aig logadh a-steach (Air a mholadh)"
+LangString StartupText ${LANG_GEORGIAN} "ავტომატური დაწყება შესვლისას (რეკომენდებულია)"
+LangString StartupText ${LANG_VIETNAMESE} "Tự động bắt đầu khi đăng nhập (Được khuyến nghị)"
+LangString StartupText ${LANG_WELSH} "Cychwyn yn awtomatig wrth fewngofnodi (Argymhellir)"
+LangString StartupText ${LANG_ARMENIAN} "Ավտոմատ կերպով սկսել մուտքից (Առաջարկվում է)"
+LangString StartupText ${LANG_CORSICAN} "Cumincià automaticamente à u login (Consigliatu)"
+LangString StartupText ${LANG_TATAR} "Логиннан автоматик рәвештә башлау (Тәкъдим ителә)"
+LangString StartupText ${LANG_HINDI} "लॉगिन पर स्वचालित रूप से प्रारंभ करें (अनुशंसित)"
+
+;[Use UTF-8 BOM encoding in Notepad++] Translated: "Data". If the same, then use " "
+LangString DataText ${LANG_ENGLISH} "Storage"
+LangString DataText ${LANG_FRENCH} "Données"
+LangString DataText ${LANG_GERMAN} "Daten"
+LangString DataText ${LANG_SPANISH} "Datos"
+LangString DataText ${LANG_SPANISHINTERNATIONAL} "Datos"
+LangString DataText ${LANG_SIMPCHINESE} "数据"
+LangString DataText ${LANG_TRADCHINESE} "數據"
+LangString DataText ${LANG_JAPANESE} "データ"
+LangString DataText ${LANG_KOREAN} "데이터"
+LangString DataText ${LANG_ITALIAN} "Dati"
+LangString DataText ${LANG_DUTCH} "Gegevens"
+LangString DataText ${LANG_DANISH} " "
+LangString DataText ${LANG_SWEDISH} " "
+LangString DataText ${LANG_NORWEGIAN} " "
+LangString DataText ${LANG_NORWEGIANNYNORSK} " "
+LangString DataText ${LANG_FINNISH} " "
+LangString DataText ${LANG_GREEK} "Δεδομένα"
+LangString DataText ${LANG_RUSSIAN} "Данные"
+LangString DataText ${LANG_PORTUGUESE} "Dados"
+LangString DataText ${LANG_PORTUGUESEBR} "Dados"
+LangString DataText ${LANG_POLISH} "Dane"
+LangString DataText ${LANG_UKRAINIAN} "дані"
+LangString DataText ${LANG_CZECH} " "
+LangString DataText ${LANG_SLOVAK} "Údaje"
+LangString DataText ${LANG_CROATIAN} "Podaci"
+LangString DataText ${LANG_BULGARIAN} "Данни"
+LangString DataText ${LANG_HUNGARIAN} "Adat"
+LangString DataText ${LANG_THAI} "ข้อมูล"
+LangString DataText ${LANG_ROMANIAN} "Date"
+LangString DataText ${LANG_LATVIAN} "Dati"
+LangString DataText ${LANG_MACEDONIAN} "Податоци"
+LangString DataText ${LANG_ESTONIAN} "Andmed"
+LangString DataText ${LANG_TURKISH} "Veri"
+LangString DataText ${LANG_LITHUANIAN} "Duomenys"
+LangString DataText ${LANG_SLOVENIAN} "podatki"
+LangString DataText ${LANG_SERBIAN} "Подаци"
+LangString DataText ${LANG_SERBIANLATIN} " "
+LangString DataText ${LANG_ARABIC} "بيانات"
+LangString DataText ${LANG_FARSI} "داده ها"
+LangString DataText ${LANG_HEBREW} "נתונים"
+LangString DataText ${LANG_INDONESIAN} " "
+LangString DataText ${LANG_MONGOLIAN} "Өгөгдөл"
+LangString DataText ${LANG_LUXEMBOURGISH} "Daten"
+LangString DataText ${LANG_ALBANIAN} "Të dhënat"
+LangString DataText ${LANG_BRETON} "Roadoù"
+LangString DataText ${LANG_BELARUSIAN} "даныя"
+LangString DataText ${LANG_ICELANDIC} "Gögn"
+LangString DataText ${LANG_MALAY} " "
+LangString DataText ${LANG_BOSNIAN} "Podaci"
+LangString DataText ${LANG_KURDISH} "Jimare"
+LangString DataText ${LANG_IRISH} "Sonraí"
+LangString DataText ${LANG_UZBEK} "Ma'lumotlar"
+LangString DataText ${LANG_GALICIAN} "Datos"
+LangString DataText ${LANG_AFRIKAANS} " "
+LangString DataText ${LANG_CATALAN} "Dades"
+LangString DataText ${LANG_ESPERANTO} "Datumoj"
+LangString DataText ${LANG_ASTURIAN} "Datos"
+LangString DataText ${LANG_BASQUE} "Datuak"
+LangString DataText ${LANG_PASHTO} "ډاټا"
+LangString DataText ${LANG_SCOTSGAELIC} "Dàta"
+LangString DataText ${LANG_GEORGIAN} "მონაცემები"
+LangString DataText ${LANG_VIETNAMESE} "Dữ liệu"
+LangString DataText ${LANG_WELSH} " "
+LangString DataText ${LANG_ARMENIAN} "Տվյալներ"
+LangString DataText ${LANG_CORSICAN} "Dati"
+LangString DataText ${LANG_TATAR} "Мәгълүмат"
+LangString DataText ${LANG_HINDI} "जानकारी"
 
 RequestExecutionLevel admin
 
@@ -296,9 +437,9 @@ skip_remove:
       CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
 skip_copy_settings:
 
-  MessageBox MB_YESNO "Remove old Folding@home data folder?" \
+  MessageBox MB_YESNO "Folding@home Data: $(DataText) $(^RemoveFolder)$\r$\n$UnDataDir" \
     /SD IDYES IDNO skip_data_remove
-  ; Remove subfolders recusively
+  ; Remove sub-folders recursively
   DetailPrint "Removing old Folding@home data"
   RMDir /r "$UnDataDir\configs"
   RMDir /r "$UnDataDir\cores"
@@ -469,7 +610,7 @@ SectionEnd
 
 
 Section /o un.Data
-  ; Remove subfolders recusively
+  ; Remove sub-folders recursively
   RMDir /r "$DataDir\cores"
   RMDir /r "$DataDir\credits"
   RMDir /r "$DataDir\logs"
@@ -491,6 +632,9 @@ Function .onInit
   SetRegView %(PACKAGE_ARCH)s
 
   SetShellVarContext all
+
+  ; Ensure correct path. Overwriting FAH v7.x typically uses 32 bit path
+  StrCpy "$INSTDIR" "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
 
   ; Language selection page
   !insertmacro MUI_LANGDLL_DISPLAY
@@ -522,7 +666,7 @@ Function ${un}EndProcess
 
     MessageBox MB_RETRYCANCEL "Please close $R1, and press 'Retry'. \
         $\r$\n$\r$\nNote: Folding@home maybe running in the system tray \
-        in the lower righthand corner of your screen." \
+        in the lower right-hand corner of your screen." \
         /SD IDCANCEL IDCANCEL End IDRETRY Retry
 
   End:
@@ -591,10 +735,9 @@ Function OnInstallPageEnter
     StrCpy $AutoStart ${BST_CHECKED}
   ${EndIf}
 
-  ; Ensure correct path. Overwritting FAH v7.x typically uses 32 bit path
-  StrCpy "$INSTDIR" "$PROGRAMFILES%(PACKAGE_ARCH)s\${PRODUCT_NAME}"
-
-  !insertmacro MUI_HEADER_TEXT "Installation Options" ""
+  ; Page Title: "Custom" + ": Installation Options"
+  ; Text from language strings in: ${NSISDIR}\Contrib\Language files\*.nlf
+  !insertmacro MUI_HEADER_TEXT "$(^Custom)$(^ComponentsSubCaption)" ""
 
   nsDialogs::Create 1018
   Pop $0
@@ -603,55 +746,35 @@ Function OnInstallPageEnter
   ${EndIf}
 
   ; Client Startup
-  ${NSD_CreateCheckbox} 5%% 8u 90%% 12u \
-    "Automatically start at login time. (Recommended)"
+  ${NSD_CreateCheckbox} 4%% 35u 98%% 24u \
+    "Automatically start at login (Recommended)$\r$\n$(StartupText)"
   Pop $0
   ${NSD_SetState} $0 $AutoStart
   ${NSD_OnClick} $0 OnAutoStartChange
 
-  ; Install Path
-  ${NSD_CreateGroupBox} 5%% 35u 90%% 34u "Install Path"
+  ; Data Path: "Data" + "Destination Folder"
+  ${NSD_CreateGroupBox} 0 76u 100%% 35u "Data: $(DataText) $(^DirSubText)"
   Pop $0
 
-    ${NSD_CreateDirRequest} 10%% 49u 59%% 12u "$INSTDIR"
-    Pop $InstallDirText
+  ${NSD_CreateDirRequest} 4%% 90u 69%% 12u "$DataDir"
+  Pop $DataDirText
 
-    ${NSD_CreateBrowseButton} 70%% 49u 20%% 12u "Browse..."
-    Pop $0
-    ${NSD_OnClick} $0 OnInstallDirBrowse
-
-  ; Data Path
-  ${NSD_CreateGroupBox} 5%% 79u 90%% 34u "Data Path"
+  ${NSD_CreateBrowseButton} 76%% 88u 20%% 15u $(^BrowseBtn)
   Pop $0
-
-    ${NSD_CreateDirRequest} 10%% 93u 59%% 12u "$DataDir"
-    Pop $DataDirText
-
-    ${NSD_CreateBrowseButton} 70%% 93u 20%% 12u "Browse..."
-    Pop $0
-    ${NSD_OnClick} $0 OnDataDirBrowse
+  ${NSD_OnClick} $0 OnDataDirBrowse
 
   nsDialogs::Show
 FunctionEnd
 
 
-Function OnInstallDirBrowse
-    ${NSD_GetText} $InstallDirText $0
-    nsDialogs::SelectFolderDialog "Select Install Directory" "$0"
-    Pop $0
-    ${If} $0 != error
-        ${NSD_SetText} $InstallDirText "$0"
-    ${EndIf}
-FunctionEnd
-
-
 Function OnDataDirBrowse
-    ${NSD_GetText} $DataDirText $0
-    nsDialogs::SelectFolderDialog "Select Data Directory" "$0"
-    Pop $0
-    ${If} $0 != error
-        ${NSD_SetText} $DataDirText "$0"
-    ${EndIf}
+  ${NSD_GetText} $DataDirText $0
+  ;Select Data Directory: "Destination Folder"
+  nsDialogs::SelectFolderDialog $(^DirSubText) "$0"
+  Pop $0
+  ${If} $0 != error
+    ${NSD_SetText} $DataDirText "$0"
+  ${EndIf}
 FunctionEnd
 
 
