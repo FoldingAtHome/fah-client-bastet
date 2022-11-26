@@ -43,6 +43,11 @@
 !define MUI_WELCOMEFINISHPAGE_BITMAP "Resources\Side-164x314.bmp"
 !define MUI_WELCOMEPAGE_TITLE_3LINES
 !define MUI_FINISHPAGE_TITLE_3LINES
+; GPL doesn't require being accepted to only install the software
+; https://www.gnu.org/licenses/gpl-faq.en.html#ClickThrough
+!define MUI_LICENSEPAGE_TEXT_BOTTOM " "
+; Change Accept to a Next button
+!define MUI_LICENSEPAGE_BUTTON $(^NextBtn)
 
 ; Uninstaller settings
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
@@ -246,7 +251,7 @@ LicenseLangString MUILicense ${LANG_CORSICAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_TATAR} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_HINDI} "${PRODUCT_LICENSE}"
 
-;[Use UTF-8 BOM encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
+; [Use UTF-8 BOM encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
 LangString StartupText ${LANG_ENGLISH} "Adds: HideConsole.exe to Windows Startup Apps" ; Additional info for English
 LangString StartupText ${LANG_FRENCH} "Démarrer automatiquement à la connexion (recommandé)"
 LangString StartupText ${LANG_GERMAN} "Beim Login automatisch starten (empfohlen)"
@@ -315,7 +320,7 @@ LangString StartupText ${LANG_CORSICAN} "Cumincià automaticamente à u login (C
 LangString StartupText ${LANG_TATAR} "Логиннан автоматик рәвештә башлау (Тәкъдим ителә)"
 LangString StartupText ${LANG_HINDI} "लॉगिन पर स्वचालित रूप से प्रारंभ करें (अनुशंसित)"
 
-;[Use UTF-8 BOM encoding in Notepad++] Translated: "Data". If the same, then use " "
+; [Use UTF-8 BOM encoding in Notepad++] Translated: "Data". If the same, then use " "
 LangString DataText ${LANG_ENGLISH} "Storage" ; Additional info for English
 LangString DataText ${LANG_FRENCH} "Données"
 LangString DataText ${LANG_GERMAN} "Daten"
@@ -437,8 +442,8 @@ skip_remove:
       CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
 skip_copy_settings:
 
-  MessageBox MB_YESNO "Folding@home Data: $(DataText) $(^RemoveFolder)$\r$\n$UnDataDir" \
-    /SD IDYES IDNO skip_data_remove
+  MessageBox MB_YESNO "$(^RemoveFolder)$\r$\n$\r$\nFolding@home Data: $(DataText) \
+    $\r$\n$UnDataDir" /SD IDYES IDNO skip_data_remove
   ; Remove sub-folders recursively
   DetailPrint "Removing old Folding@home data"
   RMDir /r "$UnDataDir\configs"
