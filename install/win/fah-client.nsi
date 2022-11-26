@@ -601,16 +601,21 @@ Section -un.Program
   ; Refresh desktop to cleanup any deleted desktop icons
   ${un.RefreshShellIcons}
 
+  ; Ensure the working path is different than the INSTDIR that may be deleted
+  SetOutPath $TEMP
+
   ; Program directory
-remove_dir:
-  ClearErrors
-  Delete "$INSTDIR\*"
+  Delete "$INSTDIR\ChangeLog.txt"
+  Delete "$INSTDIR\FAHClient.exe"
+  Delete "$INSTDIR\FAHClient.ico"
+  Delete "$INSTDIR\HideConsole.exe"
+  Delete "$INSTDIR\Homepage.url"
+  Delete "$INSTDIR\License.txt"
+  Delete "$INSTDIR\README.txt"
+  Delete "$INSTDIR\Uninstall.exe"
+  ; Allow leaving the Install folder if the Data folder was stored in it
   ; Only remove INSTDIR when empty. Avoid recursive remove to INSTDIR
   RMDir "$INSTDIR"
-  IfErrors 0 +3
-    IfSilent +2
-    MessageBox MB_RETRYCANCEL "Failed to remove $INSTDIR.  Please stop all \
-      running Folding@home software." IDRETRY remove_dir
 SectionEnd
 
 
@@ -791,17 +796,6 @@ Function OnInstallPageLeave
   ; Validate data dir
   Push $DataDir
   Call ValidPath
-
-  StrLen $0 $INSTDIR
-  StrCpy $1 $DataDir $0
-  StrCmp $INSTDIR $1 0 exit
-
-  MessageBox MB_OKCANCEL \
-    "WARNING: If the data directory is a sub-directory of the install \
-     directory it will always be removed at uninstall time." IDOK exit
-  Abort
-
-exit:
 FunctionEnd
 
 
