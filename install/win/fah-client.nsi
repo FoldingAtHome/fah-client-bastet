@@ -412,7 +412,8 @@ Section -Install
 
   ; Remove service (FAH Client v7.x only commands)
   IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
-    DetailPrint "Removing service, if previously installed. (This can take awhile)"
+    DetailPrint "$(^UninstallingSubText)$\r$\n$UninstDir\${CLIENT_EXE}$\r$\n \
+      Removing service (This can take awhile)"
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --stop-service'
     nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --uninstall-service'
 skip_remove:
@@ -433,19 +434,19 @@ skip_remove:
   ; Uninstall old software
   ; Avoid simply removing the whole directory as that causes subsequent file
   ; writes to fail for several seconds.
-  DetailPrint "Uninstalling any conflicting Folding@home software"
+  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
   StrCmp $3 "v7" 0 skip_v7cleanup
   ; Copy old FAH v7 settings to new v8 DataDir, if in different locations
   StrCmp $DataDir $UnDataDir skip_copy_settings
     IfFileExists "$UnDataDir\config.xml" 0 skip_copy_settings
-      DetailPrint "Copy old FAH settings to new location"
+      ; Copy old FAH settings to new location
+      DetailPrint "$UnDataDir\config.xml"
       CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
 skip_copy_settings:
 
   MessageBox MB_YESNO "$(^RemoveFolder)$\r$\n$\r$\nFolding@home Data: $(DataText) \
     $\r$\n$UnDataDir" /SD IDYES IDNO skip_data_remove
   ; Remove sub-folders recursively
-  DetailPrint "Removing old Folding@home data"
   RMDir /r "$UnDataDir\configs"
   RMDir /r "$UnDataDir\cores"
   RMDir /r "$UnDataDir\logs"
@@ -456,7 +457,7 @@ skip_copy_settings:
   RMDir "$UnDataDir"
 skip_data_remove:
 
-  DetailPrint "Remove Folding@home program files"
+  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UninstDir"
   ; Remove lib folder (FAH v7.x uninstaller was not run)
   RMDir /r "$UninstDir\lib"
 skip_v7cleanup:
@@ -484,13 +485,13 @@ install_files:
   %(NSIS_INSTALL_FILES)s
 
   IfErrors 0 +2
-    MessageBox MB_RETRYCANCEL "Failed to install files.  Most likely some \
-        software, possibly Folding@home is currently using one or more files \
-        that the installer is trying to upgrade.  Please stop all running \
-        Folding@home software and quit any applications that are using files \
-        from the Folding@home installation.  Note, complete shutdown can take \
-        a little while after the application has closed." \
-        IDRETRY install_files IDCANCEL abort
+    MessageBox MB_RETRYCANCEL "$(^CopyFailed)$(^DirSubCaption).  Most likely some \
+      software, possibly Folding@home is currently using one or more files \
+      that the installer is trying to upgrade.  Please stop all running \
+      Folding@home software and quit any applications that are using files \
+      from the Folding@home installation.  Note, complete shutdown can take \
+      a little while after the application has closed." \
+      IDRETRY install_files IDCANCEL abort
 
   ; Add to PATH
   ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
@@ -517,7 +518,7 @@ write_uninstaller:
   ClearErrors
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
   IfErrors 0 +2
-    MessageBox MB_ABORTRETRYIGNORE "Failed to create uninstaller" \
+    MessageBox MB_ABORTRETRYIGNORE "$(^ErrorCreating) $(^UninstallCaption)" \
       IDABORT abort IDRETRY write_uninstaller
 
   ; Save uninstall information
