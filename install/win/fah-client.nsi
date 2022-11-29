@@ -99,9 +99,9 @@ SetCompressor /SOLID lzma
 Page custom OnInstallPageEnter OnInstallPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 
-!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN "$INSTDIR\HideConsole.exe"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "$\"$INSTDIR\${CLIENT_EXE}$\" --open-web-control"
 !define MUI_FINISHPAGE_RUN_TEXT "Start Folding@home"
-!define MUI_FINISHPAGE_RUN_FUNCTION OnRunFAH
 !define MUI_FINISHPAGE_NOREBOOTSUPPORT
 ;!define MUI_FINISHPAGE_NOAUTOCLOSE ; uncomment for install details
 !insertmacro MUI_PAGE_FINISH
@@ -569,6 +569,9 @@ write_uninstaller:
   ; Refresh desktop to cleanup any deleted desktop icons
   ${RefreshShellIcons}
 
+  ; Set working directory for starting Folding@home, if selected on Finish page
+  SetOutPath $DataDir
+
   Return
 
 abort:
@@ -803,12 +806,6 @@ FunctionEnd
 Function OnAutoStartChange
   Pop $0
   ${NSD_GetState} $0 $AutoStart
-FunctionEnd
-
-
-Function OnRunFAH
-  ; Also opens Web Control
-  ExecShell "open" "${MENU_PATH}\Folding@home.lnk"
 FunctionEnd
 
 
