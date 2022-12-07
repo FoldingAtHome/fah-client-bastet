@@ -264,7 +264,7 @@ write_uninstaller:
 
   ; Delete old installed Start Menu links for Current and All Users
   ; Current User,
-  ; C:\Users\%user%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+  ; C:\Users\<user>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
   SetShellVarContext current
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "$SMPROGRAMS\${PROJECT_NAME}"
