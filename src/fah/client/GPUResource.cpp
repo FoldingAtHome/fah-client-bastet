@@ -28,9 +28,6 @@
 
 #include "GPUResource.h"
 
-#include "App.h"
-#include "Config.h"
-
 #include <cbang/String.h>
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
@@ -48,22 +45,11 @@ namespace {
 }
 
 
-GPUResource::GPUResource(App &app, const cb::GPU &gpu,
-                         const cb::PCIDevice &pci) :
-  app(app), id(makeID(pci)), gpu(gpu), pci(pci) {
+GPUResource::GPUResource(const cb::GPU &gpu, const cb::PCIDevice &pci) :
+  id(makeID(pci)), gpu(gpu), pci(pci) {
 
   insert("type", String::toLower(gpu.getType().toString()));
   insert("description", gpu.getDescription());
-}
-
-
-JSON::ValuePtr GPUResource::getConfig() const {
-  return app.getConfig().getGPU(getID());
-}
-
-
-bool GPUResource::isEnabled() const {
-  return getConfig()->getBoolean("enabled", false);
 }
 
 

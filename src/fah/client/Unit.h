@@ -45,6 +45,7 @@
 namespace FAH {
   namespace Client {
     class App;
+    class Units;
     class GPUResource;
     class Core;
 
@@ -53,6 +54,7 @@ namespace FAH {
       public cb::Event::Enum,
       public UnitState::Enum {
       App &app;
+      cb::SmartPointer<Units> units;
 
       cb::SmartPointer<cb::Event::Event>           event;
       cb::SmartPointer<cb::Event::OutgoingRequest> pr;
@@ -94,6 +96,9 @@ namespace FAH {
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
+      void setUnits(const cb::SmartPointer<Units> &units);
+
+      std::string getGroup() const;
       const std::string &getID() const {return id;}
       cb::JSON::ValuePtr getTopology() const {return topology;}
       const std::vector<cb::JSON::ValuePtr> &getFrames() const {return frames;}
@@ -116,9 +121,9 @@ namespace FAH {
       uint32_t getMinCPUs() const;
       uint32_t getMaxCPUs() const;
       void setGPUs(const std::set<std::string> &gpus);
-      const cb::JSON::ValuePtr &getGPUs() const {return get("gpus");}
+      std::set<std::string> getGPUs() const;
       bool hasGPU(const std::string &id) const;
-      bool hasGPUs() const {return getGPUs()->size();}
+      bool hasGPUs() const {return !getGPUs().empty();}
 
       uint64_t getRunTime() const;
       uint64_t getRunTimeEstimate() const;

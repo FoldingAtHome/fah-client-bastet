@@ -44,10 +44,12 @@
 #include <cbang/net/IPAddress.h>
 #include <cbang/enum/ProcessPriority.h>
 
+#include <map>
+
 
 namespace cb {
   namespace Event {class Event;}
-  namespace JSON {class Sink;}
+  namespace JSON  {class Sink;}
 }
 
 
@@ -59,11 +61,12 @@ namespace FAH {
     class Cores;
     class Config;
     class OS;
+    class ResourceGroup;
 
     class App : public cb::Application {
-      cb::Event::Base base;
+      cb::Event::Base    base;
       cb::Event::DNSBase dns;
-      cb::Event::Client client;
+      cb::Event::Client  client;
 
       cb::Certificate caCert;
 
@@ -72,13 +75,14 @@ namespace FAH {
       tables_t;
       tables_t tables;
 
-      cb::SmartPointer<Server> server;
-      cb::SmartPointer<GPUResources> gpus;
-      cb::SmartPointer<Units> units;
-      cb::SmartPointer<Cores> cores;
-      cb::SmartPointer<Config> config;
-      cb::SmartPointer<OS> os;
+      cb::SmartPointer<Server>          server;
+      cb::SmartPointer<GPUResources>    gpus;
+      cb::SmartPointer<Cores>           cores;
+      cb::SmartPointer<OS>              os;
       cb::SmartPointer<cb::JSON::Value> info;
+
+      typedef std::map<std::string, cb::SmartPointer<ResourceGroup> > groups_t;
+      groups_t groups;
 
       cb::KeyPair key;
       std::vector<cb::IPAddress> servers;
@@ -89,19 +93,31 @@ namespace FAH {
 
       static bool _hasFeature(int feature);
 
-      cb::Event::Base &getEventBase() {return base;}
-      cb::Event::DNSBase &getEventDNS() {return dns;}
-      cb::Event::Client &getClient() {return client;}
+      cb::Event::Base    &getEventBase() {return base;}
+      cb::Event::DNSBase &getEventDNS()  {return dns;}
+      cb::Event::Client  &getClient()    {return client;}
 
       cb::DB::NameValueTable &getDB(const std::string name);
 
-      Server &getServer() {return *server;}
-      GPUResources &getGPUs() {return *gpus;}
-      Units &getUnits() {return *units;}
-      Cores &getCores() {return *cores;}
-      Config &getConfig() {return *config;}
-      OS &getOS() {return *os;}
-      cb::JSON::Value &getInfo() const {return *info;}
+      Server             &getServer()    {return *server;}
+      GPUResources       &getGPUs()      {return *gpus;}
+      Cores              &getCores()     {return *cores;}
+      OS                 &getOS()        {return *os;}
+
+      const groups_t getGroups() const {return groups;}
+      const cb::SmartPointer<ResourceGroup> &newGroup(const std::string &name);
+      const cb::SmartPointer<ResourceGroup> &
+      getGroup(const std::string &name) const;
+      void saveGroup(const ResourceGroup &group);
+      void updateGroups();
+      void updateResources();
+
+      void triggerUpdate();
+      bool isActive() const;
+      bool hasFailure() const;
+      void setPaused(bool paused);
+      bool getPaused() const;
+      bool getOnIdle() const;
 
       const cb::KeyPair &getKey() const {return key;}
       void validate(const cb::Certificate &cert,
@@ -119,9 +135,13 @@ namespace FAH {
                              const std::string &usage);
 
       const cb::IPAddress &getNextAS();
+      uint64_t getNextWUID();
 
+      void upgradeDB();
       void loadConfig();
       void loadServers();
+      void loadGroups();
+      void loadUnits();
 
       // From cb::Application
       void run();

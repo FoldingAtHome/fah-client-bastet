@@ -44,30 +44,21 @@ namespace FAH {
     class Remote;
 
     class Server :
-      public cb::Event::WebServer,
-      public cb::JSON::ObservableDict {
+      public cb::Event::WebServer {
       App &app;
 
       std::set<std::string> allowedOrigins;
-      std::list<cb::SmartPointer<Remote> > clients;
 
     public:
       Server(App &app);
 
       bool corsCB(cb::Event::Request &req);
-      void broadcast(const cb::JSON::ValuePtr &msg);
-
-      void remove(Remote &remote);
 
       // From cb::Event::WebServer
       void init();
       cb::SmartPointer<cb::Event::Request> createRequest
       (cb::Event::RequestMethod method, const cb::URI &uri,
        const cb::Version &version);
-      bool handleRequest(const cb::SmartPointer<cb::Event::Request> &req);
-
-      // From cb::JSON::Value
-      void notify(std::list<cb::JSON::ValuePtr> &change);
     };
   }
 }

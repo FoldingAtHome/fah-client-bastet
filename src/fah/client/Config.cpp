@@ -28,24 +28,19 @@
 
 #include "Config.h"
 #include "App.h"
-#include "CausePref.h"
-#include "PasskeyConstraint.h"
+#include "GPUResources.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/json/Reader.h>
 #include <cbang/os/SystemInfo.h>
 
-#include <cbang/config/MinMaxConstraint.h>
-#include <cbang/config/MinConstraint.h>
-#include <cbang/config/EnumConstraint.h>
-
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
 
-Config::Config(App &app) : app(app) {
+Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   unsigned cpus = SystemInfo::instance().getCPUCount();
   if (1 < cpus) cpus--; // Reserve one CPU by default
 
@@ -56,7 +51,6 @@ Config::Config(App &app) : app(app) {
   insert("user", "Anonymous");
   insert("team", 0);
   insert("passkey", "");
-  insert("checkpoint", 15);
   insertBoolean("on_idle", false);
   insertBoolean("paused", false);
   insertBoolean("finish", false);
@@ -65,52 +59,19 @@ Config::Config(App &app) : app(app) {
   insertDict("gpus");
   insertList("peers");
 
-  SmartPointer<Option> opt;
-  auto &options = app.getOptions();
-
-  options.pushCategory("User Information");
-  options.add("user", "Your user name.")->setDefault("Anonymous");
-  options.add("team", "Your team number.",
-              new MinMaxConstraint<int32_t>(0, 2147483647))->setDefault(0);
-  opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
-  opt->setDefault("");
-  opt->setObscured();
-  options.popCategory();
-
-  options.pushCategory("Project Settings");
-  options.add("project-key", "Key for access to restricted testing projects."
-              )->setDefault(0);
-  options.alias("project-key", "key");
-  options.add("cause", "The cause you prefer to support.",
-              new EnumConstraint<CausePref>)->setDefault("any");
-  options.popCategory();
-
-  options.pushCategory("Resource Settings");
-  options.add("cpus", "Number of cpus FAH client will use.",
-              new MaxConstraint<int32_t>(cpus))->setDefault(cpus);
-  options.popCategory();
-}
-
-
-void Config::init() {
   // Load options from config file
   auto &options = app.getOptions();
   std::set<string> keys = {"user", "passkey", "team", "key", "cause", "cpus"};
   for (auto key : keys)
-    if (options.has(key) && !options[key].isDefault())
+    if (options.has(key) && !options[key].isDefault() && options[key].isSet())
       switch (options[key].getType()) {
       case Option::INTEGER_TYPE: insert(key, options[key].toInteger()); break;
       case Option::DOUBLE_TYPE:  insert(key, options[key].toDouble());  break;
       default:                   insert(key, options[key]);             break;
       }
 
-  // Load saved data
-  auto &db = app.getDB("config");
-
-  try {
-    if (db.has("config"))
-      merge(*JSON::Reader::parseString(db.getString("config")));
-  } CATCH_ERROR;
+  // Load config data
+  merge(*config);
 }
 
 
@@ -120,8 +81,8 @@ void Config::update(const JSON::Value &config) {
 }
 
 
-bool Config::getOnIdle() const {return getBoolean("on_idle");}
 void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
+bool Config::getOnIdle() const {return getBoolean("on_idle");}
 
 
 void Config::setPaused(bool paused) {
@@ -141,13 +102,13 @@ string Config::getUsername() const {
 }
 
 
-string Config::getPasskey() const {return getString("passkey", "");}
+string   Config::getPasskey()    const {return getString("passkey", "");}
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 
 uint32_t Config::getCPUs() const {
   uint32_t maxCPUs = SystemInfo::instance().getCPUCount();
-  uint32_t cpus = getU32("cpus");
+  uint32_t cpus    = getU32("cpus");
   return maxCPUs < cpus ? maxCPUs : cpus;
 }
 
@@ -157,16 +118,29 @@ ProcessPriority Config::getCorePriority() const {
 }
 
 
-JSON::ValuePtr Config::getGPU(const string &id) {
-  auto &gpus = *get("gpus");
+std::set<string> Config::getGPUs() const {
+  std::set<string> gpus;
 
-  if (!gpus.has(id)) {
-    JSON::ValuePtr gpu = new JSON::Dict;
-    gpu->insertBoolean("enabled", false);
-    gpus.insert(id, gpu);
+  auto &allGPUs = app.getGPUs();
+  for (unsigned i = 0; i < allGPUs.size(); i++) {
+    auto &gpu = *allGPUs.get(i).cast<GPUResource>();
+    if (isGPUEnabled(gpu.getID())) gpus.insert(gpu.getID());
   }
 
-  return gpus.get(id);
+  return gpus;
+}
+
+
+bool Config::isGPUEnabled(const string &id) const {
+  auto &gpus = *get("gpus");
+  if (!gpus.has(id)) return false;
+  return gpus.get(id)->getBoolean("enabled", false);
+}
+
+
+void Config::disableGPU(const string &id) {
+  auto &gpus = *get("gpus");
+  if (gpus.has(id)) gpus.erase(id);
 }
 
 

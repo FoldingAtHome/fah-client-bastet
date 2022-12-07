@@ -26,75 +26,58 @@
 
 \******************************************************************************/
 
-#include "OS.h"
+#include "ResourceGroup.h"
+#include "App.h"
 
-#include <fah/client/App.h>
+#include <cbang/log/Logger.h>
 
-#if defined(_WIN32)
-#include "win/WinOSImpl.h"
-#elif defined(__APPLE__)
-#include "osx/OSXOSImpl.h"
-#else
-#include "lin/LinOSImpl.h"
-#endif
-
-#include <cbang/Info.h>
-
-using namespace FAH::Client;
-using namespace cb;
 using namespace std;
+using namespace cb;
+using namespace FAH::Client;
 
 
-OS::OS(App &app) : app(app) {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 0);
+ResourceGroup::ResourceGroup(App &app, const string &name,
+                             const JSON::ValuePtr &conf,
+                             const JSON::ValuePtr &info) :
+  app(app), name(name), config(new Config(app, conf)),
+  units(new Units(app, *this, config)) {
+
+  // Connect JSON::Observables
+  insert("units",  units);
+  insert("config", config);
+  insert("info",   info);
 }
 
 
-SmartPointer<OS> OS::create(App &app) {
-#if defined(_WIN32)
-  return new WinOSImpl(app);
-
-#elif defined(__APPLE__)
-  return new OSXOSImpl(app);
-
-#else
-  return new LinOSImpl(app);
-#endif
+void ResourceGroup::add(const SmartPointer<Remote> &client) {
+  clients.push_back(client);
 }
 
 
-void OS::requestExit() {app.requestExit();}
-
-
-const char *OS::getCPU() const {
-#if defined(__aarch64__)
-  return "arm64";
-#endif
-
-  return sizeof(void *) == 4 ? "x86" : "amd64";
+void ResourceGroup::remove(Remote &client) {
+  for (auto it = clients.begin(); it != clients.end(); it++)
+    if (*it == &client) return (void)clients.erase(it);
 }
 
 
-void OS::dispatch() {app.getEventBase().dispatch();}
+void ResourceGroup::broadcast(const JSON::ValuePtr &changes) {
+  LOG_DEBUG(5, __func__ << ' ' << *changes);
 
-
-void OS::setPaused(bool paused) {
-  app.setPaused(paused);
-  app.triggerUpdate();
+  for (auto client: clients)
+    if (client->isActive())
+      client->sendChanges(changes);
 }
 
 
-bool OS::getPaused()  const {return app.getPaused();}
-bool OS::isActive()   const {return app.isActive();}
-bool OS::hasFailure() const {return app.hasFailure();}
+void ResourceGroup::notify(list<JSON::ValuePtr> &change) {
+  SmartPointer<JSON::List> changes =
+    new JSON::List(change.begin(), change.end());
 
+  broadcast(changes);
 
-void OS::updateIdle() {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 2);
-
-  bool idle = !isSystemIdle() && app.getOnIdle();
-  if (idle == this->idle) return;
-
-  this->idle = idle;
-  app.triggerUpdate();
+  // Automatically save changes to config
+  if (!change.empty() && change.front()->getString() == "config") {
+    app.saveGroup(*this);
+    units->triggerUpdate();
+  }
 }

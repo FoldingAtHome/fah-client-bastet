@@ -3,6 +3,12 @@ Folding@home Client Changelog
 
 ## v8.1.4
  - Fix "Finish" handling.
+ - Stop wait timers on pause.
+ - Use v7 settings in Windows install for all users. #45 (Jeff Moreland)
+ - Windows installer translations. #48 (Jeff Moreland)
+ - Don't delete other files on Windows uninstall. (Jeff Moreland)
+ - Other Windows installer improvements. (Jeff Moreland)
+ - Added resource groups feature.  (Similar to slots in v7)
 
 ## v8.1.3
  - Load team and other numerical options from old ``config.xml`` correctly.

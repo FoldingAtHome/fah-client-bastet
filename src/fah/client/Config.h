@@ -31,6 +31,8 @@
 #include <cbang/json/Observable.h>
 #include <cbang/enum/ProcessPriority.h>
 
+#include <set>
+
 
 namespace FAH {
   namespace Client {
@@ -40,13 +42,12 @@ namespace FAH {
       App &app;
 
     public:
-      Config(App &app);
+      Config(App &app, const cb::JSON::ValuePtr &config);
 
-      void init();
       void update(const cb::JSON::Value &config);
 
-      bool getOnIdle() const;
       void setOnIdle(bool onIdle);
+      bool getOnIdle() const;
 
       void setPaused(bool paused);
       bool getPaused() const;
@@ -61,7 +62,9 @@ namespace FAH {
 
       uint32_t getCPUs() const;
       cb::ProcessPriority getCorePriority() const;
-      cb::JSON::ValuePtr getGPU(const std::string &id);
+      std::set<std::string> getGPUs() const;
+      bool isGPUEnabled(const std::string &id) const;
+      void disableGPU(const std::string &id);
 
       // From ObservableDict
       unsigned insert(const std::string &key, const cb::JSON::ValuePtr &value);

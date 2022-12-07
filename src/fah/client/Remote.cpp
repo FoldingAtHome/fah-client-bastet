@@ -32,6 +32,7 @@
 #include "Server.h"
 #include "Units.h"
 #include "Config.h"
+#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
@@ -42,9 +43,9 @@ using namespace cb;
 using namespace std;
 
 
-Remote::Remote(App &app, Event::RequestMethod method, const URI &uri,
-               const Version &version) :
-  Event::JSONWebsocket(method, uri, version), app(app) {}
+Remote::Remote(App &app, ResourceGroup &group, Event::RequestMethod method,
+               const URI &uri, const Version &version) :
+  Event::JSONWebsocket(method, uri, version), app(app), group(group) {}
 
 
 Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
@@ -53,9 +54,9 @@ Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
 void Remote::sendViz() {
   if (vizUnitID.empty()) return;
 
-  auto &unit = app.getUnits().getUnit(vizUnitID);
+  auto &unit    = group.getUnits()->getUnit(vizUnitID);
   auto topology = unit.getTopology();
-  auto frames = unit.getFrames();
+  auto frames   = unit.getFrames();
 
   if (topology.isNull()) return;
 
@@ -154,7 +155,7 @@ void Remote::sendChanges(const JSON::ValuePtr &changes) {
   if (changes->size() == 4 && changes->getString(0) == "units" &&
       changes->getString(2) == "frames") {
     unsigned unitIndex = changes->getU32(1);
-    string unitID = app.getUnits().getUnit(unitIndex).getID();
+    string   unitID    = group.getUnits()->getUnit(unitIndex).getID();
 
     if (vizUnitID == unitID) sendViz();
   }
@@ -162,9 +163,9 @@ void Remote::sendChanges(const JSON::ValuePtr &changes) {
 
 
 void Remote::onMessage(const JSON::ValuePtr &msg) {
-  LOG_DEBUG(3, "msg: " << *msg);
+  LOG_DEBUG(3, "'" << group.getName() << "' msg: " << *msg);
 
-  string cmd  = msg->getString("cmd", "");
+  string cmd  = msg->getString("cmd",  "");
   string unit = msg->getString("unit", "");
 
   if (cmd == "viz") {
@@ -179,20 +180,29 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     sendLog();
   }
 
-  if (cmd == "dump")    app.getUnits().dump(unit);
-  if (cmd == "finish")  app.getConfig().setFinish(true);
-  if (cmd == "pause")   app.getConfig().setPaused(true);
-  if (cmd == "unpause") app.getConfig().setPaused(false);
-  if (cmd == "config")  app.getConfig().update(*msg->get("config"));
+  if (cmd == "dump")    group.getUnits()->dump(unit);
+  if (cmd == "finish")  group.getConfig()->setFinish(true);
+  if (cmd == "pause")   group.getConfig()->setPaused(true);
+  if (cmd == "unpause") group.getConfig()->setPaused(false);
 
-  app.getUnits().triggerUpdate(true);
+  if (cmd == "config") {
+    group.getConfig()->update(*msg->get("config"));
+    if (group.getName().empty()) app.updateGroups();
+    app.updateResources();
+  }
+
+  group.getUnits()->triggerUpdate(true);
 }
 
 
-void Remote::onOpen() {send(app.getServer());}
+void Remote::onOpen() {
+  LOG_DEBUG(3, group.getName() << ":New client from " << getClientIP());
+  send(group);
+}
 
 
 void Remote::onComplete() {
+  LOG_DEBUG(3, group.getName() << ":Closing client from " << getClientIP());
   if (logEvent.isSet()) logEvent->del();
-  app.getServer().remove(*this);
+  group.remove(*this);
 }

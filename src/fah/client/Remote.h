@@ -35,10 +35,12 @@
 namespace FAH {
   namespace Client {
     class App;
+    class ResourceGroup;
 
 
     class Remote : public cb::Event::JSONWebsocket {
       App &app;
+      ResourceGroup &group;
 
       std::string vizUnitID;
       unsigned vizFrame = 0;
@@ -49,9 +51,11 @@ namespace FAH {
       cb::SmartPointer<cb::Event::Event> logEvent;
 
     public:
-      Remote(App &app, cb::Event::RequestMethod method, const cb::URI &uri,
-             const cb::Version &version);
+      Remote(App &app, ResourceGroup &group, cb::Event::RequestMethod method,
+             const cb::URI &uri, const cb::Version &version);
       ~Remote();
+
+      ResourceGroup &getGroup() {return group;}
 
       void sendViz();
       void sendLog();

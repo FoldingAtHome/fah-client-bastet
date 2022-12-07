@@ -33,6 +33,7 @@
 #include "Config.h"
 #include "OS.h"
 #include "GPUResources.h"
+#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 #include <cbang/json/JSON.h>
@@ -45,10 +46,15 @@ using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
+#undef CBANG_LOG_PREFIX
+#define CBANG_LOG_PREFIX << group.getName() << ':'
 
-Units::Units(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &Units::update, 0)) {
-  app.getEventBase().newEvent(this, &Units::load, 0)->activate();
+
+Units::Units(App &app, ResourceGroup &group,
+             const SmartPointer<Config> &config) :
+  app(app), group(group), config(config),
+  event(app.getEventBase().newEvent(this, &Units::update, 0)) {
+  triggerUpdate();
 }
 
 
@@ -68,8 +74,17 @@ bool Units::hasFailure() const {
 }
 
 
+bool Units::hasUnrunWUs() const {
+  for (unsigned i = 0; i < size(); i++)
+    if (!getUnit(i).hasRun()) return true;
+
+  return false;
+}
+
+
 void Units::add(const SmartPointer<Unit> &unit) {
   append(unit);
+  unit->setUnits(this);
   unit->triggerNext();
 }
 
@@ -91,6 +106,15 @@ Unit &Units::getUnit(unsigned index) const {
 Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
 
 
+const SmartPointer<Unit> Units::removeUnit(unsigned index) {
+  if (size() <= index) THROW("Invalid unit index " << index);
+  auto unit = get(index).castPtr<Unit>();
+  erase(index);
+  unit->setUnits(0);
+  return unit;
+}
+
+
 void Units::dump(const string &unitID) {
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = getUnit(i);
@@ -104,11 +128,11 @@ void Units::dump(const string &unitID) {
 void Units::unitComplete(bool success) {
   if (success) {
     failures = 0;
-    waitUntil = 0;
+    setWait(0);
 
   } else {
     failures++;
-    waitUntil = lastWU + pow(2, std::min(failures, 10U));
+    setWait(pow(2, std::min(failures, 10U)));
   }
 
   triggerUpdate();
@@ -116,9 +140,6 @@ void Units::unitComplete(bool success) {
 
 
 void Units::update() {
-  // First load the already existing WUs
-  if (!isConfigLoaded) return;
-
   // Remove completed units
   for (unsigned i = 0; i < size();)
     if (getUnit(i).getState() == UnitState::UNIT_DONE) erase(i);
@@ -143,48 +164,41 @@ void Units::update() {
   }
 
   // Handle finish
-  if (app.getConfig().getFinish()) {
+  if (config->getFinish()) {
     bool running = false;
 
     for (unsigned i = 0; i < size() && !running; i++)
       running = !getUnit(i).isPaused();
 
-    if (!running) app.getConfig().setPaused(true);
+    if (!running) config->setPaused(true);
   }
 
   // No further action if paused or idle
-  if (app.getConfig().getPaused() || app.getOS().shouldIdle()) return;
+  if (config->getPaused() || app.getOS().shouldIdle())
+    return setWait(0); // Pausing clears wait timer
 
   // Wait on failures
-  // TODO report wait time to remote clients
   auto now = Time::now();
   if (now < waitUntil) return event->add(waitUntil - now);
 
   // Allocate resources
-  unsigned           remainingCPUs = app.getConfig().getCPUs();
-  std::set<string>   remainingGPUs;
+  unsigned           remainingCPUs = config->getCPUs();
+  std::set<string>   remainingGPUs = config->getGPUs();
   std::set<unsigned> enabledWUs;
-
-  auto &allGPUs = app.getGPUs();
-  for (unsigned i = 0; i < allGPUs.size(); i++) {
-    auto &gpu = *allGPUs.get(i).cast<GPUResource>();
-    if (gpu.isEnabled()) remainingGPUs.insert(gpu.getID());
-  }
 
   // Allocate GPUs with minimum CPU requirements
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = getUnit(i);
-    if (!unit.atRunState()) continue;
+    if (UNIT_RUN < unit.getState()) continue;
 
-    auto &unitGPUs = *unit.getGPUs();
+    auto unitGPUs = unit.getGPUs();
     if (unitGPUs.empty()) continue;
 
     uint32_t minCPUs = unit.getMinCPUs();
     bool     runable = minCPUs <= remainingCPUs;
 
     std::set<string> gpusWithWU = remainingGPUs;
-    for (unsigned j = 0; j < unitGPUs.size() && runable; j++)
-      runable = gpusWithWU.erase(unitGPUs.getString(j));
+    for (auto id: unitGPUs) runable |= gpusWithWU.erase(id);
 
     if (runable) {
       remainingGPUs = gpusWithWU;
@@ -197,7 +211,7 @@ void Units::update() {
   uint32_t reservedCPUs = min(remainingCPUs, (uint32_t)remainingGPUs.size());
   remainingCPUs -= reservedCPUs;
 
-  // Allocate extra CPUs to GPU WUs
+  // Allocate extra CPUs to enabled GPU WUs
   for (unsigned i = 0; i < size(); i++) {
     if (!enabledWUs.count(i)) continue; // GPU WUs that were enabled above
     auto &unit = getUnit(i);
@@ -213,8 +227,8 @@ void Units::update() {
   // Allocate remaining CPUs to existing CPU WUs
   for (unsigned i = 0; i < size(); i++) {
     auto &unit = getUnit(i);
-    if (!unit.getGPUs()->empty() || remainingCPUs < unit.getMinCPUs()) continue;
-    if (!unit.atRunState()) continue;
+    if (unit.hasGPUs() || remainingCPUs < unit.getMinCPUs() ||
+        UNIT_RUN < unit.getState()) continue;
 
     uint32_t maxCPUs = unit.getMaxCPUs();
     uint32_t cpus    = min(maxCPUs, remainingCPUs);
@@ -235,41 +249,16 @@ void Units::update() {
   LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
             << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
 
-#if 0
-  // Dump WU with different resource allocation if not yet running
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = getUnit(i);
-    if (unit.hasRun()) continue;
+  // Do not add WUs when finishing or if any WUs have not run yet
+  if (config->getFinish() || hasUnrunWUs()) return;
 
-    if (remainingCPUs != unit.getCPUs() ||
-        remainingGPUs.size() != unit.getGPUs()->size()) unit.dumpWU();
-
-    else
-      for (auto id : remainingGPUs)
-        if (!unit.hasGPU(id)) {
-          unit.dumpWU();
-          break;
-        }
-  }
-#endif
-
-  // Do not add WUs when finishing
-  if (app.getConfig().getFinish()) return;
-
-  // Do not add WUs if any still have not run
-  for (unsigned i = 0; i < size(); i++)
-    if (!getUnit(i).hasRun()) return;
-
-  // Add new WU if we don't have too many WUs.
-  // Assume all WUs need at least one CPU
-  const unsigned maxWUs = allGPUs.size() + 6;
-  if (size() < maxWUs && remainingCPUs) {
-    app.getDB("config").set("wus", ++wus);
-    add(new Unit(app, wus, remainingCPUs, remainingGPUs));
+  // Add new WU if we don't already have too many and there are some resources
+  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
+  if (size() < maxWUs && (remainingCPUs || remainingGPUs.size())) {
+    add(new Unit(app, app.getNextWUID(), remainingCPUs, remainingGPUs));
     LOG_INFO(1, "Added new work unit");
+    triggerUpdate();
   }
-
-  lastWU = Time::now();
 }
 
 
@@ -288,19 +277,7 @@ void Units::shutdown(function<void ()> cb) {
 }
 
 
-void Units::load() {
-  wus = app.getDB("config").getInteger("wus", 0);
-
-  app.getDB("units").foreach(
-    [this] (const string &id, const string &data) {
-      LOG_INFO(3, "Loading work unit " << id);
-      try {
-        add(new Unit(app, JSON::Reader::parseString(data)));
-      } CATCH_ERROR;
-    });
-
-  isConfigLoaded = true;
-  LOG_INFO(3, "Loaded " << size() << " wus.");
-
-  triggerUpdate();
+void Units::setWait(double delay) {
+  waitUntil = Time::now() + delay;
+  group.getInfo()->insert("wait", Time(waitUntil).toString());
 }

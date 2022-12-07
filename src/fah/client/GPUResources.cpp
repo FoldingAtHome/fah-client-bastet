@@ -54,16 +54,16 @@ namespace {
     set<string> matched;
     auto &lib = LIB::instance();
 
-    for (auto it = lib.begin(); it != lib.end(); it++)
+    for (auto &dev: lib)
       for (unsigned i = 0; i < gpus.size(); i++) {
         auto &gpu = *gpus.get(i).cast<GPUResource>();
 
-        if (gpu.getPCI().getBusID() != it->pciBus ||
-            gpu.getPCI().getSlotID() != it->pciSlot ||
+        if (gpu.getPCI().getBusID()   != dev.pciBus  ||
+            gpu.getPCI().getSlotID()  != dev.pciSlot ||
             matched.find(gpu.getID()) != matched.end()) continue;
 
         matched.insert(gpu.getID());
-        gpu.set(name, *it);
+        gpu.set(name, dev);
       }
   } CATCH_ERROR;
 }
@@ -122,21 +122,24 @@ void GPUResources::update() {
 
 
 void GPUResources::detect() {
+  bool changed = false;
+
   // Enumerate PCI bus
   std::set<string> found;
   auto &info = PCIInfo::instance();
 
-  for (auto it = info.begin(); it != info.end(); it++) {
-    const GPU &gpu = gpuIndex.find(it->getVendorID(), it->getDeviceID());
+  for (auto &dev: info) {
+    const GPU &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
     if (!gpu.getType()) continue;
 
-    SmartPointer<GPUResource> res = new GPUResource(app, gpu, *it);
+    SmartPointer<GPUResource> res = new GPUResource(gpu, dev);
     string id = res->getID();
     found.insert(id);
     if (has(id)) continue;
 
     LOG_INFO(3, "Adding GPU " << id);
     insert(id, res);
+    changed = true;
   }
 
   // Delete GPUs that are gone
@@ -146,6 +149,7 @@ void GPUResources::detect() {
     if (found.find(id) == found.end()) {
       LOG_INFO(3, "Deleting GPU " << id);
       erase(id);
+      changed = true;
 
     } else i++;
   }
@@ -156,5 +160,8 @@ void GPUResources::detect() {
 #endif
   match<OpenCLLibrary>(*this, "opencl");
 
-  LOG_INFO(3, "gpus = " << *this);
+  if (changed) {
+    LOG_INFO(3, "gpus = " << *this);
+    app.updateResources();
+  }
 }

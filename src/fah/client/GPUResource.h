@@ -39,10 +39,7 @@
 
 namespace FAH {
   namespace Client {
-    class App;
-
     class GPUResource : public cb::JSON::ObservableDict {
-      App &app;
       std::string id;
 
       cb::GPU gpu;
@@ -51,12 +48,9 @@ namespace FAH {
       cb::ComputeDevice opencl;
 
     public:
-      GPUResource(App &app, const cb::GPU &gpu, const cb::PCIDevice &pci);
+      GPUResource(const cb::GPU &gpu, const cb::PCIDevice &pci);
 
       const std::string &getID() const {return id;}
-
-      cb::JSON::ValuePtr getConfig() const;
-      bool isEnabled() const;
 
       const cb::GPU &getGPU() const {return gpu;}
       const cb::PCIDevice &getPCI() const {return pci;}

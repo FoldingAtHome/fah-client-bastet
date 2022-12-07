@@ -26,75 +26,44 @@
 
 \******************************************************************************/
 
-#include "OS.h"
+#pragma once
 
-#include <fah/client/App.h>
+#include "Config.h"
+#include "Units.h"
+#include "Remote.h"
 
-#if defined(_WIN32)
-#include "win/WinOSImpl.h"
-#elif defined(__APPLE__)
-#include "osx/OSXOSImpl.h"
-#else
-#include "lin/LinOSImpl.h"
-#endif
-
-#include <cbang/Info.h>
-
-using namespace FAH::Client;
-using namespace cb;
-using namespace std;
+#include <cbang/json/Observable.h>
 
 
-OS::OS(App &app) : app(app) {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 0);
-}
+namespace FAH {
+  namespace Client {
+    class App;
 
+    class ResourceGroup : public cb::JSON::ObservableDict {
+      App   &app;
+      const std::string name;
 
-SmartPointer<OS> OS::create(App &app) {
-#if defined(_WIN32)
-  return new WinOSImpl(app);
+      cb::SmartPointer<Config> config;
+      cb::SmartPointer<Units>  units;
+      std::list<cb::SmartPointer<Remote> > clients;
 
-#elif defined(__APPLE__)
-  return new OSXOSImpl(app);
+    public:
+      ResourceGroup(App &app, const std::string &name,
+                    const cb::JSON::ValuePtr &config,
+                    const cb::JSON::ValuePtr &info);
 
-#else
-  return new LinOSImpl(app);
-#endif
-}
+      const std::string              &getName()   const {return name;}
+      const cb::SmartPointer<Config> &getConfig() const {return config;}
+      const cb::SmartPointer<Units>  &getUnits()  const {return units;}
+      const cb::JSON::ValuePtr       &getInfo()   const {return get("info");}
 
+      void add(const cb::SmartPointer<Remote> &client);
+      void remove(Remote &client);
 
-void OS::requestExit() {app.requestExit();}
+      void broadcast(const cb::JSON::ValuePtr &changes);
 
-
-const char *OS::getCPU() const {
-#if defined(__aarch64__)
-  return "arm64";
-#endif
-
-  return sizeof(void *) == 4 ? "x86" : "amd64";
-}
-
-
-void OS::dispatch() {app.getEventBase().dispatch();}
-
-
-void OS::setPaused(bool paused) {
-  app.setPaused(paused);
-  app.triggerUpdate();
-}
-
-
-bool OS::getPaused()  const {return app.getPaused();}
-bool OS::isActive()   const {return app.isActive();}
-bool OS::hasFailure() const {return app.hasFailure();}
-
-
-void OS::updateIdle() {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 2);
-
-  bool idle = !isSystemIdle() && app.getOnIdle();
-  if (idle == this->idle) return;
-
-  this->idle = idle;
-  app.triggerUpdate();
+      // From cb::JSON::Value
+      void notify(std::list<cb::JSON::ValuePtr> &change);
+    };
+  }
 }

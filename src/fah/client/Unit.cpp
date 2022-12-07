@@ -37,6 +37,7 @@
 #include "Cores.h"
 #include "Config.h"
 #include "ExitCode.h"
+#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 
@@ -102,8 +103,8 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
-           const std::set<string> &gpus) : Unit(app) {
+Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
+  Unit(app) {
   this->wu = wu;
   insert("number", wu);
   setCPUs(cpus);
@@ -112,7 +113,8 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus,
 }
 
 
-Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
+Unit::Unit(App &app, const JSON::ValuePtr &data) :
+  Unit(app) {
   this->data = data->get("data");
   merge(*data->get("state"));
 
@@ -135,6 +137,14 @@ Unit::~Unit() {
 }
 
 
+void Unit::setUnits(const cb::SmartPointer<Units> &units) {
+  this->units = units;
+  if (units.isSet()) insert("group", units->getGroup().getName());
+  else if (has("group")) erase("group");
+}
+
+
+string    Unit::getGroup() const {return getString("group", "");}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 
 
@@ -144,17 +154,19 @@ bool Unit::atRunState() const {
 }
 
 
-bool Unit::hasRun() const {
-  return getRunTime() || UnitState::UNIT_RUN <= getState();
+bool Unit::hasRun() const {return getRunTime() || UNIT_RUN <= getState();}
+
+
+uint64_t Unit::getProjectKey() const {
+  return units->getConfig().getProjectKey();
 }
 
 
-uint64_t Unit::getProjectKey() const {return app.getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return app.getConfig().getPaused() || app.getOS().shouldIdle() ||
+  return units->getConfig().getPaused() || app.getOS().shouldIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -166,11 +178,11 @@ void Unit::setPause(bool pause) {
 
 
 const char *Unit::getPauseReason() const {
-  if (app.getConfig().getPaused()) return "Paused by user";
-  if (app.getOS().shouldIdle())    return "Waiting for idle system";
-  if (getBoolean("paused", true))  return "Resources not available";
-  if (app.shouldQuit())            return "Shutting down";
-  if (isWaiting())                 return "Waiting to retry";
+  if (units->getConfig().getPaused()) return "Paused by user";
+  if (app.getOS().shouldIdle())       return "Waiting for idle system";
+  if (getBoolean("paused", true))     return "Resources not available";
+  if (app.shouldQuit())               return "Shutting down";
+  if (isWaiting())                    return "Waiting to retry";
   return "Not paused";
 }
 
@@ -195,16 +207,27 @@ uint32_t Unit::getMaxCPUs() const {
 
 void Unit::setGPUs(const std::set<string> &gpus) {
   auto l = createList();
-  for (auto id : gpus) l->append(id);
+  for (auto id: gpus) l->append(id);
   insert("gpus", l);
 }
 
 
-bool Unit::hasGPU(const string &id) const {
-  auto const &gpus = *getGPUs();
+std::set<string> Unit::getGPUs() const {
+  std::set<string> gpus;
 
-  for (unsigned i = 0; i < gpus.size(); i++)
-    if (gpus.getString(i) == id) return true;
+  auto &l = *get("gpus");
+  for (unsigned i = 0; i < l.size(); i++)
+    gpus.insert(l.getString(i));
+
+  return gpus;
+}
+
+
+bool Unit::hasGPU(const string &id) const {
+  auto const &gpus = getGPUs();
+
+  for (auto gpuID: gpus)
+    if (gpuID == id) return true;
 
   return false;
 }
@@ -243,8 +266,8 @@ double Unit::getEstimatedProgress() const {
     return getNumber("progress", 0);
 
   // Get estimated progress since last update from core
-  double delta = getRunTime() - lastKnownProgressUpdateRunTime;
-  double runtime = getRunTimeEstimate();
+  double delta         = getRunTime() - lastKnownProgressUpdateRunTime;
+  double runtime       = getRunTimeEstimate();
   double deltaProgress = runtime ? delta / runtime : 0;
   if (0.01 < deltaProgress) deltaProgress = 0.01; // No more than 1%
 
@@ -284,7 +307,10 @@ uint64_t Unit::getPPD() const {
 }
 
 
-string Unit::getLogPrefix() const {return String::printf("WU%" PRIu64 ":", wu);}
+string Unit::getLogPrefix() const {
+  const char *group = units->getGroup().getName().c_str();
+  return String::printf("%s:WU%" PRIu64 ":", group, wu);
+}
 
 
 string Unit::getDirectory() const {
@@ -352,6 +378,7 @@ void Unit::dumpWU() {
   event->del();
 
   cancelRequest(); // Terminate any active connections
+  save();
   triggerNext();
 }
 
@@ -382,7 +409,7 @@ void Unit::cancelRequest() {
 
 void Unit::setState(UnitState state) {
   if (hasString("state") && state == getState()) return;
-  app.getUnits().triggerUpdate();
+  if (units.isSet()) units->triggerUpdate();
   insert("state", state.toString());
   setProgress(0, 0);
 }
@@ -411,8 +438,10 @@ void Unit::next() {
   }
 
   // Handle pause
-  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP)
+  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP) {
+    setWait(0); // Stop waiting
     return readViewerData();
+  }
 
   // Handle event backoff
   if (getState() != UNIT_DONE && isWaiting())
@@ -559,8 +588,6 @@ void Unit::run() {
   args.push_back(app.getVersion().toString());
   args.push_back("-lifeline");
   args.push_back(String(SystemUtilities::getPID()));
-  args.push_back("-checkpoint");
-  args.push_back(app.getConfig().getAsString("checkpoint"));
 
   runningCPUs = getU32("cpus");
 
@@ -589,7 +616,7 @@ void Unit::run() {
   process->setWorkingDirectory("work");
   process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
                 Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
-                app.getConfig().getCorePriority());
+                units->getConfig().getCorePriority());
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
 
   // Redirect core output to log
@@ -629,6 +656,7 @@ void Unit::readInfo() {
 
 
 void Unit::readViewerData() {
+  if (getState() < UNIT_CORE) return;
   if (topology.isNull()) readViewerTop();
   if (readViewerFrame()) triggerNext();
 }
@@ -713,7 +741,7 @@ void Unit::finalizeRun() {
 #endif
 
   // Notify parent
-  app.getUnits().triggerUpdate();
+  units->triggerUpdate();
 
   // WU not complete if core was interrupted
   if (code == ExitCode::INTERRUPTED) return triggerNext();
@@ -764,10 +792,10 @@ void Unit::monitorRun() {
     readViewerData();
 
     // Update ETA, PPD and progress
-    string eta = TimeInterval(getETA()).toString();
+    string   eta = TimeInterval(getETA()).toString();
     uint64_t ppd = getPPD();
     if (eta != getString("eta", "")) insert("eta", eta);
-    if (ppd != getU64("ppd", 0)) insert("ppd", ppd);
+    if (ppd != getU64   ("ppd",  0)) insert("ppd", ppd);
     setProgress(getEstimatedProgress(), 1);
   } CATCH_ERROR;
 
@@ -785,14 +813,14 @@ void Unit::clean() {
   TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   setState(UNIT_DONE);
-  app.getUnits().unitComplete(success);
+  units->unitComplete(success);
 }
 
 
 void Unit::setWait(double delay) {
   wait = Time::now() + delay;
   insert("delay", delay);
-  insert("wait", Time(wait).toString());
+  insert("wait",  Time(wait).toString());
 }
 
 
@@ -855,10 +883,10 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   else get("gpus")->clear();
 
   LOG_DEBUG(3, "Received assignment for " << cpus << " cpus and "
-            << getGPUs()->size() << " gpus");
+            << get("gpus")->size() << " gpus");
 
   // Try to allocate more units now that our resources have been updated
-  app.getUnits().triggerUpdate();
+  units->triggerUpdate();
 
   this->data = data;
   setState(UNIT_DOWNLOAD);
@@ -866,34 +894,35 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
 
 void Unit::writeRequest(JSON::Sink &sink) {
-  auto &info = SystemInfo::instance();
+  auto &sysInfo = SystemInfo::instance();
   auto cpuInfo = CPUInfo::create();
   CPURegsX86 cpuRegsX86;
 
   sink.beginDict();
 
   // Protect against replay
-  sink.insert("time",           Time().toString());
-  sink.insert("wu",             getU64("number"));
+  sink.insert("time",    Time().toString());
+  sink.insert("wu",      getU64("number"));
 
   // Client
-  sink.insert("version",        app.getVersion().toString());
-  sink.insert("id",             app.getInfo().getString("id"));
+  auto &info = *units->getGroup().getInfo();
+  sink.insert("version", info.getString("version"));
+  sink.insert("id",      info.getString("id"));
 
   // User
-  sink.insert("user",           app.getConfig().getUsername());
-  sink.insert("team",           app.getConfig().getTeam());
-  sink.insert("passkey",        app.getConfig().getPasskey());
+  sink.insert("user",    units->getConfig().getUsername());
+  sink.insert("team",    units->getConfig().getTeam());
+  sink.insert("passkey", units->getConfig().getPasskey());
 
   // OS
   sink.insertDict("os");
-  sink.insert("version",        info.getOSVersion().toString());
-  sink.insert("type",           app.getOS().getName());
-  sink.insert("memory",         info.getFreeMemory());
+  sink.insert("version", sysInfo.getOSVersion().toString());
+  sink.insert("type",    info.getString("os"));
+  sink.insert("memory",  sysInfo.getFreeMemory());
   sink.endDict();
 
   // Project
-  auto &config = app.getConfig();
+  const auto &config = units->getConfig();
   sink.insertDict("project");
   if (config.hasString("release"))
     sink.insert("release", config.getString("release"));
@@ -907,7 +936,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
   // CPU
   sink.insertDict("cpu");
-  sink.insert("cpu",            app.getOS().getCPU());
+  sink.insert("cpu",            info.getString("cpu"));
   sink.insert("cpus",           getCPUs());
   sink.insert("vendor",         cpuInfo->getVendor());
   sink.insert("signature",      cpuInfo->getSignature());

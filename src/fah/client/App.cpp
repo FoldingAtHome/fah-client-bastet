@@ -33,19 +33,23 @@
 #include "Cores.h"
 #include "Config.h"
 #include "OS.h"
+#include "ResourceGroup.h"
+#include "PasskeyConstraint.h"
+#include "CausePref.h"
 
 #include <cbang/Catch.h>
 #include <cbang/event/Event.h>
 #include <cbang/log/Logger.h>
 #include <cbang/time/Time.h>
+#include <cbang/json/Sink.h>
+#include <cbang/util/Resource.h>
+
+#include <cbang/net/URI.h>
+#include <cbang/net/Base64.h>
+
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/os/SignalManager.h> // For SIGHUP on Windows
-#include <cbang/net/URI.h>
-#include <cbang/json/Sink.h>
-#include <cbang/Info.h>
-#include <cbang/util/Resource.h>
-#include <cbang/net/Base64.h>
 
 #include <cbang/openssl/SSL.h>
 #include <cbang/openssl/SSLContext.h>
@@ -53,6 +57,12 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/openssl/CertificateStore.h>
 #include <cbang/openssl/CertificateStoreContext.h>
+
+#include <cbang/config/MinMaxConstraint.h>
+#include <cbang/config/MinConstraint.h>
+#include <cbang/config/EnumConstraint.h>
+
+#include <set>
 
 #include <signal.h>
 
@@ -72,8 +82,7 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, 10),
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
-  gpus(new GPUResources(*this)), units(new Units(*this)),
-  cores(new Cores(*this)), config(new Config(*this)), os(OS::create(*this)),
+  gpus(new GPUResources(*this)), cores(new Cores(*this)), os(OS::create(*this)),
   info(new JSON::Dict) {
 
   // Info
@@ -104,6 +113,29 @@ App::App() :
     ->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
                  "assign3.foldingathome.org assign4.foldingathome.org "
                  "assign5.foldingathome.org assign6.foldingathome.org");
+  options.popCategory();
+
+  SmartPointer<Option> opt;
+  options.pushCategory("User Information");
+  options.add("user", "Your user name.")->setDefault("Anonymous");
+  options.add("team", "Your team number.",
+              new MinMaxConstraint<int32_t>(0, 2147483647))->setDefault(0);
+  opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
+  opt->setDefault("");
+  opt->setObscured();
+  options.popCategory();
+
+  options.pushCategory("Project Settings");
+  options.add("project-key", "Key for access to restricted testing projects."
+              )->setDefault(0);
+  options.alias("project-key", "key");
+  options.add("cause", "The cause you prefer to support.",
+              new EnumConstraint<CausePref>)->setDefault("any");
+  options.popCategory();
+
+  options.pushCategory("Resource Settings");
+  options.add("cpus", "Number of cpus FAH client will use.",
+              new MaxConstraint<int32_t>(SystemInfo::instance().getCPUCount()));
   options.popCategory();
 
   // Configure log
@@ -163,6 +195,174 @@ DB::NameValueTable &App::getDB(const string name) {
   }
 
   return *it->second;
+}
+
+
+const SmartPointer<ResourceGroup> &App::newGroup(const string &name) {
+  if (shouldQuit()) THROW("Shutting down");
+
+  auto &db = getDB("groups");
+  JSON::ValuePtr config;
+
+  if (db.has(name)) config = db.getJSON(name);
+  else if (db.has("")) {
+    config = db.getJSON("");
+    config->insert("cpus", 0);
+    config->erase("gpus");
+    config->erase("peers");
+
+  } else config = new JSON::Dict;
+
+  return groups[name] =
+    new ResourceGroup(*this, name, config, info->copy(true));
+}
+
+
+const SmartPointer<ResourceGroup> &App::getGroup(const string &name) const {
+  auto it = groups.find(name);
+  if (it == groups.end()) THROW("Group '" << name << "' not found");
+  return it->second;
+}
+
+
+void App::saveGroup(const ResourceGroup &group) {
+  getDB("groups").set(group.getName(), *group.getConfig());
+}
+
+
+void App::updateGroups() {
+  std::set<string> peers;
+  auto &root   = *getGroup("");
+  auto &config = *root.getConfig();
+
+  // Add new groups
+  if (config.hasList("peers")) {
+    auto &list = *config.get("peers");
+
+    for (unsigned i = 0; i < list.size(); i++) {
+      string name = list.getString(i);
+
+      if (!name.empty() && name[0] == '/') {
+        if (groups.find(name) == groups.end()) newGroup(name);
+        peers.insert(name);
+      }
+    }
+  }
+
+  auto db = getDB("groups");
+
+  // Remove deleted groups
+  for (auto it = groups.begin(); it != groups.end();) {
+    const string &name = it->first;
+
+    if (!name.empty() && name[0] == '/' && peers.find(name) == peers.end()) {
+      // Dump any WUs and move to root group
+      auto &units = *it->second->getUnits();
+      while (units.size()) {
+        auto unit = units.removeUnit(0);
+        root.getUnits()->add(unit);
+        unit->dumpWU();
+      }
+
+      db.unset(name);
+      it = groups.erase(it);
+
+    } else it++;
+  }
+}
+
+
+void App::updateResources() {
+  // Determine which GPUs and CPUs are already in use
+  map<string, string> gpuUsedBy;
+  uint32_t availableCPUs = info->getU32("cpus");
+  int32_t  remainingCPUs = availableCPUs;
+
+  for (auto group: groups) {
+    auto &config = *group.second->getConfig();
+    remainingCPUs -= config.getCPUs();
+
+    for (unsigned i = 0; i < gpus->size(); i++) {
+      string gpuID = gpus->keyAt(i);
+
+      if (config.isGPUEnabled(gpuID) &&
+          gpuUsedBy.find(gpuID) == gpuUsedBy.end())
+        gpuUsedBy[gpuID] = group.second->getName();
+    }
+  }
+
+  if (remainingCPUs < 0) remainingCPUs = 0; // Check for over-allocation
+
+  // Set group GPUs and CPUs
+  for (auto group: groups) {
+    auto  &config = *group.second->getConfig();
+    auto     info = group.second->get("info");
+    uint32_t cpus = min(config.getCPUs(), availableCPUs);
+
+    info->insert("cpus", cpus + remainingCPUs);
+    availableCPUs -= cpus;
+    if (cpus < config.getCPUs()) config.insert("cpus", cpus);
+
+    JSON::ValuePtr groupGPUs = new JSON::Dict;
+
+    for (unsigned i = 0; i < gpus->size(); i++) {
+      string gpuID = gpus->keyAt(i);
+
+      auto it = gpuUsedBy.find(gpuID);
+      if (it == gpuUsedBy.end() || it->second == group.second->getName())
+        groupGPUs->insert(gpuID, gpus->get(i)->copy(true));
+    }
+
+    if (*info->get("gpus") != *groupGPUs) info->insert("gpus", groupGPUs);
+  }
+}
+
+
+void App::triggerUpdate() {
+  for (auto group: groups)
+    group.second->getUnits()->triggerUpdate(true);
+}
+
+
+bool App::isActive() const {
+  for (auto group: groups)
+    if (group.second->getUnits()->isActive())
+      return true;
+
+  return false;
+}
+
+
+bool App::hasFailure() const {
+  for (auto group: groups)
+    if (group.second->getUnits()->hasFailure())
+      return true;
+
+  return false;
+}
+
+
+void App::setPaused(bool paused) {
+  for (auto group: groups)
+    group.second->getConfig()->setPaused(paused);
+}
+
+
+bool App::getPaused() const {
+  for (auto group: groups)
+    if (!group.second->getConfig()->getPaused())
+      return false;
+
+  return true;
+}
+
+
+bool App::getOnIdle() const {
+  for (auto group: groups)
+    if (group.second->getConfig()->getOnIdle())
+      return true;
+
+  return false;
 }
 
 
@@ -227,6 +427,23 @@ const IPAddress &App::getNextAS() {
 }
 
 
+uint64_t App::getNextWUID() {
+  auto &db = getDB("config");
+  uint64_t id = db.getInteger("wus", 0);
+  db.set("wus", id + 1);
+  return id + 1;
+}
+
+
+void App::upgradeDB() {
+  auto &configDB = getDB("config");
+  auto &groupsDB = getDB("groups");
+
+  if (!groupsDB.has("") && configDB.has("config"))
+    groupsDB.set("", configDB.getString("config"));
+}
+
+
 void App::loadConfig() {
   // Info
   info->insert("version", getVersion().toString());
@@ -235,15 +452,15 @@ void App::loadConfig() {
   info->insert("cpus",    SystemInfo::instance().getCPUCount());
   info->insert("gpus",    gpus);
 
-  auto &config = getDB("config");
+  auto &configDB = getDB("config");
 
   // Generate key
-  if (!config.has("key")) {
+  if (!configDB.has("key")) {
     key.generateRSA(4096, 65537, new KeyGenPacifier("Generating RSA key"));
-    config.set("key", key.privateToString());
+    configDB.set("key", key.privateToString());
   }
 
-  key.readPrivate(config.getString("key"));
+  key.readPrivate(configDB.getString("key"));
 
   // Generate ID from key
   string id = Digest::base64(key.getPublic().toBinString(), "sha256");
@@ -254,14 +471,47 @@ void App::loadConfig() {
 
 void App::loadServers() {
   auto addresses = options["assignment-servers"].toStrings();
-
   if (addresses.empty()) THROW("No assignment servers");
 
-  for (auto it = addresses.begin(); it != addresses.end(); it++)
-    try {IPAddress::ipsFromString(*it, servers);} CATCH_ERROR;
+  for (auto address: addresses)
+    try {IPAddress::ipsFromString(address, servers);} CATCH_ERROR;
 
   if (servers.empty())
     THROW("Failed to find any assignment server IP addresses");
+}
+
+
+void App::loadGroups() {
+  newGroup("");
+
+  getDB("groups").foreach(
+    [this] (const string &group, const string &dataStr) {
+      if (groups.find(group) == groups.end()) newGroup(group);
+    });
+}
+
+
+void App::loadUnits() {
+  unsigned count = 0;
+
+  getDB("units").foreach(
+    [this, &count] (const string &id, const string &dataStr) {
+      LOG_INFO(3, "Loading work unit " << id);
+
+      try {
+        auto data  = JSON::Reader::parseString(dataStr);
+        auto group = data->getString("group", "");
+
+        if (groups.find(group) == groups.end()) newGroup(group);
+
+        auto units = getGroup(group)->getUnits();
+
+        units->add(new Unit(*this, data));
+        count++;
+      } CATCH_ERROR;
+    });
+
+  LOG_INFO(3, "Loaded " << count << " wus.");
 }
 
 
@@ -277,16 +527,12 @@ void App::run() {
   db.open("client.db");
 
   // Initialize
+  upgradeDB();
   server->init();
-  config->init();
   loadConfig();
   loadServers();
-
-  // Connect JSON::Observables
-  server->insert("units",  units);
-  server->insert("config", config);
-  server->insert("info",   info);
-  // TODO Add access to log
+  loadGroups();
+  loadUnits();
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
@@ -300,7 +546,12 @@ void App::run() {
 
 
 void App::requestExit() {
-  getUnits().shutdown([this]() {base.loopExit();});
+  SmartPointer<unsigned> count = new unsigned(groups.size());
+  auto cb = [count, this]() {if (!--*count) base.loopExit();};
+
+  for (auto group: groups)
+    group.second->getUnits()->shutdown(cb);
+
   Application::requestExit();
 }
 

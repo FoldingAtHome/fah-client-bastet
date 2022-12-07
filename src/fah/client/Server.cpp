@@ -29,8 +29,7 @@
 #include "Server.h"
 #include "App.h"
 #include "Remote.h"
-#include "Config.h"
-#include "Units.h"
+#include "ResourceGroup.h"
 
 #include <cbang/log/Logger.h>
 
@@ -75,25 +74,6 @@ bool Server::corsCB(Event::Request &req) {
 }
 
 
-void Server::broadcast(const JSON::ValuePtr &changes) {
-  LOG_DEBUG(5, __func__ << ' ' << *changes);
-
-  for (auto it = clients.begin(); it != clients.end(); it++) {
-    auto &ws = **it;
-    if (ws.isActive()) ws.sendChanges(changes);
-  }
-}
-
-
-void Server::remove(Remote &remote) {
-  for (auto it = clients.begin(); it != clients.end(); it++)
-    if (*it == &remote) {
-      clients.erase(it);
-      break;
-    }
-}
-
-
 void Server::init() {
   auto &options = app.getOptions();
 
@@ -114,31 +94,15 @@ void Server::init() {
 SmartPointer<Event::Request>
 Server::createRequest(Event::RequestMethod method, const URI &uri,
                       const Version &version) {
-  if (method == HTTP_GET && uri.getPath() == "/api/websocket") {
-    LOG_DEBUG(3, "New websocket client");
-    clients.push_back(new Remote(app, method, uri, version));
-    return clients.back();
+  if (method == HTTP_GET &&
+      String::startsWith(uri.getPath(), "/api/websocket")) {
+    string name = uri.getPath().substr(14);
+
+    auto group = app.getGroup(name);
+    SmartPointer<Remote> client = new Remote(app, *group, method, uri, version);
+    group->add(client);
+    return client;
   }
 
   return Event::WebServer::createRequest(method, uri, version);
-}
-
-
-bool Server::handleRequest(const SmartPointer<Event::Request> &req) {
-  if (req->isWebsocket()) return true;
-  return Event::WebServer::handleRequest(req);
-}
-
-
-void Server::notify(list<JSON::ValuePtr> &change) {
-  SmartPointer<JSON::List> changes =
-    new JSON::List(change.begin(), change.end());
-
-  broadcast(changes);
-
-  // Automatically save changes to config
-  if (!change.empty() && change.front()->getString() == "config") {
-    app.getDB("config").set("config", app.getConfig());
-    app.getUnits().triggerUpdate();
-  }
 }
