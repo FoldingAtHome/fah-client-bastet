@@ -106,7 +106,7 @@ if 'package' in COMMAND_LINE_TARGETS:
                 # name is component pkg file name and name shown in installer
                 'name'        : 'FAHClient',
                 'pkg_id'      : 'org.foldingathome.fahclient.pkg',
-                'description' : short_description,
+                'description' : 'FAH_CLIENT_DESC', # Localizable.strings key
                 # abs path or relative to PWD
                 # client repo directory
                 'home'        : client_home,
@@ -190,7 +190,4 @@ if 'package' in COMMAND_LINE_TARGETS:
     AlwaysBuild(pkg)
     env.Alias('package', pkg)
     Clean(pkg, ['build/pkg', 'build/flatdistpkg', 'package-description.txt'])
-    NoClean(pkg, [Glob('*.zip'), 'package.txt'])
-
-    with open('package-description.txt', 'w') as f:
-        f.write(short_description.strip())
+    NoClean(pkg, [Glob('*.pkg'), 'package.txt'])
