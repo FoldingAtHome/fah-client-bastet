@@ -161,7 +161,6 @@ skip_remove:
   ; Uninstall old software
   ; Avoid simply removing the whole directory as that causes subsequent file
   ; writes to fail for several seconds.
-  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
   StrCmp $3 "v7" 0 skip_v7cleanup
   ; Copy old FAH v7 settings to new v8 DataDir, if in different locations
   StrCmp $DataDir $UnDataDir skip_copy_settings
@@ -174,6 +173,7 @@ skip_copy_settings:
   MessageBox MB_YESNO \
     "$(^RemoveFolder)$\r$\n$\r$\nFolding@home Data: $(DataText) \
     $\r$\n$UnDataDir" /SD IDYES IDNO skip_data_remove
+  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
   ; Remove sub-folders recursively
   RMDir /r "$UnDataDir\configs"
   RMDir /r "$UnDataDir\cores"
@@ -532,8 +532,13 @@ Function OnInstallPageLeave
   ; Validate data dir from the text box
   Push $4
   Call ValidPath
-  ${If} $4 != error
+  ; Try to create the Data directory, to avoid allowing an invalid drive
+  CreateDirectory "$4"
+  ${If} ${FileExists} "$4\*.*"
     StrCpy $DataDir $4
+  ${Else}
+    MessageBox MB_OK "$(^ErrorCreating)$4"
+    Abort
   ${EndIf}
 FunctionEnd
 
