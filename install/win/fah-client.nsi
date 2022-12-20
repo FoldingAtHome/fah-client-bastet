@@ -473,6 +473,7 @@ FunctionEnd
 
 
 Function OnInstallPageEnter
+  ClearErrors
   ; Init
   ${If} $DataDir == ""
     ReadRegStr $DataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
@@ -513,24 +514,27 @@ FunctionEnd
 
 
 Function OnDataDirBrowse
-  ${NSD_GetText} $DataDirText $0
-  ;Select Data Directory: "Destination Folder"
-  nsDialogs::SelectFolderDialog $(^DirSubText) "$0"
-  Pop $0
-  ${If} $0 != error
-    ${NSD_SetText} $DataDirText "$0"
+  ClearErrors
+  ${NSD_GetText} $DataDirText $4
+  ; Select Data Directory: "Destination Folder"
+  nsDialogs::SelectFolderDialog $(^DirSubText) "$4"
+  Pop $4
+  ${If} $4 != error
+    ${NSD_SetText} $DataDirText "$4"
+    StrCpy $DataDir $4
   ${EndIf}
 FunctionEnd
 
 
 Function OnInstallPageLeave
-  ; Validate install dir
-  Push $INSTDIR
+  ClearErrors
+  ${NSD_GetText} $DataDirText $4
+  ; Validate data dir from the text box
+  Push $4
   Call ValidPath
-
-  ; Validate data dir
-  Push $DataDir
-  Call ValidPath
+  ${If} $4 != error
+    StrCpy $DataDir $4
+  ${EndIf}
 FunctionEnd
 
 
