@@ -153,27 +153,31 @@ skip_remove:
   Delete "$SMSTARTUP\FAHControl.lnk"
 
   ; Data directory
-  CreateDirectory $DataDir
+  CreateDirectory "$DataDir"
   ; Set working directory for files, etc. Do before AccessControl::GrantOnFile
-  SetOutPath $DataDir
+  SetOutPath "$DataDir"
   AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
 
   ; Uninstall old software
   ; Avoid simply removing the whole directory as that causes subsequent file
   ; writes to fail for several seconds.
-  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
   StrCmp $3 "v7" 0 skip_v7cleanup
-  ; Copy old FAH v7 settings to new v8 DataDir, if in different locations
-  StrCmp $DataDir $UnDataDir skip_copy_settings
-    IfFileExists "$UnDataDir\config.xml" 0 skip_copy_settings
-      ; Copy old FAH settings to new location
-      DetailPrint "$UnDataDir\config.xml"
+  ; Copy old FAH v7 settings to new v8 DataDir
+  IfFileExists "$UnDataDir\config.xml" 0 skip_copy_settings
+    DetailPrint "$UnDataDir\config.xml"
+    ${If} $DataDir == $UnDataDir
+      ; Same data folder, copy v7 FAH settings to temp location
+      CopyFiles "$UnDataDir\config.xml" "$TEMP\config.xml"
+    ${Else}
+      ; Different data folder, copy v7 FAH settings to new v8 location
       CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
+    ${EndIf}
 skip_copy_settings:
 
-  MessageBox MB_YESNO \
-    "$(^RemoveFolder)$\r$\n$\r$\nFolding@home Data: $(DataText) \
-    $\r$\n$UnDataDir" /SD IDYES IDNO skip_data_remove
+  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 \
+    "$(^RemoveFolder)$\r$\n$UnDataDir ?$\r$\n$\r$\n \
+    Folding@home Data: $(DataText)" /SD IDNO IDNO skip_data_remove
+  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
   ; Remove sub-folders recursively
   RMDir /r "$UnDataDir\configs"
   RMDir /r "$UnDataDir\cores"
@@ -184,6 +188,14 @@ skip_copy_settings:
   ; Only remove DataDir when empty. Avoid recursive remove to DataDir
   RMDir "$UnDataDir"
 skip_data_remove:
+
+  ; Temp copy, move FAH v7 settings back to same DataDir
+  StrCmp $DataDir $UnDataDir 0 skip_temp_copy
+  IfFileExists "$TEMP\config.xml" 0 skip_temp_copy
+    DetailPrint "$TEMP\config.xml"
+    CopyFiles "$TEMP\config.xml" "$DataDir\config.xml"
+    Delete "$TEMP\config.xml"
+skip_temp_copy:
 
   DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UninstDir"
   ; Remove lib folder (FAH v7.x uninstaller was not run)
@@ -225,7 +237,7 @@ install_files:
   ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
 
   ; Set working directory for shortcuts, etc.
-  SetOutPath $DataDir
+  SetOutPath "$DataDir"
 
   ; Delete old desktop links for Current and All Users
   SetShellVarContext current
@@ -301,7 +313,7 @@ write_uninstaller:
   ${RefreshShellIcons}
 
   ; Set working directory for starting Folding@home, if selected on Finish page
-  SetOutPath $DataDir
+  SetOutPath "$DataDir"
 
   Return
 
@@ -473,6 +485,7 @@ FunctionEnd
 
 
 Function OnInstallPageEnter
+  ClearErrors
   ; Init
   ${If} $DataDir == ""
     ReadRegStr $DataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
@@ -513,24 +526,32 @@ FunctionEnd
 
 
 Function OnDataDirBrowse
-  ${NSD_GetText} $DataDirText $0
-  ;Select Data Directory: "Destination Folder"
-  nsDialogs::SelectFolderDialog $(^DirSubText) "$0"
-  Pop $0
-  ${If} $0 != error
-    ${NSD_SetText} $DataDirText "$0"
+  ClearErrors
+  ${NSD_GetText} $DataDirText $4
+  ; Select Data Directory: "Destination Folder"
+  nsDialogs::SelectFolderDialog $(^DirSubText) "$4"
+  Pop $4
+  ${If} $4 != error
+    ${NSD_SetText} $DataDirText "$4"
+    StrCpy $DataDir $4
   ${EndIf}
 FunctionEnd
 
 
 Function OnInstallPageLeave
-  ; Validate install dir
-  Push $INSTDIR
+  ClearErrors
+  ${NSD_GetText} $DataDirText $4
+  ; Validate data dir from the text box
+  Push $4
   Call ValidPath
-
-  ; Validate data dir
-  Push $DataDir
-  Call ValidPath
+  ; Try to create the Data directory, to avoid allowing an invalid drive
+  CreateDirectory "$4"
+  ${If} ${FileExists} "$4\*.*"
+    StrCpy $DataDir $4
+  ${Else}
+    MessageBox MB_OK "$(^ErrorCreating)$4"
+    Abort
+  ${EndIf}
 FunctionEnd
 
 
