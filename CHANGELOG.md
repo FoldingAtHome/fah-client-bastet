@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.5
+ - Fix data folder selection in Window installer.  (Jeff Moreland)
+
 ## v8.1.4
  - Fix "Finish" handling.
  - Stop wait timers on pause.
@@ -8,7 +11,7 @@ Folding@home Client Changelog
  - Windows installer translations. #48 (Jeff Moreland)
  - Don't delete other files on Windows uninstall. (Jeff Moreland)
  - Other Windows installer improvements. (Jeff Moreland)
- - Added resource groups feature.  (Similar to slots in v7)
+ - Added resource groups feature. (Similar to slots in v7)
 
 ## v8.1.3
  - Load team and other numerical options from old ``config.xml`` correctly.
