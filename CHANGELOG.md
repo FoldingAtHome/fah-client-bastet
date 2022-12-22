@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.6
+ - Fixed a memory leak in Linux builds.
+ - Fixes for on idle handling.
+
 ## v8.1.5
  - Fix data folder selection in Window installer.  (Jeff Moreland)
 

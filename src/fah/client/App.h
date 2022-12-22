@@ -117,7 +117,6 @@ namespace FAH {
       bool hasFailure() const;
       void setPaused(bool paused);
       bool getPaused() const;
-      bool getOnIdle() const;
 
       const cb::KeyPair &getKey() const {return key;}
       void validate(const cb::Certificate &cert,

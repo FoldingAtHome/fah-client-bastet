@@ -345,6 +345,8 @@ bool App::hasFailure() const {
 void App::setPaused(bool paused) {
   for (auto group: groups)
     group.second->getConfig()->setPaused(paused);
+
+  triggerUpdate();
 }
 
 
@@ -354,15 +356,6 @@ bool App::getPaused() const {
       return false;
 
   return true;
-}
-
-
-bool App::getOnIdle() const {
-  for (auto group: groups)
-    if (group.second->getConfig()->getOnIdle())
-      return true;
-
-  return false;
 }
 
 

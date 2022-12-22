@@ -166,7 +166,7 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return units->getConfig().getPaused() || app.getOS().shouldIdle() ||
+  return units->getConfig().getPaused() || units->waitForIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -179,7 +179,7 @@ void Unit::setPause(bool pause) {
 
 const char *Unit::getPauseReason() const {
   if (units->getConfig().getPaused()) return "Paused by user";
-  if (app.getOS().shouldIdle())       return "Waiting for idle system";
+  if (units->waitForIdle())           return "Waiting for idle system";
   if (getBoolean("paused", true))     return "Resources not available";
   if (app.shouldQuit())               return "Shutting down";
   if (isWaiting())                    return "Waiting to retry";

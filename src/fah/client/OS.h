@@ -37,10 +37,9 @@ namespace FAH {
 
     class OS {
       App &app;
-      bool idle = false;
 
     public:
-      OS(App &app);
+      OS(App &app) : app(app) {}
       virtual ~OS() {}
 
       static cb::SmartPointer<OS> create(App &app);
@@ -51,18 +50,6 @@ namespace FAH {
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
       virtual void dispatch();
-
-      void requestExit();
-
-      void setPaused(bool paused);
-      bool getPaused() const;
-
-      bool isActive() const;
-      bool hasFailure() const;
-      bool shouldIdle() const {return idle;}
-
-    protected:
-      void updateIdle();
     };
   }
 }

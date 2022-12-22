@@ -58,9 +58,10 @@ namespace FAH {
       const ResourceGroup &getGroup()  const {return group;}
       const Config        &getConfig() const {return *config;}
 
-      bool isActive() const;
-      bool hasFailure() const;
+      bool isActive()    const;
+      bool hasFailure()  const;
       bool hasUnrunWUs() const;
+      bool waitForIdle() const;
 
       void add(const cb::SmartPointer<Unit> &unit);
       unsigned getUnitIndex(const std::string &id) const;

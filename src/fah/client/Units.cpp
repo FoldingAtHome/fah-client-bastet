@@ -82,6 +82,11 @@ bool Units::hasUnrunWUs() const {
 }
 
 
+bool Units::waitForIdle() const {
+  return getConfig().getOnIdle() && !app.getOS().isSystemIdle();
+}
+
+
 void Units::add(const SmartPointer<Unit> &unit) {
   append(unit);
   unit->setUnits(this);
@@ -174,7 +179,7 @@ void Units::update() {
   }
 
   // No further action if paused or idle
-  if (config->getPaused() || app.getOS().shouldIdle())
+  if (config->getPaused() || waitForIdle())
     return setWait(0); // Pausing clears wait timer
 
   // Wait on failures

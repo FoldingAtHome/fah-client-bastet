@@ -45,11 +45,6 @@ using namespace cb;
 using namespace std;
 
 
-OS::OS(App &app) : app(app) {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 0);
-}
-
-
 SmartPointer<OS> OS::create(App &app) {
 #if defined(_WIN32)
   return new WinOSImpl(app);
@@ -63,9 +58,6 @@ SmartPointer<OS> OS::create(App &app) {
 }
 
 
-void OS::requestExit() {app.requestExit();}
-
-
 const char *OS::getCPU() const {
 #if defined(__aarch64__)
   return "arm64";
@@ -76,25 +68,3 @@ const char *OS::getCPU() const {
 
 
 void OS::dispatch() {app.getEventBase().dispatch();}
-
-
-void OS::setPaused(bool paused) {
-  app.setPaused(paused);
-  app.triggerUpdate();
-}
-
-
-bool OS::getPaused()  const {return app.getPaused();}
-bool OS::isActive()   const {return app.isActive();}
-bool OS::hasFailure() const {return app.hasFailure();}
-
-
-void OS::updateIdle() {
-  app.getEventBase().setTimeout([this] () {updateIdle();}, 2);
-
-  bool idle = !isSystemIdle() && app.getOnIdle();
-  if (idle == this->idle) return;
-
-  this->idle = idle;
-  app.triggerUpdate();
-}

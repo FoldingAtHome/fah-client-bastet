@@ -250,7 +250,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
     KillTimer(hWnd, ID_UPDATE_TIMER);
-    OS::requestExit();
+    app.requestExit();
     PostQuitMessage(0);
     hWnd = 0;
     return 0;
@@ -278,7 +278,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
     case ID_USER_WEBCONTROL: openWebControl();                  return 0;
-    case ID_USER_PAUSE:      OS::setPaused(!OS::getPaused());   return 0;
+    case ID_USER_PAUSE:      app.setPaused(!app.getPaused());   return 0;
     case ID_USER_ABOUT:      showAbout(hWnd);                   return 0;
     case ID_USER_EXIT:       DestroyWindow(hWnd);               return 0;
     }
@@ -329,9 +329,9 @@ void WinOSImpl::showAbout(HWND hWnd) {
 
 
 void WinOSImpl::updateIcon() {
-  if (OS::hasFailure())
+  if (app.hasFailure())
     setSysTray(IDI_FAILURE, "One or more folding process has failed");
-  else if (!OS::isActive()) setSysTray(IDI_INACTIVE, "Not folding");
+  else if (!app.isActive()) setSysTray(IDI_INACTIVE, "Not folding");
   else setSysTray(IDI_NORMAL, "Folding active");
 }
 
