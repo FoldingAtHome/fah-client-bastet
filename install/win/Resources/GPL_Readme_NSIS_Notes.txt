@@ -6,6 +6,10 @@ file format (not TXT), and with free-form text (without forced line breaks).
 Most TXT files will not display all characters correctly, so small file size
 RTF files are preferred. The body text font size should be 10pt (or as low as 7pt).
 
+Process Outline: Using MS Word with a blank document with 'Narrow' page margins works best.
+Copy and paste the text into the document. Select the entire text and decrease the font to make the body text 10pt.
+Save the file as RTF. Try opening a separate copy of the file with LibreOffice Writer, and re-save the RTF.
+Use whichever RTF has the smaller file size.
 
 
 ==========================================================
@@ -56,6 +60,9 @@ Finnish [fi]: http://www.turre.com/licenses/gpl_fi.php
 Spanish GPLv3 license unofficial translation was from: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva
 Spanish [es]: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva/GPLv3-spanish.html
 
+GPLv3 license unofficial translations are from the links at: https://libreplanet.org/wiki/Group:GPL_Translators
+Lithuanian [lt]: https://libreplanet.org/wiki/Group:GPL_Translators/Lithuanian/GPLv3
+Greek [el]: https://libreplanet.org/wiki/Group:GPL_Translators/Greek/GPLv3
 
 
 ==========================================================
