@@ -162,40 +162,29 @@ skip_remove:
   ; Avoid simply removing the whole directory as that causes subsequent file
   ; writes to fail for several seconds.
   StrCmp $3 "v7" 0 skip_v7cleanup
-  ; Copy old FAH v7 settings to new v8 DataDir
-  IfFileExists "$UnDataDir\config.xml" 0 skip_copy_settings
-    DetailPrint "$UnDataDir\config.xml"
-    ${If} $DataDir == $UnDataDir
-      ; Same data folder, copy v7 FAH settings to temp location
-      CopyFiles "$UnDataDir\config.xml" "$TEMP\config.xml"
-    ${Else}
-      ; Different data folder, copy v7 FAH settings to new v8 location
-      CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
-    ${EndIf}
-skip_copy_settings:
-
-  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 \
-    "$(^RemoveFolder)$\r$\n$UnDataDir ?$\r$\n$\r$\n \
-    Folding@home Data: $(DataText)" /SD IDNO IDNO skip_data_remove
-  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
-  ; Remove sub-folders recursively
-  RMDir /r "$UnDataDir\configs"
+  ; Same or different data folder as FAH v7
   RMDir /r "$UnDataDir\cores"
-  RMDir /r "$UnDataDir\logs"
   RMDir /r "$UnDataDir\themes"
-  RMDir /r "$UnDataDir\work"
-  Delete "$UnDataDir\*"
-  ; Only remove DataDir when empty. Avoid recursive remove to DataDir
-  RMDir "$UnDataDir"
-skip_data_remove:
-
-  ; Temp copy, move FAH v7 settings back to same DataDir
-  StrCmp $DataDir $UnDataDir 0 skip_temp_copy
-  IfFileExists "$TEMP\config.xml" 0 skip_temp_copy
-    DetailPrint "$TEMP\config.xml"
-    CopyFiles "$TEMP\config.xml" "$DataDir\config.xml"
-    Delete "$TEMP\config.xml"
-skip_temp_copy:
+  Delete "$UnDataDir\GPUs.txt"
+  ; Different data folder, copy FAH v7 settings to new v8 data location
+  ${If} $UnDataDir != $DataDir
+    CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
+    CopyFiles "$UnDataDir\FAHControl.db" "$DataDir\FAHControl.db"
+    CopyFiles "$UnDataDir\log.txt" "$DataDir\log.txt"
+    CopyFiles "$UnDataDir\configs\*.xml" "$DataDir\configs"
+    CopyFiles "$UnDataDir\logs\*.txt" "$DataDir\logs"
+    CopyFiles "$UnDataDir\work" "$DataDir\work"
+    DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
+    ; Remove sub-folders recursively
+    RMDir /r "$UnDataDir\configs"
+    RMDir /r "$UnDataDir\logs"
+    RMDir /r "$UnDataDir\work"
+    Delete "$UnDataDir\*.txt"
+    Delete "$UnDataDir\*.xml"
+    Delete "$UnDataDir\*.db"
+    ; Only remove DataDir when empty. Avoid recursive remove to DataDir
+    RMDir "$UnDataDir"
+  ${EndIf}
 
   DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UninstDir"
   ; Remove lib folder (FAH v7.x uninstaller was not run)
@@ -372,6 +361,8 @@ Section /o un.Data
   RMDir /r "$DataDir\credits"
   RMDir /r "$DataDir\logs"
   RMDir /r "$DataDir\work"
+  ; Remove additional FAH v7 copied data
+  RMDir /r "$DataDir\configs"
   Delete "$DataDir\*"
   ; Only remove DataDir when empty. Avoid recursive remove to DataDir
   RMDir "$DataDir"
@@ -493,9 +484,9 @@ Function OnInstallPageEnter
     StrCpy $AutoStart ${BST_CHECKED}
   ${EndIf}
 
-  ; Page Title: "Custom" + ": Installation Options"
+  ; Page Title: "Folding@home" + ": Installation Options"
   ; Text from language strings in: ${NSISDIR}\Contrib\Language files\*.nlf
-  !insertmacro MUI_HEADER_TEXT "$(^Custom)$(^ComponentsSubCaption)" ""
+  !insertmacro MUI_HEADER_TEXT "Folding@home$(^ComponentsSubCaption)" ""
 
   nsDialogs::Create 1018
   Pop $0
