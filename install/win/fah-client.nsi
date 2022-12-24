@@ -1,4 +1,4 @@
-﻿; Defines
+; Defines
 !define PRODUCT_NAME            "FAHClient"
 !define PROJECT_NAME            "Folding@home"
 !define DISPLAY_NAME            "Folding@home Client"

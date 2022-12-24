@@ -57,13 +57,14 @@ TradChinese [zh-tw]: http://www.chinasona.org/gnu/gnuv3-tc.html
 Finnish GPLv3 license unofficial translation was from: http://gnu.ist.utl.pt/licenses/translations.html#translations
 Finnish [fi]: http://www.turre.com/licenses/gpl_fi.php
 
-Spanish GPLv3 license unofficial translation was from: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva
+Spanish GPLv3 license unofficial translation was from: https://lslspanish.github.io/translation_GPLv3_to_spanish/
 Spanish [es]: https://github.com/LSLSpanish/translation_GPLv3_to_spanish/tree/master/Versi%C3%B3n%20definitiva/GPLv3-spanish.html
 
 GPLv3 license unofficial translations are from the links at: https://libreplanet.org/wiki/Group:GPL_Translators
 Lithuanian [lt]: https://libreplanet.org/wiki/Group:GPL_Translators/Lithuanian/GPLv3
 Greek [el]: https://libreplanet.org/wiki/Group:GPL_Translators/Greek/GPLv3
 
+Hungarian [hu]: https://gnu.hu/gplv3.html
 
 ==========================================================
 NSIS custom installer page text was initially translated

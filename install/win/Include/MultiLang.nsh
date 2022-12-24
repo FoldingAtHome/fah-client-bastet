@@ -94,7 +94,7 @@ LicenseLangString MUILicense ${LANG_CZECH} ".\Resources\GPL3_Czech_cs.rtf"
 LicenseLangString MUILicense ${LANG_SLOVAK} ".\Resources\GPL3_Slovak_sk.rtf"
 LicenseLangString MUILicense ${LANG_CROATIAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_BULGARIAN} "${PRODUCT_LICENSE}"
-LicenseLangString MUILicense ${LANG_HUNGARIAN} "${PRODUCT_LICENSE}"
+LicenseLangString MUILicense ${LANG_HUNGARIAN} ".\Resources\GPL3_Hungarian_hu.rtf"
 LicenseLangString MUILicense ${LANG_THAI} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_ROMANIAN} ".\Resources\GPL3_Romanian_ro.rtf"
 LicenseLangString MUILicense ${LANG_LATVIAN} "${PRODUCT_LICENSE}"
@@ -136,7 +136,7 @@ LicenseLangString MUILicense ${LANG_CORSICAN} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_TATAR} "${PRODUCT_LICENSE}"
 LicenseLangString MUILicense ${LANG_HINDI} "${PRODUCT_LICENSE}"
 
-; [Use UTF-8 BOM encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
+; [Use UTF-8 encoding in Notepad++] Translated: "Automatically start at login (Recommended)"
 LangString StartupText ${LANG_ENGLISH} "Adds: HideConsole.exe to Windows Startup Apps" ; Additional info for English
 LangString StartupText ${LANG_FRENCH} "Démarrer automatiquement à la connexion (Recommandé)"
 LangString StartupText ${LANG_GERMAN} "Beim Login automatisch starten (Empfohlen)"
@@ -205,7 +205,7 @@ LangString StartupText ${LANG_CORSICAN} "Cumincià automaticamente à u login (C
 LangString StartupText ${LANG_TATAR} "Логиннан автоматик рәвештә башлау (Тәкъдим ителә)"
 LangString StartupText ${LANG_HINDI} "लॉगिन पर स्वचालित रूप से प्रारंभ करें (अनुशंसित)"
 
-; [Use UTF-8 BOM encoding in Notepad++] Translated: "Data". If the same, then use " "
+; [Use UTF-8 encoding in Notepad++] Translated: "Data". If the same, then use " "
 LangString DataText ${LANG_ENGLISH} "Storage" ; Additional info for English
 LangString DataText ${LANG_FRENCH} "Données"
 LangString DataText ${LANG_GERMAN} "Daten"
