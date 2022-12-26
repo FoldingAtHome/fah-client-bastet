@@ -254,14 +254,18 @@ void Units::update() {
   LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
             << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
 
-  // Do not add WUs when finishing or if any WUs have not run yet
-  if (config->getFinish() || hasUnrunWUs()) return;
+  // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
+  // have not yet been loaded.
+  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isLoaded())
+    return;
 
   // Add new WU if we don't already have too many and there are some resources
   const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
   if (size() < maxWUs && (remainingCPUs || remainingGPUs.size())) {
-    add(new Unit(app, app.getNextWUID(), remainingCPUs, remainingGPUs));
-    LOG_INFO(1, "Added new work unit");
+    add(new Unit(app, app.getNextWUID(), group.getName(), remainingCPUs,
+                 remainingGPUs));
+    LOG_INFO(1, "Added new work unit: cpus:" << remainingCPUs << " gpus:"
+             << String::join(remainingGPUs, ","));
     triggerUpdate();
   }
 }

@@ -45,6 +45,12 @@ using namespace cb;
 using namespace std;
 
 
+OS::OS(App &app) :
+  app(app), event(app.getEventBase().newEvent(this, &OS::checkIdle)) {
+  event->add(2);
+}
+
+
 SmartPointer<OS> OS::create(App &app) {
 #if defined(_WIN32)
   return new WinOSImpl(app);
@@ -68,3 +74,10 @@ const char *OS::getCPU() const {
 
 
 void OS::dispatch() {app.getEventBase().dispatch();}
+
+
+void OS::checkIdle() {
+  if (isSystemIdle() == idle) return;
+  idle = !idle;
+  app.triggerUpdate();
+}

@@ -48,6 +48,7 @@ namespace FAH {
     class Units;
     class GPUResource;
     class Core;
+    class Config;
 
     class Unit :
       public cb::JSON::ObservableDict,
@@ -91,12 +92,13 @@ namespace FAH {
       Unit(App &app);
 
     public:
-      Unit(App &app, uint64_t wu, uint32_t cpus,
+      Unit(App &app, uint64_t wu, const std::string &group, uint32_t cpus,
            const std::set<std::string> &gpus);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
       void setUnits(const cb::SmartPointer<Units> &units);
+      const Config &getConfig() const;
 
       std::string getGroup() const;
       const std::string &getID() const {return id;}

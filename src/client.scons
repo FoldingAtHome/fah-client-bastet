@@ -10,6 +10,7 @@ subdirs = ['']
 src = ['client.cpp']
 for dir in subdirs:
     src += Glob('fah/client/' + dir + '/*.cpp')
+    src += Glob('fah/client/' + dir + '/*.c')
 
 
 # Resources

@@ -4,6 +4,10 @@ Folding@home Client Changelog
 ## v8.1.6
  - Fixed a memory leak in Linux builds.
  - Fixes for on idle handling.
+ - Window installer improvements.  (Jeff Moreland)
+ - Fixes for on idle for OSX.  (Kevin Bernhagen)
+ - Force usage of older GLibC to allow Linux binaries to run on older systems.
+ - Prevent RGs from loading new WUs before GPU detection is complete.
 
 ## v8.1.5
  - Fix data folder selection in Window installer.  (Jeff Moreland)

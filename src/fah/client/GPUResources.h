@@ -45,11 +45,14 @@ namespace FAH {
       public cb::Event::Scheduler<GPUResources> {
       App &app;
 
+      bool loaded = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail;
 
     public:
       GPUResources(App &app);
+
+      bool isLoaded() const {return loaded;}
 
     protected:
       void load(const cb::JSON::Value &gpus);

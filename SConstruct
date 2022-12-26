@@ -43,6 +43,9 @@ if not env.GetOption('clean'):
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
 
     if env['PLATFORM'] == 'posix':
+        flags = ['-Wl,--wrap=' + x
+                 for x in 'glob logf log expf exp powf pow fcntl64'.split()]
+        env.AppendUnique(LINKFLAGS = flags)
         env.Append(PREFER_DYNAMIC = 'bz2 z m'.split())
 
 conf.Finish()

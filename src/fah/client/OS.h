@@ -29,6 +29,7 @@
 #pragma once
 
 #include <cbang/SmartPointer.h>
+#include <cbang/event/Event.h>
 
 
 namespace FAH {
@@ -37,9 +38,11 @@ namespace FAH {
 
     class OS {
       App &app;
+      cb::SmartPointer<cb::Event::Event> event;
+      bool idle = false;
 
     public:
-      OS(App &app) : app(app) {}
+      OS(App &app);
       virtual ~OS() {}
 
       static cb::SmartPointer<OS> create(App &app);
@@ -50,6 +53,9 @@ namespace FAH {
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
       virtual void dispatch();
+
+    protected:
+      void checkIdle();
     };
   }
 }

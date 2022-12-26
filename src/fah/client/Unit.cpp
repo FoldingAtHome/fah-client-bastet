@@ -103,10 +103,12 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
+Unit::Unit(App &app, uint64_t wu, const string &group, uint32_t cpus,
+           const std::set<string> &gpus) :
   Unit(app) {
   this->wu = wu;
   insert("number", wu);
+  insert("group", group);
   setCPUs(cpus);
   setGPUs(gpus);
   setState(UNIT_ASSIGN);
@@ -137,13 +139,8 @@ Unit::~Unit() {
 }
 
 
-void Unit::setUnits(const cb::SmartPointer<Units> &units) {
-  this->units = units;
-  if (units.isSet()) insert("group", units->getGroup().getName());
-  else if (has("group")) erase("group");
-}
-
-
+void Unit::setUnits(const cb::SmartPointer<Units> &units) {this->units = units;}
+const Config &Unit::getConfig() const {return units->getConfig();}
 string    Unit::getGroup() const {return getString("group", "");}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 
@@ -155,18 +152,12 @@ bool Unit::atRunState() const {
 
 
 bool Unit::hasRun() const {return getRunTime() || UNIT_RUN <= getState();}
-
-
-uint64_t Unit::getProjectKey() const {
-  return units->getConfig().getProjectKey();
-}
-
-
+uint64_t Unit::getProjectKey() const {return getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return units->getConfig().getPaused() || units->waitForIdle() ||
+  return getConfig().getPaused() || units->waitForIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -178,11 +169,11 @@ void Unit::setPause(bool pause) {
 
 
 const char *Unit::getPauseReason() const {
-  if (units->getConfig().getPaused()) return "Paused by user";
-  if (units->waitForIdle())           return "Waiting for idle system";
-  if (getBoolean("paused", true))     return "Resources not available";
-  if (app.shouldQuit())               return "Shutting down";
-  if (isWaiting())                    return "Waiting to retry";
+  if (getConfig().getPaused())    return "Paused by user";
+  if (units->waitForIdle())       return "Waiting for idle system";
+  if (getBoolean("paused", true)) return "Resources not available";
+  if (app.shouldQuit())           return "Shutting down";
+  if (isWaiting())                return "Waiting to retry";
   return "Not paused";
 }
 
@@ -596,9 +587,9 @@ void Unit::run() {
     auto &gpu = *app.getGPUs().get(gpus.getString(0)).cast<GPUResource>();
 
     args.push_back("-gpu-vendor");
-    args.push_back(gpu.getGPU().getType().toString());
+    args.push_back(String::toLower(gpu.getGPU().getType().toString()));
     addGPUArgs(args, gpu.getOpenCL(), "opencl");
-    addGPUArgs(args, gpu.getCUDA(), "cuda");
+    addGPUArgs(args, gpu.getCUDA(),   "cuda");
     args.push_back("-gpu");
     args.push_back(String(gpu.getOpenCL().deviceIndex));
 
@@ -616,7 +607,7 @@ void Unit::run() {
   process->setWorkingDirectory("work");
   process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
                 Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
-                units->getConfig().getCorePriority());
+                getConfig().getCorePriority());
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
 
   // Redirect core output to log
@@ -910,9 +901,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("id",      info.getString("id"));
 
   // User
-  sink.insert("user",    units->getConfig().getUsername());
-  sink.insert("team",    units->getConfig().getTeam());
-  sink.insert("passkey", units->getConfig().getPasskey());
+  sink.insert("user",    getConfig().getUsername());
+  sink.insert("team",    getConfig().getTeam());
+  sink.insert("passkey", getConfig().getPasskey());
 
   // OS
   sink.insertDict("os");
@@ -922,12 +913,11 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.endDict();
 
   // Project
-  const auto &config = units->getConfig();
   sink.insertDict("project");
-  if (config.hasString("release"))
-    sink.insert("release", config.getString("release"));
-  if (config.hasString("cause"))
-    sink.insert("cause", config.getString("cause"));
+  if (getConfig().hasString("release"))
+    sink.insert("release", getConfig().getString("release"));
+  if (getConfig().hasString("cause"))
+    sink.insert("cause", getConfig().getString("cause"));
   if (getProjectKey()) sink.insert("key", getProjectKey());
   sink.endDict(); // project
 
