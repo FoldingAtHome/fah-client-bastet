@@ -69,21 +69,15 @@ namespace {
 #pragma mark c callbacks
 
   void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
-    LOG_DEBUG(4, "consoleUserCB on thread "  << pthread_self() <<
-              (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().consoleUserChanged(s, keys, info);
   }
 
   void displayPowerCB(void *ctx, io_service_t service,
                       natural_t mtype, void *marg) {
-    LOG_DEBUG(4, "displayPowerCB on thread "  << pthread_self() <<
-              (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
   }
 
   void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
-    LOG_DEBUG(4, "updateTimerCB on thread "  << pthread_self() <<
-              (pthread_main_np() ? " main" : ""));
     OSXOSImpl::instance().updateTimerFired(timer, info);
   }
 
@@ -95,11 +89,9 @@ namespace {
   void noteQuitCB(CFNotificationCenterRef center, void *observer,
                   CFNotificationName name, const void *object,
                   CFDictionaryRef info) {
-    LOG_DEBUG(4, "noteQuitCB on thread "  << pthread_self() <<
-              (pthread_main_np() ? " main" : ""));
     std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
     LOG_INFO(3, "Received notification " << n);
-    OSXOSImpl::instance().requestExit();
+    OSXOSImpl::instance().getApp().requestExit();
   }
 
 }
@@ -235,8 +227,10 @@ void OSXOSImpl::finishInit() {
 
 
 void OSXOSImpl::updateSystemIdle() {
+  bool wasIdle = systemIsIdle;
   systemIsIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
     screensaverIsActive || screenIsLocked;
+  if (wasIdle != systemIsIdle) getApp().triggerUpdate();
 }
 
 
@@ -311,14 +305,20 @@ void OSXOSImpl::displayPowerChanged(void *context, io_service_t service,
   case kIOMessageDeviceWillPowerOff:
     // may be called several times
     // first is dim, second and more are off
-    if (displayPower == kDisplayPowerOn) displayDidDim();
-    else if (displayPower != kDisplayPowerOff) displayDidSleep();
+    // on macOS 12, probably earlier, we sometimes only get one message
+    if (displayPower != kDisplayPowerOff) displayDidSleep();
     break;
 
   case kIOMessageDeviceHasPoweredOn:
     if (displayPower == kDisplayPowerDimmed) displayDidUndim();
     else displayDidWake();
     break;
+
+  case kIOMessageCanDevicePowerOff:
+    break;
+
+  default:
+    LOG_DEBUG(3, __func__ << " unknown mtype: " << mtype);
   }
 }
 
@@ -433,7 +433,7 @@ void OSXOSImpl::consoleUserChanged(SCDynamicStoreRef store,
   if (consoleUser) CFRelease(consoleUser);
   consoleUser = SCDynamicStoreCopyConsoleUser(consoleUserDS, 0, 0);
 
-  LOG_DEBUG(4, __FUNCTION__ << "() " << MacOSUtilities::toString(consoleUser));
+  LOG_DEBUG(4, __func__ << "() " << MacOSUtilities::toString(consoleUser));
 
   bool wasActive = loginwindowIsActive;
   loginwindowIsActive = !consoleUser || !CFStringGetLength(consoleUser) ||
