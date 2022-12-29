@@ -299,8 +299,7 @@ uint64_t Unit::getPPD() const {
 
 
 string Unit::getLogPrefix() const {
-  const char *group = units->getGroup().getName().c_str();
-  return String::printf("%s:WU%" PRIu64 ":", group, wu);
+  return String::printf("%s:WU%" PRIu64 ":", getGroup().c_str(), wu);
 }
 
 
@@ -1102,9 +1101,8 @@ void Unit::dump() {
   if (pr.isSet()) return; // Already dumping
 
   LOG_INFO(1, "Sending dump report");
-  LOG_DEBUG(3, *data);
-
   setResults("dumped", "");
+  LOG_DEBUG(3, *data);
 
   pr = app.getClient()
     .call(getWSURL("/results"), Event::RequestMethod::HTTP_POST, this,

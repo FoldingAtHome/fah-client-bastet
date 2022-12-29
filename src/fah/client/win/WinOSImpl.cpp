@@ -221,26 +221,20 @@ const char *WinOSImpl::getCPU() const {
 
 
 void WinOSImpl::dispatch() {
-  if (systrayEnabled) Thread::start();
-
-  OS::dispatch();
-
-  if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
-  Thread::join();
-}
-
-
-void WinOSImpl::run() {
   init();
 
   MSG msg;
 
-  while (hWnd && 0 < GetMessage(&msg, hWnd, 0, 0)) {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
+  while (!getApp().shouldQuit()) {
+    if (systrayEnabled && PeekMessage(&msg, hWnd, 0, 0)) {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+
+    getApp().getEventBase().loopNonBlock();
   }
 
-  if (hWnd) DestroyWindow(hWnd);
+  if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
 }
 
 

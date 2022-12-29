@@ -32,8 +32,13 @@ __asm__(".symver fcntl64,fcntl@GLIBC_" GLIBC_SYMVER);
 
 
 int getentropy(void *buf, size_t length) {
-  fprintf(stderr, "WARNING: unsupported call to getentropy(buf, %ld)\n",
-          length);
+  int fd = open("/dev/urandom", O_RDONLY);
+  if (fd) {
+    int ret = read(fd, buf, length);
+    close(fd);
+    return ret == length ? 0 : -1;
+  }
+
   errno = ENOSYS;
   return -1;
 }
@@ -44,8 +49,6 @@ ssize_t getrandom(void *buf, size_t length, unsigned flags) {
   return syscall(SYS_getrandom, buf, length, flags);
 
 #else
-  fprintf(stderr, "WARNING: unsupported call to getrandom(buf, %ld, %d)\n",
-          length, flags);
   errno = ENOSYS;
   return -1;
 #endif

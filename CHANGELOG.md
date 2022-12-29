@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.7
+ - Fixed client ID generation.
+ - Non-threaded Windows event loop.  Fixes NULL pointer exception.
+
 ## v8.1.6
  - Fixed a memory leak in Linux builds.
  - Fixes for on idle handling.

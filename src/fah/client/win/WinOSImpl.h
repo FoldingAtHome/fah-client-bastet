@@ -30,8 +30,6 @@
 
 #include <fah/client/OS.h>
 
-#include <cbang/os/Thread.h>
-
 #include "resource.h"
 
 #define _WINSOCKAPI_ // Stop windows from including winsock.h
@@ -42,7 +40,7 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class WinOSImpl : public OS, public cb::Thread {
+    class WinOSImpl : public OS {
       static WinOSImpl *singleton;
 
       bool systrayEnabled = true;
@@ -69,9 +67,6 @@ namespace FAH {
       const char *getCPU() const;
       bool isSystemIdle() const {return inAwayMode || displayOff;}
       void dispatch();
-
-      // From cb::Thread
-      void run();
 
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
