@@ -32,6 +32,8 @@
 
 #include "resource.h"
 
+#include <cbang/event/Event.h>
+
 #define _WINSOCKAPI_ // Stop windows from including winsock.h
 #include <windows.h>
 
@@ -43,6 +45,7 @@ namespace FAH {
     class WinOSImpl : public OS {
       static WinOSImpl *singleton;
 
+      cb::SmartPointer<cb::Event::Event> event;
       bool systrayEnabled = true;
 
       HINSTANCE hInstance;
@@ -76,6 +79,7 @@ namespace FAH {
       void updateIcon();
       void setSysTray(int icon, LPCTSTR tip);
       void popup(HWND hWnd);
+      void processWinEvents();
     };
   }
 }

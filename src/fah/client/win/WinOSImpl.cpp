@@ -105,7 +105,8 @@ WinOSImpl *WinOSImpl::singleton = 0;
 
 
 WinOSImpl::WinOSImpl(App &app) :
-  OS(app), hInstance((HINSTANCE)GetModuleHandle(0)) {
+  OS(app), hInstance((HINSTANCE)GetModuleHandle(0)),
+  event(app.getEventBase().newEvent(this, &WinOSImpl::processWinEvents)) {
   if (singleton) THROW("There can be only one WinOSImpl");
   singleton = this;
 
@@ -115,6 +116,8 @@ WinOSImpl::WinOSImpl(App &app) :
   options.addTarget("systray", systrayEnabled, "Set to false to disable the "
                     "Windows systray icon.");
   options.popCategory();
+
+  event->add(0.25);
 }
 
 
@@ -222,18 +225,7 @@ const char *WinOSImpl::getCPU() const {
 
 void WinOSImpl::dispatch() {
   init();
-
-  MSG msg;
-
-  while (!getApp().shouldQuit()) {
-    if (systrayEnabled && PeekMessage(&msg, hWnd, 0, 0)) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-
-    getApp().getEventBase().loopNonBlock();
-  }
-
+  OS::dispatch();
   if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
 }
 
@@ -373,4 +365,15 @@ void WinOSImpl::popup(HWND hWnd) {
 
   // Free menu
   DestroyMenu(hMenu);
+}
+
+
+void WinOSImpl::processWinEvents() {
+  MSG msg;
+
+  while (systrayEnabled && !getApp().shouldQuit() &&
+         PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
 }
