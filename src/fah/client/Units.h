@@ -67,7 +67,7 @@ namespace FAH {
       unsigned getUnitIndex(const std::string &id) const;
       Unit &getUnit(unsigned index) const;
       Unit &getUnit(const std::string &id) const;
-      const cb::SmartPointer<Unit> removeUnit(unsigned index);
+      cb::SmartPointer<Unit> removeUnit(unsigned index);
       void dump(const std::string &unitID);
       void unitComplete(bool success);
       void update();

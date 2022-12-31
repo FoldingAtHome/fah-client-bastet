@@ -29,7 +29,9 @@
 #include "ResourceGroup.h"
 #include "App.h"
 
+#include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
+#include <cbang/event/HTTPConn.h>
 
 using namespace std;
 using namespace cb;
@@ -46,6 +48,15 @@ ResourceGroup::ResourceGroup(App &app, const string &name,
   insert("units",  units);
   insert("config", config);
   insert("info",   info);
+}
+
+
+ResourceGroup::~ResourceGroup() {
+  // Closing a client causes it to remove itself so first copy the list
+  auto clients = this->clients;
+
+  for (auto client: clients)
+    TRY_CATCH_ERROR(client->getConnection()->close());
 }
 
 

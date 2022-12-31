@@ -3,7 +3,10 @@ Folding@home Client Changelog
 
 ## v8.1.7
  - Fixed client ID generation.
- - Non-threaded Windows event loop.  Fixes NULL pointer exception.
+ - Non-threaded Windows event loop.  Fixes NULL pointer exception. #74
+ - Fix assignment data corruption which causes ``HTTP_NOT_ACCEPTABLE`` error.
+ - Fix problem with WUs moving to root resource group after restart. #68
+ - Fix some bugs related to removing resource groups.
 
 ## v8.1.6
  - Fixed a memory leak in Linux builds.

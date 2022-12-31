@@ -51,6 +51,7 @@ namespace FAH {
       ResourceGroup(App &app, const std::string &name,
                     const cb::JSON::ValuePtr &config,
                     const cb::JSON::ValuePtr &info);
+      ~ResourceGroup();
 
       const std::string              &getName()   const {return name;}
       const cb::SmartPointer<Config> &getConfig() const {return config;}

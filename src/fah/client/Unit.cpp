@@ -139,7 +139,16 @@ Unit::~Unit() {
 }
 
 
-void Unit::setUnits(const cb::SmartPointer<Units> &units) {this->units = units;}
+void Unit::setUnits(const cb::SmartPointer<Units> &units) {
+  this->units = units;
+
+  if (units.isSet()) {
+    string group = units->getGroup().getName();
+    if (group != getGroup()) insert("group", group);
+  }
+}
+
+
 const Config &Unit::getConfig() const {return units->getConfig();}
 string    Unit::getGroup() const {return getString("group", "");}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
@@ -356,6 +365,8 @@ void Unit::triggerNext(double secs) {event->add(secs);}
 
 
 void Unit::dumpWU() {
+  LOG_INFO(3, "Dumping " << id);
+
   switch (getState()) {
   case UNIT_ASSIGN: case UNIT_DOWNLOAD:            setState(UNIT_CLEAN); break;
   case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP);  break;

@@ -264,8 +264,8 @@ void App::updateGroups() {
         unit->dumpWU();
       }
 
-      db.unset(name);
       it = groups.erase(it);
+      db.unset(name);
 
     } else it++;
   }
@@ -476,11 +476,7 @@ void App::loadServers() {
 
 void App::loadGroups() {
   newGroup("");
-
-  getDB("groups").foreach(
-    [this] (const string &group, const string &dataStr) {
-      if (groups.find(group) == groups.end()) newGroup(group);
-    });
+  updateGroups();
 }
 
 
@@ -489,17 +485,20 @@ void App::loadUnits() {
 
   getDB("units").foreach(
     [this, &count] (const string &id, const string &dataStr) {
-      LOG_INFO(3, "Loading work unit " << id);
-
       try {
         auto data  = JSON::Reader::parseString(dataStr);
-        auto group = data->getString("group", "");
+        auto group = data->selectString("state.group", "");
+        auto wu    = data->selectU64("state.number");
+        bool dump  = groups.find(group) == groups.end();
 
-        if (groups.find(group) == groups.end()) newGroup(group);
+        if (dump) group = "";
 
-        auto units = getGroup(group)->getUnits();
+        LOG_INFO(3, "Loading work unit " << wu << " to group '" << group
+                 << "' with ID " << id);
 
-        units->add(new Unit(*this, data));
+        SmartPointer<Unit> unit = new Unit(*this, data);
+        getGroup(group)->getUnits()->add(unit);
+        if (dump) unit->dumpWU();
         count++;
       } CATCH_ERROR;
     });

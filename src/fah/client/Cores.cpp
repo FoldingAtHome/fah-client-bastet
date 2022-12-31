@@ -47,8 +47,10 @@ const SmartPointer<Core> &Cores::get(const JSON::ValuePtr &data) {
   string url = data->getString("url");
 
   auto it = cores.find(url);
-  if (it == cores.end())
-    it = cores.insert(cores_t::value_type(url, new Core(app, data))).first;
+  if (it == cores.end()) {
+    SmartPointer<Core> core = new Core(app, data->copy());
+    it = cores.insert(cores_t::value_type(url, core)).first;
+  }
 
   return it->second;
 }

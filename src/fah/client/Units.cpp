@@ -111,9 +111,9 @@ Unit &Units::getUnit(unsigned index) const {
 Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
 
 
-const SmartPointer<Unit> Units::removeUnit(unsigned index) {
+SmartPointer<Unit> Units::removeUnit(unsigned index) {
   if (size() <= index) THROW("Invalid unit index " << index);
-  auto unit = get(index).castPtr<Unit>();
+  auto unit = get(index).cast<Unit>();
   erase(index);
   unit->setUnits(0);
   return unit;
