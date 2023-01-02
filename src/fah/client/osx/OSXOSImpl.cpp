@@ -91,7 +91,8 @@ namespace {
                   CFDictionaryRef info) {
     std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
     LOG_INFO(3, "Received notification " << n);
-    OSXOSImpl::instance().getApp().requestExit();
+    App &app = OSXOSImpl::instance().getApp();
+    app.getEventBase().newEvent(&app, &App::requestExit, 0)->add(0);
   }
 
 }
@@ -227,10 +228,11 @@ void OSXOSImpl::finishInit() {
 
 
 void OSXOSImpl::updateSystemIdle() {
-  bool wasIdle = systemIsIdle;
-  systemIsIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
+  bool shouldBeIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
     screensaverIsActive || screenIsLocked;
-  if (wasIdle != systemIsIdle) getApp().triggerUpdate();
+  if (shouldBeIdle == systemIsIdle) return;
+  systemIsIdle = shouldBeIdle;
+  event->activate();
 }
 
 

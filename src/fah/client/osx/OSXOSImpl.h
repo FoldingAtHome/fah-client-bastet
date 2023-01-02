@@ -35,6 +35,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <IOKit/IOKitLib.h>
+#include <atomic>
 
 
 namespace FAH {
@@ -44,7 +45,7 @@ namespace FAH {
     class OSXOSImpl : public OS, public cb::Thread {
       static OSXOSImpl *singleton;
 
-      bool systemIsIdle = false;
+      std::atomic<bool> systemIsIdle = false;
       bool screensaverIsActive = false;
       bool screenIsLocked = false;
       bool loginwindowIsActive = false;

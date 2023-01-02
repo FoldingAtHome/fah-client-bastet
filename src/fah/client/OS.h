@@ -38,7 +38,6 @@ namespace FAH {
 
     class OS {
       App &app;
-      cb::SmartPointer<cb::Event::Event> event;
       bool idle = false;
 
     public:
@@ -55,6 +54,7 @@ namespace FAH {
       virtual void dispatch();
 
     protected:
+      cb::SmartPointer<cb::Event::Event> event;
       void checkIdle();
     };
   }
