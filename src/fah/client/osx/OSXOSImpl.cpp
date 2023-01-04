@@ -91,8 +91,7 @@ namespace {
                   CFDictionaryRef info) {
     std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
     LOG_INFO(3, "Received notification " << n);
-    App &app = OSXOSImpl::instance().getApp();
-    app.getEventBase().newEvent(&app, &App::requestExit, 0)->add(0);
+    OSXOSImpl::instance().requestExit();
   }
 
 }
@@ -193,6 +192,7 @@ void OSXOSImpl::dispatch() {
   LOG_DEBUG(5, "OSXOSImpl::dispatch()");
   Thread::start();
   CFRunLoopRun();
+  OS::requestExit();
   Thread::join();
 }
 
@@ -200,12 +200,6 @@ void OSXOSImpl::dispatch() {
 void OSXOSImpl::run() {
   TRY_CATCH_ERROR(OS::dispatch());
   CFRunLoopStop(CFRunLoopGetMain());
-}
-
-
-void OSXOSImpl::stop() {
-  Thread::stop();
-  getApp().getEventBase().loopExit();
 }
 
 

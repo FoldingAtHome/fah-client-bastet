@@ -105,8 +105,8 @@ WinOSImpl *WinOSImpl::singleton = 0;
 
 
 WinOSImpl::WinOSImpl(App &app) :
-  OS(app), hInstance((HINSTANCE)GetModuleHandle(0)),
-  event(app.getEventBase().newEvent(this, &WinOSImpl::processWinEvents)) {
+  OS(app), appName(app.getName()), version(app.getVersion()),
+  hInstance((HINSTANCE)GetModuleHandle(0)) {
   if (singleton) THROW("There can be only one WinOSImpl");
   singleton = this;
 
@@ -116,8 +116,6 @@ WinOSImpl::WinOSImpl(App &app) :
   options.addTarget("systray", systrayEnabled, "Set to false to disable the "
                     "Windows systray icon.");
   options.popCategory();
-
-  event->add(0.25);
 }
 
 
@@ -135,7 +133,7 @@ void WinOSImpl::init() {
   if (!hIcon) THROW("Failed to load icon");
 
   // Create window class
-  const char *className = getApp().getName().c_str();
+  const char *className = appName.c_str();
   WNDCLASSEX wcex;
   memset(&wcex, 0, sizeof(wcex));
   wcex.cbSize        = sizeof(WNDCLASSEX);
@@ -224,9 +222,26 @@ const char *WinOSImpl::getCPU() const {
 
 
 void WinOSImpl::dispatch() {
-  init();
+  if (systrayEnabled) Thread::start();
+
   OS::dispatch();
+
   if (hWnd) PostMessage(hWnd, WM_CLOSE, 0, 0);
+  Thread::join();
+}
+
+
+void WinOSImpl::run() {
+  init();
+
+  MSG msg;
+
+  while (hWnd && 0 < GetMessage(&msg, hWnd, 0, 0)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+
+  if (hWnd) DestroyWindow(hWnd);
 }
 
 
@@ -236,7 +251,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
     KillTimer(hWnd, ID_UPDATE_TIMER);
-    getApp().requestExit();
+    OS::requestExit();
     PostQuitMessage(0);
     hWnd = 0;
     return 0;
@@ -263,10 +278,10 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
-    case ID_USER_WEBCONTROL: openWebControl();                     return 0;
-    case ID_USER_PAUSE: getApp().setPaused(!getApp().getPaused()); return 0;
-    case ID_USER_ABOUT:      showAbout(hWnd);                      return 0;
-    case ID_USER_EXIT:       DestroyWindow(hWnd);                  return 0;
+    case ID_USER_WEBCONTROL: openWebControl();    return 0;
+    case ID_USER_PAUSE:      OS::togglePause();   return 0;
+    case ID_USER_ABOUT:      showAbout(hWnd);     return 0;
+    case ID_USER_EXIT:       DestroyWindow(hWnd); return 0;
     }
     break;
   }
@@ -290,7 +305,7 @@ void WinOSImpl::openWebControl() {
 void WinOSImpl::showAbout(HWND hWnd) {
   string text = SSTR
     ("Folding@home Client\n\r"
-     "Version " << getApp().getVersion() << "\n\r"
+     "Version " << version << "\n\r"
      "\n\r"
      "Copyright (c) 2001-2022 foldingathome.org\n\r"
      "\n\r"
@@ -307,7 +322,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
   msg.hInstance   = hInstance;
   msg.dwStyle     = MB_USERICON | MB_OK | MB_SYSTEMMODAL;
   msg.lpszIcon    = MAKEINTRESOURCE(IDI_NORMAL);
-  msg.lpszCaption = getApp().getName().c_str();
+  msg.lpszCaption = appName.c_str();
   msg.lpszText    = text.c_str();
 
   MessageBoxIndirect(&msg);
@@ -315,9 +330,9 @@ void WinOSImpl::showAbout(HWND hWnd) {
 
 
 void WinOSImpl::updateIcon() {
-  if (getApp().hasFailure())
+  if (OS::hasFailure())
     setSysTray(IDI_FAILURE, "One or more folding process has failed");
-  else if (!getApp().isActive()) setSysTray(IDI_INACTIVE, "Not folding");
+  else if (!OS::isActive()) setSysTray(IDI_INACTIVE, "Not folding");
   else setSysTray(IDI_NORMAL, "Folding active");
 }
 
@@ -343,8 +358,7 @@ void WinOSImpl::popup(HWND hWnd) {
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  AppendMenu(hMenu, getApp().getPaused() ? MF_CHECKED : 0, ID_USER_PAUSE,
-             "Pause");
+  AppendMenu(hMenu, OS::isPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
   AppendMenu(hMenu, 0, ID_USER_ABOUT, "&About");
   AppendMenu(hMenu, 0, ID_USER_EXIT, "&Quit");
@@ -365,15 +379,4 @@ void WinOSImpl::popup(HWND hWnd) {
 
   // Free menu
   DestroyMenu(hMenu);
-}
-
-
-void WinOSImpl::processWinEvents() {
-  MSG msg;
-
-  while (systrayEnabled && !getApp().shouldQuit() &&
-         PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE)) {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
 }

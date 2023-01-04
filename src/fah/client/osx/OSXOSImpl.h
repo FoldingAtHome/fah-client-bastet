@@ -79,7 +79,6 @@ namespace FAH {
 
       // From cb::Thread
       void run();
-      void stop();
 
       // Callbacks
       void consoleUserChanged

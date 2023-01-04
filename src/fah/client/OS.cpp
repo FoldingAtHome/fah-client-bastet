@@ -46,7 +46,7 @@ using namespace std;
 
 
 OS::OS(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &OS::checkIdle)) {
+  app(app), event(app.getEventBase().newEvent(this, &OS::update)) {
   event->add(2);
 }
 
@@ -76,8 +76,25 @@ const char *OS::getCPU() const {
 void OS::dispatch() {app.getEventBase().dispatch();}
 
 
-void OS::checkIdle() {
-  if (isSystemIdle() == idle) return;
-  idle = !idle;
-  app.triggerUpdate();
+void OS::requestExit() const {
+  app.getEventBase().newEvent(&app, &App::requestExit, 0)->add(0);
+}
+
+
+void OS::togglePause() const {
+  app.getEventBase().newEvent([this] () {
+    app.setPaused(!app.getPaused());
+  }, 0)->add();
+}
+
+
+void OS::update() {
+  if (isSystemIdle() != idle) {
+    idle = !idle;
+    app.triggerUpdate();
+  }
+
+  paused  = app.getPaused();
+  active  = app.isActive();
+  failure = app.hasFailure();
 }

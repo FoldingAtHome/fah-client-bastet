@@ -30,9 +30,10 @@
 
 #include <fah/client/OS.h>
 
-#include "resource.h"
+#include <cbang/os/Thread.h>
+#include <cbang/util/Version.h>
 
-#include <cbang/event/Event.h>
+#include "resource.h"
 
 #define _WINSOCKAPI_ // Stop windows from including winsock.h
 #include <windows.h>
@@ -42,10 +43,12 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class WinOSImpl : public OS {
+    class WinOSImpl : public OS, public cb::Thread {
       static WinOSImpl *singleton;
 
-      cb::SmartPointer<cb::Event::Event> event;
+      std::string appName;
+      cb::Version version;
+
       bool systrayEnabled = true;
 
       HINSTANCE hInstance;
@@ -71,6 +74,9 @@ namespace FAH {
       bool isSystemIdle() const {return inAwayMode || displayOff;}
       void dispatch();
 
+      // From cb::Thread
+      void run();
+
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     protected:
@@ -79,7 +85,6 @@ namespace FAH {
       void updateIcon();
       void setSysTray(int icon, LPCTSTR tip);
       void popup(HWND hWnd);
-      void processWinEvents();
     };
   }
 }

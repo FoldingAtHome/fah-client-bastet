@@ -38,7 +38,11 @@ namespace FAH {
 
     class OS {
       App &app;
-      bool idle = false;
+
+      bool idle    = false;
+      bool paused  = false;
+      bool active  = false;
+      bool failure = false;
 
     public:
       OS(App &app);
@@ -46,16 +50,20 @@ namespace FAH {
 
       static cb::SmartPointer<OS> create(App &app);
 
-      App &getApp() {return app;}
-
       virtual const char *getName() const = 0;
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
       virtual void dispatch();
 
+      bool isPaused()   const {return paused;}
+      bool isActive()   const {return active;}
+      bool hasFailure() const {return failure;}
+      void requestExit() const;
+      void togglePause() const;
+
     protected:
       cb::SmartPointer<cb::Event::Event> event;
-      void checkIdle();
+      void update();
     };
   }
 }
