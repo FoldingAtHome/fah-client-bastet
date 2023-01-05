@@ -30,6 +30,7 @@
 
 #include <cbang/SmartPointer.h>
 #include <cbang/event/Event.h>
+#include <atomic>
 
 
 namespace FAH {
@@ -40,9 +41,10 @@ namespace FAH {
       App &app;
 
       bool idle    = false;
-      bool paused  = false;
-      bool active  = false;
-      bool failure = false;
+
+      std::atomic<bool> paused  = false;
+      std::atomic<bool> active  = false;
+      std::atomic<bool> failure = false;
 
     public:
       OS(App &app);
