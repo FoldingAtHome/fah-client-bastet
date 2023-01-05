@@ -32,6 +32,7 @@
 
 #include <cbang/os/Thread.h>
 #include <cbang/util/Version.h>
+#include <atomic>
 
 #include "resource.h"
 
@@ -57,8 +58,8 @@ namespace FAH {
 
       int iconCurrent = 0;
 
-      bool inAwayMode = false;
-      bool displayOff = false;
+      std::atomic<bool> inAwayMode = false;
+      std::atomic<bool> displayOff = false;
 
     public:
       WinOSImpl(App &app);
