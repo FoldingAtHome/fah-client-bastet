@@ -40,11 +40,14 @@ namespace FAH {
     class OS {
       App &app;
 
-      bool idle    = false;
+      bool idle = false;
 
-      std::atomic<bool> paused  = false;
-      std::atomic<bool> active  = false;
-      std::atomic<bool> failure = false;
+      std::atomic<bool> paused;
+      std::atomic<bool> active;
+      std::atomic<bool> failure;
+
+    protected:
+      cb::SmartPointer<cb::Event::Event> event;
 
     public:
       OS(App &app);
@@ -64,7 +67,6 @@ namespace FAH {
       void togglePause() const;
 
     protected:
-      cb::SmartPointer<cb::Event::Event> event;
       void update();
     };
   }

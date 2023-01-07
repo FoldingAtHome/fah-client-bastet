@@ -439,28 +439,30 @@ void Unit::next() {
   }
 
   // Handle pause
-  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP) {
-    setWait(0); // Stop waiting
-    return readViewerData();
+  if (isPaused() && getState() < UNIT_DUMP) {
+    if (!pr.isSet() && getState() == UNIT_ASSIGN) setState(UNIT_CLEAN);
+    else {
+      setWait(0); // Stop waiting
+      retries = 0;
+      return readViewerData();
+    }
   }
 
   // Handle event backoff
-  if (getState() != UNIT_DONE && isWaiting())
+  if (getState() < UNIT_CLEAN && isWaiting())
     return triggerNext(wait - Time::now());
 
   try {
     switch (getState()) {
-    case UNIT_ASSIGN:   assign();   break;
-    case UNIT_DOWNLOAD: download(); break;
-    case UNIT_CORE:     getCore();  break;
-    case UNIT_RUN:      run();      break;
-    case UNIT_UPLOAD:   upload();   break;
-    case UNIT_DUMP:     dump();     break;
-    case UNIT_CLEAN:    clean();    break;
-    case UNIT_DONE:                 break;
+    case UNIT_ASSIGN:   return assign();
+    case UNIT_DOWNLOAD: return download();
+    case UNIT_CORE:     return getCore();
+    case UNIT_RUN:      return run();
+    case UNIT_UPLOAD:   return upload();
+    case UNIT_DUMP:     return dump();
+    case UNIT_CLEAN:    return clean();
+    case UNIT_DONE:     return;
     }
-
-    return;
   } CATCH_ERROR;
 
   retry();
@@ -539,11 +541,17 @@ void Unit::getCore() {
 
       if (core->isInvalid()) {
         LOG_INFO(1, "Failed to download core");
-        setState(UNIT_DUMP);
-        triggerNext();
-      }
+        data.release();
+        setState(UNIT_ASSIGN);
+        retry();
 
-      if (core->isReady()) {
+      } else if (core->isReady()) {
+        // Update resource allocation only after WU is ready to run
+        auto assign = data->get("assignment")->get("data");
+        setCPUs(assign->getU32("cpus"));
+        if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
+        else get("gpus")->clear();
+
         setState(UNIT_RUN);
         triggerNext();
       }
@@ -556,10 +564,13 @@ void Unit::getCore() {
 void Unit::run() {
   if (process.isSet()) return; // Already running
 
+  // Reset retry count
+  retries = 0;
+
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
     LOG_ERROR("Missing WU data");
-    return clean();
+    return setState(UNIT_CLEAN);
   }
 
   // Remove old results if exists
@@ -834,19 +845,20 @@ void Unit::retry() {
     auto const &csList = data->selectList("wu.data.cs");
 
     if (csList.size()) {
-      if (cs < (int)csList.size()) cs++;
+      if (cs <  (int)csList.size()) cs++;
       if (cs == (int)csList.size()) cs = -1;
       return next();
     }
   }
 
-  if (++retries < 10) {
-    double delay = pow(2, retries);
+  if (++retries < 10 || getState() == UNIT_ASSIGN ||
+      (retries <= 50 && UNIT_UPLOAD <= getState())) {
+    double delay = pow(2, std::min(9U, retries));
     setWait(delay);
-    LOG_INFO(1, "Retrying in " << TimeInterval(delay));
+    LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
 
   } else {
-    LOG_INFO(1, "Too many retries, failing WU");
+    LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
     setWait(0);
     retries = 0;
     setState(UNIT_CLEAN);
@@ -854,7 +866,7 @@ void Unit::retry() {
 
   insert("retries", retries);
 
-  next();
+  triggerNext();
 }
 
 
@@ -875,19 +887,8 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   if (idFromSig64(request->getString("signature")) != id)
     THROW("WS response does not match request");
 
-  // Update CPUs
-  unsigned cpus = assign->getU32("cpus");
-  setCPUs(cpus);
-
-  // Update GPUs
-  if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
-  else get("gpus")->clear();
-
-  LOG_DEBUG(3, "Received assignment for " << cpus << " cpus and "
-            << get("gpus")->size() << " gpus");
-
-  // Try to allocate more units now that our resources have been updated
-  units->triggerUpdate();
+  LOG_DEBUG(3, "Received assignment for " << assign->getU32("cpus")
+            << " cpus and " << get("gpus")->size() << " gpus");
 
   this->data = data;
   setState(UNIT_DOWNLOAD);
@@ -1150,7 +1151,14 @@ void Unit::response(Event::Request &req) {
 
       // Handle HTTP reponse codes
       switch (req.getResponseCode()) {
-      case HTTP_SERVICE_UNAVAILABLE: retry(); break;
+      case HTTP_SERVICE_UNAVAILABLE:
+        // We always need a new assignment token
+        if (getState() == UNIT_DOWNLOAD) {
+          data.release();
+          setState(UNIT_ASSIGN);
+        }
+        retry();
+        break;
 
       case HTTP_BAD_REQUEST: case HTTP_NOT_ACCEPTABLE: case HTTP_GONE:
       default:

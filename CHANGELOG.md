@@ -1,6 +1,14 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.8
+ - Get a new assignment after ``HTTP_SERVICE_UNAVAILABLE``.
+ - Removal of old logs fixed.  (Kevin Bernhagen)
+ - Fixed network timeout error in Windows and macOS. #78
+ - Retry WS assignment indefinately until WU paused. #79
+ - Retry WU upload or dump up to 50 times.
+ - Enable Linux service start on boot at install time. #81 (Kevin Bernhagen)
+
 ## v8.1.7
  - Fixed client ID generation.
  - Thread safe Windows event loop.  Fixes NULL pointer exception. #74

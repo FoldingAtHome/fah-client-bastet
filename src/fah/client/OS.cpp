@@ -46,7 +46,8 @@ using namespace std;
 
 
 OS::OS(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &OS::update)) {
+  app(app), paused(false), active(false), failure(false),
+  event(app.getEventBase().newEvent(this, &OS::update)) {
   event->add(2);
 }
 
