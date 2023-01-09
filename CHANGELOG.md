@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.9
+ - Delay AS DNS lookup to avoid startup problems with no network. #84
+
 ## v8.1.8
  - Get a new assignment after ``HTTP_SERVICE_UNAVAILABLE``.
  - Removal of old logs fixed.  (Kevin Bernhagen)

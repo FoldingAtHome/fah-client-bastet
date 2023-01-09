@@ -413,8 +413,9 @@ void App::checkBase64SHA256(const string &certificate,
 }
 
 
-const IPAddress &App::getNextAS() {
-  if (servers.empty()) THROW("No AS");
+string App::getNextAS() {
+  auto servers = options["assignment-servers"].toStrings();
+  if (servers.empty()) THROW("No assignment servers");
   if (servers.size() <= nextAS) nextAS = 0;
   return servers[nextAS++];
 }
@@ -462,18 +463,6 @@ void App::loadConfig() {
 }
 
 
-void App::loadServers() {
-  auto addresses = options["assignment-servers"].toStrings();
-  if (addresses.empty()) THROW("No assignment servers");
-
-  for (auto address: addresses)
-    try {IPAddress::ipsFromString(address, servers);} CATCH_ERROR;
-
-  if (servers.empty())
-    THROW("Failed to find any assignment server IP addresses");
-}
-
-
 void App::loadGroups() {
   newGroup("");
   updateGroups();
@@ -518,11 +507,14 @@ void App::run() {
   LOG_INFO(1, "Opening Database");
   db.open("client.db");
 
+  // Check that we have AS
+  if (options["assignment-servers"].toStrings().empty())
+    THROW("No assignment servers");
+
   // Initialize
   upgradeDB();
   server->init();
   loadConfig();
-  loadServers();
   loadGroups();
   loadUnits();
 

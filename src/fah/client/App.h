@@ -85,7 +85,6 @@ namespace FAH {
       groups_t groups;
 
       cb::KeyPair key;
-      std::vector<cb::IPAddress> servers;
       unsigned nextAS = 0;
 
     public:
@@ -133,12 +132,11 @@ namespace FAH {
                              const std::string &sig64, const std::string &data,
                              const std::string &usage);
 
-      const cb::IPAddress &getNextAS();
+      std::string getNextAS();
       uint64_t getNextWUID();
 
       void upgradeDB();
       void loadConfig();
-      void loadServers();
       void loadGroups();
       void loadUnits();
 
