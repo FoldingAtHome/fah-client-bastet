@@ -135,6 +135,7 @@ App::App() :
   options.pushCategory("Resource Settings");
   options.add("cpus", "Number of cpus FAH client will use.",
               new MaxConstraint<int32_t>(SystemInfo::instance().getCPUCount()));
+  options.add("paused", "True if paused on first-run.")->setDefault(true);
   options.popCategory();
 
   // Configure log

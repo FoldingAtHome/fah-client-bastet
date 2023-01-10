@@ -70,6 +70,8 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
       default:                   insert(key, options[key]);             break;
       }
 
+  insertBoolean("paused", options["paused"].toBoolean());
+
   // Load config data
   merge(*config);
 }
