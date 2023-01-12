@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.1.10
  - Fixed copyright and version display in Windows about screen.  #94
+ - Fixed bug in Windows/macOS networking timeout code.  #78
 
 ## v8.1.9
  - Delay AS DNS lookup to avoid startup problems with no network. #84
