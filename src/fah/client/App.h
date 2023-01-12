@@ -141,6 +141,7 @@ namespace FAH {
       void loadUnits();
 
       // From cb::Application
+      int init(int argc, char *argv[]);
       void run();
       void requestExit();
 

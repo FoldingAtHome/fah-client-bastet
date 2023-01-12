@@ -82,8 +82,7 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, 10),
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
-  gpus(new GPUResources(*this)), cores(new Cores(*this)), os(OS::create(*this)),
-  info(new JSON::Dict) {
+  gpus(new GPUResources(*this)), cores(new Cores(*this)), info(new JSON::Dict) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -493,6 +492,13 @@ void App::loadUnits() {
     });
 
   LOG_INFO(3, "Loaded " << count << " wus.");
+}
+
+
+int App::init(int argc, char *argv[]) {
+  int ret = Application::init(argc, argv);
+  os = OS::create(*this);
+  return ret;
 }
 
 
