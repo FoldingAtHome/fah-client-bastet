@@ -183,6 +183,7 @@ if 'package' in COMMAND_LINE_TARGETS:
                               ['LICENSE', 'en.lproj/LICENSE.txt']],
         distpkg_welcome    = 'Welcome.rtf',
         distpkg_license    = 'LICENSE.txt',
+        distpkg_conclusion = 'Conclusion.rtf',
         distpkg_background = 'fah-opacity-50.png',
         distpkg_customize  = 'always',
         distpkg_target     = distpkg_target,
