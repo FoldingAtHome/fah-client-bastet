@@ -85,7 +85,7 @@ void OS::requestExit() const {
 void OS::togglePause() const {
   app.getEventBase().newEvent([this] () {
     app.setPaused(!app.getPaused());
-  }, 0)->add();
+  }, 0)->add(0);
 }
 
 
