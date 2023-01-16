@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# exit 0 if see a browser not Safari
+
+cd "$(dirname "$0")"
+
+SUDO=""
+if [ "$SUDO_USER" != "" ]; then
+  SUDO="sudo -u $SUDO_USER"
+elif [ "$USER" != "" ]; then
+  SUDO="sudo -u $USER"
+fi
+BROWSER=$($SUDO ./defaultbrowser.sh) || BROWSER=""
+: "${BROWSER}"; printf -v BROWSER '%b' "${_//%/\\x}"
+
+# default browser is not Safari; assume compatible
+[ ! -z "$BROWSER" ] && [ "$BROWSER" != "Safari" ] && exit 0
+
+APPS=("Google Chrome" "Firefox" "Microsoft Edge" "Brave Browser")
+for APP in "${APPS[@]}"; do
+  [ -d "/Applications/${APP}.app" ] && exit 0
+done
+
+exit 1
