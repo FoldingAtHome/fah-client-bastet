@@ -102,6 +102,8 @@ App::App() :
     ->setDefault("https://app.foldingathome.org");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server");
+  options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
+  options.add("on-idle", "Folding only when idle.")->setDefault(false);
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds

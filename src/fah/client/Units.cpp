@@ -179,7 +179,7 @@ void Units::update() {
   }
 
   // No further action if paused or idle
-  if (config->getPaused() || waitForIdle())
+  if (config->getPaused() || config->waitForConfig() || waitForIdle())
     return setWait(0); // Pausing clears wait timer
 
   // Wait on failures

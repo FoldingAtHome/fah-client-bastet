@@ -5,6 +5,7 @@ Folding@home Client Changelog
  - Added end screen to macOS install. (Kevin Bernhagen)
  - Prevent install on macOS if Safari is the default browser. (Kevin Bernhagen)
  - Fixed Windows systray pause.  #96
+ - Pause client and prompt user if no user settings and not fold-anon.  #32
 
 ## v8.1.10
  - Fixed copyright and version display in Windows about screen.  #94

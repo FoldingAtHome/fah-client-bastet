@@ -178,11 +178,11 @@ void Unit::setPause(bool pause) {
 
 
 const char *Unit::getPauseReason() const {
-  if (getConfig().getPaused())    return "Paused by user";
-  if (units->waitForIdle())       return "Waiting for idle system";
-  if (getBoolean("paused", true)) return "Resources not available";
-  if (app.shouldQuit())           return "Shutting down";
-  if (isWaiting())                return "Waiting to retry";
+  if (getConfig().getPaused())     return "Paused by user";
+  if (units->waitForIdle())        return "Waiting for idle system";
+  if (getBoolean("paused", true))  return "Resources not available";
+  if (app.shouldQuit())            return "Shutting down";
+  if (isWaiting())                 return "Waiting to retry";
   return "Not paused";
 }
 

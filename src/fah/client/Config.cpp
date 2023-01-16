@@ -51,6 +51,7 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   insert("user", "Anonymous");
   insert("team", 0);
   insert("passkey", "");
+  insertBoolean("fold_anon", false);
   insertBoolean("on_idle", false);
   insertBoolean("paused", false);
   insertBoolean("finish", false);
@@ -61,14 +62,19 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
 
   // Load options from config file
   auto &options = app.getOptions();
-  std::set<string> keys = {"user", "passkey", "team", "key", "cause", "cpus"};
-  for (auto key : keys)
+  std::set<string> keys = {
+    "user", "team", "passkey", "fold-anon", "on-idle", "key", "cause", "cpus"};
+  for (auto key : keys) {
+    string _key = String::replace(key, "-", "_");
+
     if (options.has(key) && !options[key].isDefault() && options[key].isSet())
       switch (options[key].getType()) {
-      case Option::INTEGER_TYPE: insert(key, options[key].toInteger()); break;
-      case Option::DOUBLE_TYPE:  insert(key, options[key].toDouble());  break;
-      default:                   insert(key, options[key]);             break;
+      case Option::INTEGER_TYPE: insert(_key, options[key].toInteger()); break;
+      case Option::DOUBLE_TYPE:  insert(_key, options[key].toDouble());  break;
+      case Option::BOOLEAN_TYPE: insert(_key, options[key].toBoolean()); break;
+      default:                   insert(_key, options[key]);             break;
       }
+  }
 
   // Load config data
   merge(*config);
@@ -83,6 +89,14 @@ void Config::update(const JSON::Value &config) {
 
 void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 bool Config::getOnIdle() const {return getBoolean("on_idle");}
+void Config::setFoldAnon(bool foldAnon) {insertBoolean("fold_anon", foldAnon);}
+bool Config::getFoldAnon() const {return getBoolean("fold_anon");}
+
+
+bool Config::waitForConfig() const {
+  return !getFoldAnon() && String::toLower(getUsername()) == "anonymous" &&
+    !getTeam() && getPasskey().empty();
+}
 
 
 void Config::setPaused(bool paused) {
@@ -97,12 +111,22 @@ bool Config::getFinish() const {return getBoolean("finish");}
 
 
 string Config::getUsername() const {
+  if (getFoldAnon()) return "Anonymous";
   string user = getString("user", "Anonymous");
   return user.empty() ? "Anonymous" : user;
 }
 
 
-string   Config::getPasskey()    const {return getString("passkey", "");}
+string Config::getPasskey() const {
+  return getFoldAnon() ? "" : getString("passkey", "");
+}
+
+
+uint32_t Config::getTeam() const {
+  return getFoldAnon() ? 0 : getU32("team", 0);
+}
+
+
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 

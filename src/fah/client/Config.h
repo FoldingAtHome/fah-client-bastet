@@ -49,6 +49,10 @@ namespace FAH {
       void setOnIdle(bool onIdle);
       bool getOnIdle() const;
 
+      void setFoldAnon(bool foldAnon);
+      bool getFoldAnon() const;
+      bool waitForConfig() const;
+
       void setPaused(bool paused);
       bool getPaused() const;
 
@@ -57,7 +61,7 @@ namespace FAH {
 
       std::string getUsername() const;
       std::string getPasskey() const;
-      uint32_t getTeam() const {return getU32("team", 0);}
+      uint32_t getTeam() const;
       uint64_t getProjectKey() const;
 
       uint32_t getCPUs() const;
