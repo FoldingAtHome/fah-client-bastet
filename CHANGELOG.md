@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.1.11
  - Added end screen to macOS install. (Kevin Bernhagen)
+ - Prevent install on macOS if Safari is the default browser. (Kevin Bernhagen)
  - Fixed Windows systray pause.  #96
 
 ## v8.1.10
