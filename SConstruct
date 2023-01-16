@@ -182,6 +182,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         distpkg_resources  = [['install/osx/Resources', '.'],
                               ['LICENSE', 'en.lproj/LICENSE.txt']],
         distpkg_welcome    = 'Welcome.rtf',
+        distpkg_readme     = 'Readme.rtf',
         distpkg_license    = 'LICENSE.txt',
         distpkg_conclusion = 'Conclusion.rtf',
         distpkg_background = 'fah-opacity-50.png',
