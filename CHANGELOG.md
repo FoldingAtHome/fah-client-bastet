@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.12
+ - Rotate logs daily. #92
+ - Keep up to 90 old logs by default.
+
 ## v8.1.11
  - Added end screen to macOS install. (Kevin Bernhagen)
  - Prevent install on macOS if Safari is the default browser. (Kevin Bernhagen)

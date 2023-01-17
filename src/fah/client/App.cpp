@@ -145,8 +145,8 @@ App::App() :
   options["log-no-info-header"].setDefault(true);
   options["log-thread-prefix"].setDefault(true);
   options["log-short-level"].setDefault(true);
-  options["log-rotate-max"].setDefault(16);
-  options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
+  options["log-rotate-max"].setDefault(90);
+  options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
   base.newSignal(SIGINT,  this, &App::signalEvent)->add();
