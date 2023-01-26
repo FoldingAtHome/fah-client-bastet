@@ -68,6 +68,8 @@ Clean(client, ['build', 'config.log'])
 # Dist
 docs = ['README.md', 'CHANGELOG.md', 'LICENSE']
 distfiles = docs + [client, 'images/fahlogo.png']
+if env['PLATFORM'] == 'posix':
+    distfiles.append('install/lin/fah-client.service')
 if hide_console is not None: distfiles.append(hide_console)
 tar = env.TarBZ2Dist('fah-client', distfiles)
 Alias('dist', tar)
