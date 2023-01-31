@@ -196,12 +196,16 @@ void Unit::setCPUs(uint32_t cpus) {
 
 
 uint32_t Unit::getMinCPUs() const {
-  return data.isSet() ? data->selectU32("assignment.data.min_cpus", 1) : 1;
+  uint32_t cpus = getCPUs();
+  return data.isSet() ?
+    data->selectU32("assignment.data.min_cpus", cpus) : cpus;
 }
 
 
 uint32_t Unit::getMaxCPUs() const {
-  return data.isSet() ? data->selectU32("assignment.data.max_cpus", 64) : 64;
+  uint32_t cpus = getCPUs();
+  return data.isSet() ?
+    data->selectU32("assignment.data.max_cpus", cpus) : cpus;
 }
 
 

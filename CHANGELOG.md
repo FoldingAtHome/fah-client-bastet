@@ -5,6 +5,7 @@ Folding@home Client Changelog
  - Rotate logs daily. #92
  - Keep up to 90 old logs by default.
  - Add ``fah-client.service`` to Linux tar.bz2 distribution.
+ - Fix CPU reallocation bug during GPU WU assignment. #106
 
 ## v8.1.11
  - Added end screen to macOS install. (Kevin Bernhagen)
