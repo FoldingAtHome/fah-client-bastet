@@ -68,6 +68,25 @@ sudo dpkg -i fah-client-bastet/fah-client_<version>_amd64.deb
 
 Where ``<version>`` is the software version number.
 
+## Folding@home Client Service
+After installation, the service runs and will automatically restart on startup.
+
+**File storage locations:**
+- Logs: `/var/log/fah-client`
+- Data: `/var/lib/fah-client`
+
+Related service commands for **Status, Start, Stop, Restart:**
+```
+systemctl status --no-pager -l fah-client
+sudo systemctl start fah-client
+sudo systemctl stop fah-client
+sudo systemctl restart fah-client
+```
+
+NOTE: If the Folding@home Client is not being run as a service and is manually
+run with `fah-client` in a terminal window, the data and log folders will be
+created in the working directory where it is run from.
+
 ## Start the development web server
 Use these commands to run your own frontend server for testing purposes.  In
 production, this code will run at https://app.foldingathome.org/.

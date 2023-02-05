@@ -52,5 +52,14 @@ case "$1" in
     echo
     echo "  https://app.foldingathome.org/"
     echo
+    echo "File storage locations:"
+    echo "  Logs: /var/log/fah-client"
+    echo "  Data: /var/lib/fah-client"
+    echo
+    echo "Related service commands for Status, Start, Stop, Restart:"
+    echo "  systemctl status --no-pager -l fah-client"
+    echo "  sudo systemctl start fah-client"
+    echo "  sudo systemctl stop fah-client"
+    echo "  sudo systemctl restart fah-client"
     ;;
 esac
