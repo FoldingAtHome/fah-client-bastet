@@ -26,7 +26,7 @@ mystery.
 # This software
 This repository contains a new [Open-Source](https://opensource.org/osd)
 version of the Folding@home client software.  The complete client software
-consits of a frontend and a backend.  This repository contains the backend.
+consists of a frontend and a backend.  This repository contains the backend.
 The frontend is in a separate repository at
 [fah-web-client-bastet](https://github.com/foldingathome/fah-web-client-bastet).
 The backend can be configured to run on its own without any user interaction.
@@ -57,7 +57,7 @@ scons -C fah-client-bastet
 scons -C fah-client-bastet package
 ```
 
-## Install the pacakge
+## Install the package
 The last build step builds the Debian package.  Before installing this package
 it is recommend that you first uninstall any previous Folding@home client
 software.  You can then install the package like this:
@@ -67,6 +67,25 @@ sudo dpkg -i fah-client-bastet/fah-client_<version>_amd64.deb
 ```
 
 Where ``<version>`` is the software version number.
+
+## Folding@home Client Service
+After installation, the service runs and will automatically restart on startup.
+
+**File storage locations:**
+- Logs: `/var/log/fah-client`
+- Data: `/var/lib/fah-client`
+
+Related service commands for **Status, Start, Stop, Restart:**
+```
+systemctl status --no-pager -l fah-client
+sudo systemctl start fah-client
+sudo systemctl stop fah-client
+sudo systemctl restart fah-client
+```
+
+NOTE: If the Folding@home Client is not being run as a service and is manually
+run with `fah-client` in a terminal window, the data and log folders will be
+created in the working directory where it is run from.
 
 ## Start the development web server
 Use these commands to run your own frontend server for testing purposes.  In
