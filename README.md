@@ -26,7 +26,7 @@ mystery.
 # This software
 This repository contains a new [Open-Source](https://opensource.org/osd)
 version of the Folding@home client software.  The complete client software
-consits of a frontend and a backend.  This repository contains the backend.
+consists of a frontend and a backend.  This repository contains the backend.
 The frontend is in a separate repository at
 [fah-web-client-bastet](https://github.com/foldingathome/fah-web-client-bastet).
 The backend can be configured to run on its own without any user interaction.
@@ -57,7 +57,7 @@ scons -C fah-client-bastet
 scons -C fah-client-bastet package
 ```
 
-## Install the pacakge
+## Install the package
 The last build step builds the Debian package.  Before installing this package
 it is recommend that you first uninstall any previous Folding@home client
 software.  You can then install the package like this:
