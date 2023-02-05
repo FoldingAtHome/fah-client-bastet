@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -85,7 +85,6 @@ namespace FAH {
       groups_t groups;
 
       cb::KeyPair key;
-      std::vector<cb::IPAddress> servers;
       unsigned nextAS = 0;
 
     public:
@@ -133,16 +132,16 @@ namespace FAH {
                              const std::string &sig64, const std::string &data,
                              const std::string &usage);
 
-      const cb::IPAddress &getNextAS();
+      std::string getNextAS();
       uint64_t getNextWUID();
 
       void upgradeDB();
       void loadConfig();
-      void loadServers();
       void loadGroups();
       void loadUnits();
 
       // From cb::Application
+      int init(int argc, char *argv[]);
       void run();
       void requestExit();
 

@@ -42,7 +42,8 @@ case "$1" in
     systemctl daemon-reload
 
     # Start the service
-    service $NAME start
+    systemctl start $NAME
+    systemctl enable $NAME
 
     echo
     echo "The Folding@home client is now installed"

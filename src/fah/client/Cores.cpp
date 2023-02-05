@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -47,8 +47,10 @@ const SmartPointer<Core> &Cores::get(const JSON::ValuePtr &data) {
   string url = data->getString("url");
 
   auto it = cores.find(url);
-  if (it == cores.end())
-    it = cores.insert(cores_t::value_type(url, new Core(app, data))).first;
+  if (it == cores.end()) {
+    SmartPointer<Core> core = new Core(app, data->copy());
+    it = cores.insert(cores_t::value_type(url, core)).first;
+  }
 
   return it->second;
 }

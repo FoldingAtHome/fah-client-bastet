@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,8 @@
 #pragma once
 
 #include <cbang/SmartPointer.h>
+#include <cbang/event/Event.h>
+#include <atomic>
 
 
 namespace FAH {
@@ -38,18 +40,34 @@ namespace FAH {
     class OS {
       App &app;
 
+      bool idle = false;
+
+      std::atomic<bool> paused;
+      std::atomic<bool> active;
+      std::atomic<bool> failure;
+
+    protected:
+      cb::SmartPointer<cb::Event::Event> event;
+
     public:
-      OS(App &app) : app(app) {}
+      OS(App &app);
       virtual ~OS() {}
 
       static cb::SmartPointer<OS> create(App &app);
-
-      App &getApp() {return app;}
 
       virtual const char *getName() const = 0;
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
       virtual void dispatch();
+
+      bool isPaused()   const {return paused;}
+      bool isActive()   const {return active;}
+      bool hasFailure() const {return failure;}
+      void requestExit() const;
+      void togglePause() const;
+
+    protected:
+      void update();
     };
   }
 }

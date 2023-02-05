@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -45,6 +45,13 @@ using namespace cb;
 using namespace std;
 
 
+OS::OS(App &app) :
+  app(app), paused(false), active(false), failure(false),
+  event(app.getEventBase().newEvent(this, &OS::update)) {
+  event->add(2);
+}
+
+
 SmartPointer<OS> OS::create(App &app) {
 #if defined(_WIN32)
   return new WinOSImpl(app);
@@ -68,3 +75,27 @@ const char *OS::getCPU() const {
 
 
 void OS::dispatch() {app.getEventBase().dispatch();}
+
+
+void OS::requestExit() const {
+  app.getEventBase().newEvent(&app, &App::requestExit, 0)->add(0);
+}
+
+
+void OS::togglePause() const {
+  app.getEventBase().newEvent([this] () {
+    app.setPaused(!app.getPaused());
+  }, 0)->add(0);
+}
+
+
+void OS::update() {
+  if (isSystemIdle() != idle) {
+    idle = !idle;
+    app.triggerUpdate();
+  }
+
+  paused  = app.getPaused();
+  active  = app.isActive();
+  failure = app.hasFailure();
+}

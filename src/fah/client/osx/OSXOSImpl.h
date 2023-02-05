@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -35,6 +35,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <IOKit/IOKitLib.h>
+#include <atomic>
 
 
 namespace FAH {
@@ -44,7 +45,7 @@ namespace FAH {
     class OSXOSImpl : public OS, public cb::Thread {
       static OSXOSImpl *singleton;
 
-      bool systemIsIdle = false;
+      std::atomic<bool> systemIsIdle = false;
       bool screensaverIsActive = false;
       bool screenIsLocked = false;
       bool loginwindowIsActive = false;
@@ -78,7 +79,6 @@ namespace FAH {
 
       // From cb::Thread
       void run();
-      void stop();
 
       // Callbacks
       void consoleUserChanged

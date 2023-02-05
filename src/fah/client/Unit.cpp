@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -103,10 +103,12 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
+Unit::Unit(App &app, uint64_t wu, const string &group, uint32_t cpus,
+           const std::set<string> &gpus) :
   Unit(app) {
   this->wu = wu;
   insert("number", wu);
+  insert("group", group);
   setCPUs(cpus);
   setGPUs(gpus);
   setState(UNIT_ASSIGN);
@@ -139,11 +141,15 @@ Unit::~Unit() {
 
 void Unit::setUnits(const cb::SmartPointer<Units> &units) {
   this->units = units;
-  if (units.isSet()) insert("group", units->getGroup().getName());
-  else if (has("group")) erase("group");
+
+  if (units.isSet()) {
+    string group = units->getGroup().getName();
+    if (group != getGroup()) insert("group", group);
+  }
 }
 
 
+const Config &Unit::getConfig() const {return units->getConfig();}
 string    Unit::getGroup() const {return getString("group", "");}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 
@@ -155,18 +161,12 @@ bool Unit::atRunState() const {
 
 
 bool Unit::hasRun() const {return getRunTime() || UNIT_RUN <= getState();}
-
-
-uint64_t Unit::getProjectKey() const {
-  return units->getConfig().getProjectKey();
-}
-
-
+uint64_t Unit::getProjectKey() const {return getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return units->getConfig().getPaused() || units->waitForIdle() ||
+  return getConfig().getPaused() || units->waitForIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -178,11 +178,11 @@ void Unit::setPause(bool pause) {
 
 
 const char *Unit::getPauseReason() const {
-  if (units->getConfig().getPaused()) return "Paused by user";
-  if (units->waitForIdle())           return "Waiting for idle system";
-  if (getBoolean("paused", true))     return "Resources not available";
-  if (app.shouldQuit())               return "Shutting down";
-  if (isWaiting())                    return "Waiting to retry";
+  if (getConfig().getPaused())     return "Paused by user";
+  if (units->waitForIdle())        return "Waiting for idle system";
+  if (getBoolean("paused", true))  return "Resources not available";
+  if (app.shouldQuit())            return "Shutting down";
+  if (isWaiting())                 return "Waiting to retry";
   return "Not paused";
 }
 
@@ -196,12 +196,16 @@ void Unit::setCPUs(uint32_t cpus) {
 
 
 uint32_t Unit::getMinCPUs() const {
-  return data.isSet() ? data->selectU32("assignment.data.min_cpus", 1) : 1;
+  uint32_t cpus = getCPUs();
+  return data.isSet() ?
+    data->selectU32("assignment.data.min_cpus", cpus) : cpus;
 }
 
 
 uint32_t Unit::getMaxCPUs() const {
-  return data.isSet() ? data->selectU32("assignment.data.max_cpus", 64) : 64;
+  uint32_t cpus = getCPUs();
+  return data.isSet() ?
+    data->selectU32("assignment.data.max_cpus", cpus) : cpus;
 }
 
 
@@ -308,8 +312,7 @@ uint64_t Unit::getPPD() const {
 
 
 string Unit::getLogPrefix() const {
-  const char *group = units->getGroup().getName().c_str();
-  return String::printf("%s:WU%" PRIu64 ":", group, wu);
+  return String::printf("%s:WU%" PRIu64 ":", getGroup().c_str(), wu);
 }
 
 
@@ -366,6 +369,8 @@ void Unit::triggerNext(double secs) {event->add(secs);}
 
 
 void Unit::dumpWU() {
+  LOG_INFO(3, "Dumping " << id);
+
   switch (getState()) {
   case UNIT_ASSIGN: case UNIT_DOWNLOAD:            setState(UNIT_CLEAN); break;
   case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP);  break;
@@ -438,28 +443,30 @@ void Unit::next() {
   }
 
   // Handle pause
-  if (isPaused() && getState() != UNIT_CLEAN && getState() != UNIT_DUMP) {
-    setWait(0); // Stop waiting
-    return readViewerData();
+  if (isPaused() && getState() < UNIT_DUMP) {
+    if (!pr.isSet() && getState() == UNIT_ASSIGN) setState(UNIT_CLEAN);
+    else {
+      setWait(0); // Stop waiting
+      retries = 0;
+      return readViewerData();
+    }
   }
 
   // Handle event backoff
-  if (getState() != UNIT_DONE && isWaiting())
+  if (getState() < UNIT_CLEAN && isWaiting())
     return triggerNext(wait - Time::now());
 
   try {
     switch (getState()) {
-    case UNIT_ASSIGN:   assign();   break;
-    case UNIT_DOWNLOAD: download(); break;
-    case UNIT_CORE:     getCore();  break;
-    case UNIT_RUN:      run();      break;
-    case UNIT_UPLOAD:   upload();   break;
-    case UNIT_DUMP:     dump();     break;
-    case UNIT_CLEAN:    clean();    break;
-    case UNIT_DONE:                 break;
+    case UNIT_ASSIGN:   return assign();
+    case UNIT_DOWNLOAD: return download();
+    case UNIT_CORE:     return getCore();
+    case UNIT_RUN:      return run();
+    case UNIT_UPLOAD:   return upload();
+    case UNIT_DUMP:     return dump();
+    case UNIT_CLEAN:    return clean();
+    case UNIT_DONE:     return;
     }
-
-    return;
   } CATCH_ERROR;
 
   retry();
@@ -538,11 +545,17 @@ void Unit::getCore() {
 
       if (core->isInvalid()) {
         LOG_INFO(1, "Failed to download core");
-        setState(UNIT_DUMP);
-        triggerNext();
-      }
+        data.release();
+        setState(UNIT_ASSIGN);
+        retry();
 
-      if (core->isReady()) {
+      } else if (core->isReady()) {
+        // Update resource allocation only after WU is ready to run
+        auto assign = data->get("assignment")->get("data");
+        setCPUs(assign->getU32("cpus"));
+        if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
+        else get("gpus")->clear();
+
         setState(UNIT_RUN);
         triggerNext();
       }
@@ -555,10 +568,13 @@ void Unit::getCore() {
 void Unit::run() {
   if (process.isSet()) return; // Already running
 
+  // Reset retry count
+  retries = 0;
+
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
     LOG_ERROR("Missing WU data");
-    return clean();
+    return setState(UNIT_CLEAN);
   }
 
   // Remove old results if exists
@@ -596,9 +612,9 @@ void Unit::run() {
     auto &gpu = *app.getGPUs().get(gpus.getString(0)).cast<GPUResource>();
 
     args.push_back("-gpu-vendor");
-    args.push_back(gpu.getGPU().getType().toString());
+    args.push_back(String::toLower(gpu.getGPU().getType().toString()));
     addGPUArgs(args, gpu.getOpenCL(), "opencl");
-    addGPUArgs(args, gpu.getCUDA(), "cuda");
+    addGPUArgs(args, gpu.getCUDA(),   "cuda");
     args.push_back("-gpu");
     args.push_back(String(gpu.getOpenCL().deviceIndex));
 
@@ -616,7 +632,7 @@ void Unit::run() {
   process->setWorkingDirectory("work");
   process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
                 Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
-                units->getConfig().getCorePriority());
+                getConfig().getCorePriority());
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
 
   // Redirect core output to log
@@ -833,19 +849,20 @@ void Unit::retry() {
     auto const &csList = data->selectList("wu.data.cs");
 
     if (csList.size()) {
-      if (cs < (int)csList.size()) cs++;
+      if (cs <  (int)csList.size()) cs++;
       if (cs == (int)csList.size()) cs = -1;
       return next();
     }
   }
 
-  if (++retries < 10) {
-    double delay = pow(2, retries);
+  if (++retries < 10 || getState() == UNIT_ASSIGN ||
+      (retries <= 50 && UNIT_UPLOAD <= getState())) {
+    double delay = pow(2, std::min(9U, retries));
     setWait(delay);
-    LOG_INFO(1, "Retrying in " << TimeInterval(delay));
+    LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
 
   } else {
-    LOG_INFO(1, "Too many retries, failing WU");
+    LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
     setWait(0);
     retries = 0;
     setState(UNIT_CLEAN);
@@ -853,7 +870,7 @@ void Unit::retry() {
 
   insert("retries", retries);
 
-  next();
+  triggerNext();
 }
 
 
@@ -874,19 +891,8 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   if (idFromSig64(request->getString("signature")) != id)
     THROW("WS response does not match request");
 
-  // Update CPUs
-  unsigned cpus = assign->getU32("cpus");
-  setCPUs(cpus);
-
-  // Update GPUs
-  if (assign->hasList("gpus")) insert("gpus", assign->get("gpus"));
-  else get("gpus")->clear();
-
-  LOG_DEBUG(3, "Received assignment for " << cpus << " cpus and "
-            << get("gpus")->size() << " gpus");
-
-  // Try to allocate more units now that our resources have been updated
-  units->triggerUpdate();
+  LOG_DEBUG(3, "Received assignment for " << assign->getU32("cpus")
+            << " cpus and " << get("gpus")->size() << " gpus");
 
   this->data = data;
   setState(UNIT_DOWNLOAD);
@@ -910,9 +916,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("id",      info.getString("id"));
 
   // User
-  sink.insert("user",    units->getConfig().getUsername());
-  sink.insert("team",    units->getConfig().getTeam());
-  sink.insert("passkey", units->getConfig().getPasskey());
+  sink.insert("user",    getConfig().getUsername());
+  sink.insert("team",    getConfig().getTeam());
+  sink.insert("passkey", getConfig().getPasskey());
 
   // OS
   sink.insertDict("os");
@@ -922,12 +928,11 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.endDict();
 
   // Project
-  const auto &config = units->getConfig();
   sink.insertDict("project");
-  if (config.hasString("release"))
-    sink.insert("release", config.getString("release"));
-  if (config.hasString("cause"))
-    sink.insert("cause", config.getString("cause"));
+  if (getConfig().hasString("release"))
+    sink.insert("release", getConfig().getString("release"));
+  if (getConfig().hasString("cause"))
+    sink.insert("cause", getConfig().getString("cause"));
   if (getProjectKey()) sink.insert("key", getProjectKey());
   sink.endDict(); // project
 
@@ -1112,9 +1117,8 @@ void Unit::dump() {
   if (pr.isSet()) return; // Already dumping
 
   LOG_INFO(1, "Sending dump report");
-  LOG_DEBUG(3, *data);
-
   setResults("dumped", "");
+  LOG_DEBUG(3, *data);
 
   pr = app.getClient()
     .call(getWSURL("/results"), Event::RequestMethod::HTTP_POST, this,
@@ -1151,7 +1155,14 @@ void Unit::response(Event::Request &req) {
 
       // Handle HTTP reponse codes
       switch (req.getResponseCode()) {
-      case HTTP_SERVICE_UNAVAILABLE: retry(); break;
+      case HTTP_SERVICE_UNAVAILABLE:
+        // We always need a new assignment token
+        if (getState() == UNIT_DOWNLOAD) {
+          data.release();
+          setState(UNIT_ASSIGN);
+        }
+        retry();
+        break;
 
       case HTTP_BAD_REQUEST: case HTTP_NOT_ACCEPTABLE: case HTTP_GONE:
       default:

@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -82,8 +82,7 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, 10),
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
-  gpus(new GPUResources(*this)), cores(new Cores(*this)), os(OS::create(*this)),
-  info(new JSON::Dict) {
+  gpus(new GPUResources(*this)), cores(new Cores(*this)), info(new JSON::Dict) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -103,6 +102,8 @@ App::App() :
     ->setDefault("https://app.foldingathome.org");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server");
+  options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
+  options.add("on-idle", "Folding only when idle.")->setDefault(false);
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -144,8 +145,8 @@ App::App() :
   options["log-no-info-header"].setDefault(true);
   options["log-thread-prefix"].setDefault(true);
   options["log-short-level"].setDefault(true);
-  options["log-rotate-max"].setDefault(16);
-  options["log-date-periodically"].setDefault(Time::SEC_PER_DAY);
+  options["log-rotate-max"].setDefault(90);
+  options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
   base.newSignal(SIGINT,  this, &App::signalEvent)->add();
@@ -264,8 +265,8 @@ void App::updateGroups() {
         unit->dumpWU();
       }
 
-      db.unset(name);
       it = groups.erase(it);
+      db.unset(name);
 
     } else it++;
   }
@@ -413,8 +414,9 @@ void App::checkBase64SHA256(const string &certificate,
 }
 
 
-const IPAddress &App::getNextAS() {
-  if (servers.empty()) THROW("No AS");
+string App::getNextAS() {
+  auto servers = options["assignment-servers"].toStrings();
+  if (servers.empty()) THROW("No assignment servers");
   if (servers.size() <= nextAS) nextAS = 0;
   return servers[nextAS++];
 }
@@ -462,25 +464,9 @@ void App::loadConfig() {
 }
 
 
-void App::loadServers() {
-  auto addresses = options["assignment-servers"].toStrings();
-  if (addresses.empty()) THROW("No assignment servers");
-
-  for (auto address: addresses)
-    try {IPAddress::ipsFromString(address, servers);} CATCH_ERROR;
-
-  if (servers.empty())
-    THROW("Failed to find any assignment server IP addresses");
-}
-
-
 void App::loadGroups() {
   newGroup("");
-
-  getDB("groups").foreach(
-    [this] (const string &group, const string &dataStr) {
-      if (groups.find(group) == groups.end()) newGroup(group);
-    });
+  updateGroups();
 }
 
 
@@ -489,22 +475,32 @@ void App::loadUnits() {
 
   getDB("units").foreach(
     [this, &count] (const string &id, const string &dataStr) {
-      LOG_INFO(3, "Loading work unit " << id);
-
       try {
         auto data  = JSON::Reader::parseString(dataStr);
-        auto group = data->getString("group", "");
+        auto group = data->selectString("state.group", "");
+        auto wu    = data->selectU64("state.number");
+        bool dump  = groups.find(group) == groups.end();
 
-        if (groups.find(group) == groups.end()) newGroup(group);
+        if (dump) group = "";
 
-        auto units = getGroup(group)->getUnits();
+        LOG_INFO(3, "Loading work unit " << wu << " to group '" << group
+                 << "' with ID " << id);
 
-        units->add(new Unit(*this, data));
+        SmartPointer<Unit> unit = new Unit(*this, data);
+        getGroup(group)->getUnits()->add(unit);
+        if (dump) unit->dumpWU();
         count++;
       } CATCH_ERROR;
     });
 
   LOG_INFO(3, "Loaded " << count << " wus.");
+}
+
+
+int App::init(int argc, char *argv[]) {
+  int ret = Application::init(argc, argv);
+  os = OS::create(*this);
+  return ret;
 }
 
 
@@ -519,11 +515,14 @@ void App::run() {
   LOG_INFO(1, "Opening Database");
   db.open("client.db");
 
+  // Check that we have AS
+  if (options["assignment-servers"].toStrings().empty())
+    THROW("No assignment servers");
+
   // Initialize
   upgradeDB();
   server->init();
   loadConfig();
-  loadServers();
   loadGroups();
   loadUnits();
 

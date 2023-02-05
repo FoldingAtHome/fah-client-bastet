@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -51,6 +51,7 @@ namespace FAH {
       ResourceGroup(App &app, const std::string &name,
                     const cb::JSON::ValuePtr &config,
                     const cb::JSON::ValuePtr &info);
+      ~ResourceGroup();
 
       const std::string              &getName()   const {return name;}
       const cb::SmartPointer<Config> &getConfig() const {return config;}

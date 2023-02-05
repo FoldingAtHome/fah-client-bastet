@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -67,7 +67,7 @@ namespace FAH {
       unsigned getUnitIndex(const std::string &id) const;
       Unit &getUnit(unsigned index) const;
       Unit &getUnit(const std::string &id) const;
-      const cb::SmartPointer<Unit> removeUnit(unsigned index);
+      cb::SmartPointer<Unit> removeUnit(unsigned index);
       void dump(const std::string &unitID);
       void unitComplete(bool success);
       void update();

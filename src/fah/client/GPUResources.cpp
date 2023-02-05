@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -107,12 +107,17 @@ void GPUResources::update() {
   // Try to load cached gpus.json
   const string filename = "gpus.json";
 
-  if (SystemUtilities::exists(filename) &&
-      Time::now() < SystemUtilities::getModificationTime(filename) + updateFreq)
+  if (SystemUtilities::exists(filename)) {
+    bool fail = true;
+
     try {
       load(*JSON::Reader::parse(filename));
-      return;
+      fail = false;
     } CATCH_ERROR;
+
+    auto modTime = SystemUtilities::getModificationTime(filename);
+    if (!fail && Time::now() < modTime + updateFreq) return;
+  }
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
@@ -160,6 +165,7 @@ void GPUResources::detect() {
 #endif
   match<OpenCLLibrary>(*this, "opencl");
 
+  loaded = true;
   if (changed) {
     LOG_INFO(3, "gpus = " << *this);
     app.updateResources();

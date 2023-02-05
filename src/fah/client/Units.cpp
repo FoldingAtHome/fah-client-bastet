@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -111,9 +111,9 @@ Unit &Units::getUnit(unsigned index) const {
 Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
 
 
-const SmartPointer<Unit> Units::removeUnit(unsigned index) {
+SmartPointer<Unit> Units::removeUnit(unsigned index) {
   if (size() <= index) THROW("Invalid unit index " << index);
-  auto unit = get(index).castPtr<Unit>();
+  auto unit = get(index).cast<Unit>();
   erase(index);
   unit->setUnits(0);
   return unit;
@@ -179,7 +179,7 @@ void Units::update() {
   }
 
   // No further action if paused or idle
-  if (config->getPaused() || waitForIdle())
+  if (config->getPaused() || config->waitForConfig() || waitForIdle())
     return setWait(0); // Pausing clears wait timer
 
   // Wait on failures
@@ -254,14 +254,18 @@ void Units::update() {
   LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
             << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
 
-  // Do not add WUs when finishing or if any WUs have not run yet
-  if (config->getFinish() || hasUnrunWUs()) return;
+  // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
+  // have not yet been loaded.
+  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isLoaded())
+    return;
 
   // Add new WU if we don't already have too many and there are some resources
   const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
   if (size() < maxWUs && (remainingCPUs || remainingGPUs.size())) {
-    add(new Unit(app, app.getNextWUID(), remainingCPUs, remainingGPUs));
-    LOG_INFO(1, "Added new work unit");
+    add(new Unit(app, app.getNextWUID(), group.getName(), remainingCPUs,
+                 remainingGPUs));
+    LOG_INFO(1, "Added new work unit: cpus:" << remainingCPUs << " gpus:"
+             << String::join(remainingGPUs, ","));
     triggerUpdate();
   }
 }

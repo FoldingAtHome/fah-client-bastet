@@ -18,7 +18,7 @@ while $(ps axww|grep -v grep|grep Installer.app >/dev/null 2>&1); do
 done
 
 # try alleged default and other known compatible browsers; skip Safari
-APPS=("$BROWSER" "Brave Browser" "Google Chrome" "Firefox" "Microsoft Edge")
+APPS=("$BROWSER" "Google Chrome" "Firefox" "Microsoft Edge" "Brave Browser")
 BROWSER=""
 for APP in "${APPS[@]}"; do
   [ -z "$APP" ] && break # there was an error getting default browser

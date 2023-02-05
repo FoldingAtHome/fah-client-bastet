@@ -24,7 +24,7 @@ env.Replace(RESOURCES_NS      = 'FAH::Client')
 env.Replace(BUILD_INFO_NS     = 'FAH::Client::BuildInfo')
 env.Replace(PACKAGE_VERSION   = version)
 env.Replace(PACKAGE_AUTHOR = 'Joseph Coffland <joseph@cauldrondevelopment.com>')
-env.Replace(PACKAGE_COPYRIGHT = '2022 foldingathome.org')
+env.Replace(PACKAGE_COPYRIGHT = '2023 foldingathome.org')
 env.Replace(PACKAGE_HOMEPAGE  = 'https://foldingathome.org/')
 env.Replace(PACKAGE_LICENSE   = 'https://www.gnu.org/licenses/gpl-3.0.txt')
 env.Replace(PACKAGE_ORG       = 'foldingathome.org')
@@ -43,6 +43,9 @@ if not env.GetOption('clean'):
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
 
     if env['PLATFORM'] == 'posix':
+        flags = ['-Wl,--wrap=' + x
+                 for x in 'glob logf log expf exp powf pow fcntl64'.split()]
+        env.AppendUnique(LINKFLAGS = flags)
         env.Append(PREFER_DYNAMIC = 'bz2 z m'.split())
 
 conf.Finish()
@@ -65,6 +68,8 @@ Clean(client, ['build', 'config.log'])
 # Dist
 docs = ['README.md', 'CHANGELOG.md', 'LICENSE']
 distfiles = docs + [client, 'images/fahlogo.png']
+if env['PLATFORM'] == 'posix':
+    distfiles.append('install/lin/fah-client.service')
 if hide_console is not None: distfiles.append(hide_console)
 tar = env.TarBZ2Dist('fah-client', distfiles)
 Alias('dist', tar)
@@ -179,7 +184,9 @@ if 'package' in COMMAND_LINE_TARGETS:
         distpkg_resources  = [['install/osx/Resources', '.'],
                               ['LICENSE', 'en.lproj/LICENSE.txt']],
         distpkg_welcome    = 'Welcome.rtf',
+        distpkg_readme     = 'Readme.rtf',
         distpkg_license    = 'LICENSE.txt',
+        distpkg_conclusion = 'Conclusion.rtf',
         distpkg_background = 'fah-opacity-50.png',
         distpkg_customize  = 'always',
         distpkg_target     = distpkg_target,

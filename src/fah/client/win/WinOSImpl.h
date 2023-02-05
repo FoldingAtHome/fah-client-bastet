@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -31,6 +31,8 @@
 #include <fah/client/OS.h>
 
 #include <cbang/os/Thread.h>
+#include <cbang/util/Version.h>
+#include <atomic>
 
 #include "resource.h"
 
@@ -45,6 +47,9 @@ namespace FAH {
     class WinOSImpl : public OS, public cb::Thread {
       static WinOSImpl *singleton;
 
+      std::string appName;
+      cb::Version version;
+
       bool systrayEnabled = true;
 
       HINSTANCE hInstance;
@@ -53,8 +58,8 @@ namespace FAH {
 
       int iconCurrent = 0;
 
-      bool inAwayMode = false;
-      bool displayOff = false;
+      std::atomic<bool> inAwayMode = false;
+      std::atomic<bool> displayOff = false;
 
     public:
       WinOSImpl(App &app);

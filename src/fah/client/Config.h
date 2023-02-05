@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -49,6 +49,10 @@ namespace FAH {
       void setOnIdle(bool onIdle);
       bool getOnIdle() const;
 
+      void setFoldAnon(bool foldAnon);
+      bool getFoldAnon() const;
+      bool waitForConfig() const;
+
       void setPaused(bool paused);
       bool getPaused() const;
 
@@ -57,7 +61,7 @@ namespace FAH {
 
       std::string getUsername() const;
       std::string getPasskey() const;
-      uint32_t getTeam() const {return getU32("team", 0);}
+      uint32_t getTeam() const;
       uint64_t getProjectKey() const;
 
       uint32_t getCPUs() const;

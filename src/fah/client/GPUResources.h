@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -45,11 +45,14 @@ namespace FAH {
       public cb::Event::Scheduler<GPUResources> {
       App &app;
 
+      bool loaded = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail;
 
     public:
       GPUResources(App &app);
+
+      bool isLoaded() const {return loaded;}
 
     protected:
       void load(const cb::JSON::Value &gpus);

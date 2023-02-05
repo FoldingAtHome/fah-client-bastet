@@ -3,7 +3,7 @@
                   This file is part of the Folding@home Client.
 
           The fah-client runs Folding@home protein folding simulations.
-                    Copyright (c) 2001-2022, foldingathome.org
+                    Copyright (c) 2001-2023, foldingathome.org
                                All rights reserved.
 
        This program is free software; you can redistribute it and/or modify
@@ -105,7 +105,8 @@ WinOSImpl *WinOSImpl::singleton = 0;
 
 
 WinOSImpl::WinOSImpl(App &app) :
-  OS(app), hInstance((HINSTANCE)GetModuleHandle(0)) {
+  OS(app), appName(app.getName()), version(app.getVersion()),
+  hInstance((HINSTANCE)GetModuleHandle(0)) {
   if (singleton) THROW("There can be only one WinOSImpl");
   singleton = this;
 
@@ -132,7 +133,7 @@ void WinOSImpl::init() {
   if (!hIcon) THROW("Failed to load icon");
 
   // Create window class
-  const char *className = getApp().getName().c_str();
+  const char *className = appName.c_str();
   WNDCLASSEX wcex;
   memset(&wcex, 0, sizeof(wcex));
   wcex.cbSize        = sizeof(WNDCLASSEX);
@@ -250,7 +251,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
     KillTimer(hWnd, ID_UPDATE_TIMER);
-    app.requestExit();
+    OS::requestExit();
     PostQuitMessage(0);
     hWnd = 0;
     return 0;
@@ -277,10 +278,10 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
-    case ID_USER_WEBCONTROL: openWebControl();                  return 0;
-    case ID_USER_PAUSE:      app.setPaused(!app.getPaused());   return 0;
-    case ID_USER_ABOUT:      showAbout(hWnd);                   return 0;
-    case ID_USER_EXIT:       DestroyWindow(hWnd);               return 0;
+    case ID_USER_WEBCONTROL: openWebControl();    return 0;
+    case ID_USER_PAUSE:      OS::togglePause();   return 0;
+    case ID_USER_ABOUT:      showAbout(hWnd);     return 0;
+    case ID_USER_EXIT:       DestroyWindow(hWnd); return 0;
     }
     break;
   }
@@ -304,9 +305,9 @@ void WinOSImpl::openWebControl() {
 void WinOSImpl::showAbout(HWND hWnd) {
   string text = SSTR
     ("Folding@home Client\n\r"
-     "Version " << getApp().getVersion() << "\n\r"
+     "Version " << version << "\n\r"
      "\n\r"
-     "Copyright (c) 2001-2022 foldingathome.org\n\r"
+     "Copyright (c) 2001-2023 foldingathome.org\n\r"
      "\n\r"
      "Folding@home uses your excess computing power to help scientists at "
      "Universities around the world to better understand and find cures "
@@ -321,7 +322,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
   msg.hInstance   = hInstance;
   msg.dwStyle     = MB_USERICON | MB_OK | MB_SYSTEMMODAL;
   msg.lpszIcon    = MAKEINTRESOURCE(IDI_NORMAL);
-  msg.lpszCaption = getApp().getName().c_str();
+  msg.lpszCaption = appName.c_str();
   msg.lpszText    = text.c_str();
 
   MessageBoxIndirect(&msg);
@@ -329,9 +330,9 @@ void WinOSImpl::showAbout(HWND hWnd) {
 
 
 void WinOSImpl::updateIcon() {
-  if (app.hasFailure())
+  if (OS::hasFailure())
     setSysTray(IDI_FAILURE, "One or more folding process has failed");
-  else if (!app.isActive()) setSysTray(IDI_INACTIVE, "Not folding");
+  else if (!OS::isActive()) setSysTray(IDI_INACTIVE, "Not folding");
   else setSysTray(IDI_NORMAL, "Folding active");
 }
 
@@ -357,7 +358,7 @@ void WinOSImpl::popup(HWND hWnd) {
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  AppendMenu(hMenu, OS::getPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
+  AppendMenu(hMenu, OS::isPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
   AppendMenu(hMenu, 0, ID_USER_ABOUT, "&About");
   AppendMenu(hMenu, 0, ID_USER_EXIT, "&Quit");

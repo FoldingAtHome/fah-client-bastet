@@ -1,9 +1,47 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.12
+ - Rotate logs daily. #92
+ - Keep up to 90 old logs by default.
+ - Add ``fah-client.service`` to Linux tar.bz2 distribution.
+ - Fix CPU reallocation bug during GPU WU assignment. #106
+
+## v8.1.11
+ - Added end screen to macOS install. (Kevin Bernhagen)
+ - Prevent install on macOS if Safari is the only browser. (Kevin Bernhagen)
+ - Fixed Windows systray pause.  #96
+ - Pause client and prompt user if no user settings and not fold-anon.  #32
+
+## v8.1.10
+ - Fixed copyright and version display in Windows about screen.  #94
+ - Fixed bug in Windows/macOS networking timeout code.  #78
+
+## v8.1.9
+ - Delay AS DNS lookup to avoid startup problems with no network. #84
+
+## v8.1.8
+ - Get a new assignment after ``HTTP_SERVICE_UNAVAILABLE``.
+ - Removal of old logs fixed.  (Kevin Bernhagen)
+ - Fixed network timeout error in Windows and macOS. #78
+ - Retry WS assignment indefinately until WU paused. #79
+ - Retry WU upload or dump up to 50 times.
+ - Enable Linux service start on boot at install time. #81 (Kevin Bernhagen)
+
+## v8.1.7
+ - Fixed client ID generation.
+ - Thread safe Windows event loop.  Fixes NULL pointer exception. #74
+ - Fix assignment data corruption which causes ``HTTP_NOT_ACCEPTABLE`` error.
+ - Fix problem with WUs moving to root resource group after restart. #68
+ - Fix some bugs related to removing resource groups.
+
 ## v8.1.6
  - Fixed a memory leak in Linux builds.
  - Fixes for on idle handling.
+ - Window installer improvements.  (Jeff Moreland)
+ - Fixes for on idle for OSX.  (Kevin Bernhagen)
+ - Force usage of older GLibC to allow Linux binaries to run on older systems.
+ - Prevent RGs from loading new WUs before GPU detection is complete.
 
 ## v8.1.5
  - Fix data folder selection in Window installer.  (Jeff Moreland)
