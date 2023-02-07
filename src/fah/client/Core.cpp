@@ -60,11 +60,6 @@ uint32_t Core::getType() const {return data->getU32("type");}
 string Core::getPath() const {return data->getString("path");}
 
 
-string Core::getFilename() const {
-  return String::printf("FahCore_%02x", getType());
-}
-
-
 void Core::addProgressCallback(progress_cb_t cb) {
   if (state == CORE_READY || state == CORE_INVALID) cb(1, 1);
   else progressCBs.push_back(cb);
@@ -145,55 +140,51 @@ void Core::downloadResponse(const string &pkg) {
   stream.push(str);
 
   // Unpack
-  if (String::endsWith(path, ".tar")) {
-    path = SystemUtilities::removeExtension(path);
-    string base = SystemUtilities::basename(path);
+  if (!String::endsWith(path, ".tar")) THROW("Expected tar file");
 
-    SystemUtilities::rmtree(path);
+  path = SystemUtilities::removeExtension(path);
+  string base = SystemUtilities::basename(path);
 
-    Tar tar;
-    while (true) {
-      tar.readHeader(stream);
-      if (tar.isEOF()) break;
+  SystemUtilities::rmtree(path);
 
-      switch (tar.getType()) {
-      case Tar::NORMAL_FILE: case Tar::CONTIGUOUS_FILE: break;
-      case Tar::DIRECTORY: continue;
-      default: THROW("Unexpected file type in core package: " << tar.getType());
-      }
+  Tar tar;
+  while (true) {
+    tar.readHeader(stream);
+    if (tar.isEOF()) break;
 
-      string filename = tar.getFilename();
-      if (!String::startsWith(filename, base + "/"))
-        THROW("Invalid file path in core package: " << filename);
-
-      filename = path + filename.substr(base.length());
-      LOG_INFO(1, "Extracting " << filename);
-      SystemUtilities::ensureDirectory(SystemUtilities::dirname(filename));
-      tar.readFile(*SystemUtilities::oopen(filename, tar.getMode()), stream);
+    switch (tar.getType()) {
+    case Tar::NORMAL_FILE: case Tar::CONTIGUOUS_FILE: break;
+    case Tar::DIRECTORY: continue;
+    default: THROW("Unexpected file type in core package: " << tar.getType());
     }
 
-    string filename = path + "/" + getFilename();
-#ifdef _WIN32
-    if (!SystemUtilities::exists(filename) &&
-        !String::endsWith(filename, ".exe")) filename += ".exe";
-#endif
-    if (!SystemUtilities::exists(filename))
-      THROW("Core package tar missing " << filename);
+    string filename = tar.getFilename();
+    if (!String::startsWith(filename, base + "/"))
+      THROW("Invalid file path in core package: " << filename);
 
-  } else THROW("Expected tar file");
-
-  // Make executable
-  path += "/" + getFilename();
-#ifdef _WIN32
-  if (!String::endsWith(path, ".exe")) {
-    SystemUtilities::rename(path, path + ".exe");
-    path += ".exe";
+    filename = path + filename.substr(base.length());
+    LOG_INFO(1, "Extracting " << filename);
+    SystemUtilities::ensureDirectory(SystemUtilities::dirname(filename));
+    tar.readFile(*SystemUtilities::oopen(filename, tar.getMode()), stream);
   }
+
+  // Make core executable
+  string filename = path + String::printf("/FahCore_%02x", getType());
+
+#ifdef _WIN32
+  if (SystemUtilities::exists(filename))
+    SystemUtilities::rename(filename, filename + ".exe");
+
+  filename += ".exe";
 #endif
-  SystemUtilities::chmod(path, 0755);
+
+  if (!SystemUtilities::exists(filename))
+    THROW("Core package tar missing " << filename);
+
+  SystemUtilities::chmod(filename, 0755);
 
   // Save
-  data->insert("path", path);
+  data->insert("path", filename);
   app.getDB("cores").set(getURL(), *data);
 
   schedule(&Core::ready);

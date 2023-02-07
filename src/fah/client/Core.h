@@ -70,7 +70,6 @@ namespace FAH {
       std::string getURL() const;
       uint32_t getType() const;
       std::string getPath() const;
-      std::string getFilename() const;
 
       void addProgressCallback(progress_cb_t cb);
 
