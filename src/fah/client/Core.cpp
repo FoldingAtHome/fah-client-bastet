@@ -173,6 +173,10 @@ void Core::downloadResponse(const string &pkg) {
     }
 
     string filename = path + "/" + getFilename();
+#ifdef _WIN32
+    if (!SystemUtilities::exists(filename) &&
+        !String::endsWith(filename, ".exe")) filename += ".exe";
+#endif
     if (!SystemUtilities::exists(filename))
       THROW("Core package tar missing " << filename);
 
@@ -181,8 +185,10 @@ void Core::downloadResponse(const string &pkg) {
   // Make executable
   path += "/" + getFilename();
 #ifdef _WIN32
-  SystemUtilities::rename(path, path + ".exe");
-  path += ".exe";
+  if (!String::endsWith(path, ".exe")) {
+    SystemUtilities::rename(path, path + ".exe");
+    path += ".exe";
+  }
 #endif
   SystemUtilities::chmod(path, 0755);
 
