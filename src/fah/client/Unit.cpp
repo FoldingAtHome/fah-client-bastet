@@ -51,12 +51,16 @@
 
 #include <cbang/event/Event.h>
 #include <cbang/event/HTTPConnOut.h>
+
+#include <cbang/time/Time.h>
+#include <cbang/time/TimeInterval.h>
+
+#include <cbang/util/Random.h>
+#include <cbang/util/HumanSize.h>
+
 #include <cbang/net/Base64.h>
 #include <cbang/openssl/Digest.h>
 #include <cbang/gpu/GPUVendor.h>
-#include <cbang/time/Time.h>
-#include <cbang/time/TimeInterval.h>
-#include <cbang/util/Random.h>
 #include <cbang/json/Reader.h>
 
 using namespace FAH::Client;
@@ -529,7 +533,8 @@ void Unit::setProgress(double done, double total) {
     insert("progress", progress);
 
     if (floor(oldValue * 100) < floor(progress * 100) && getState() != UNIT_RUN)
-      LOG_INFO(1, getState() << String::printf(" %0.0f%% ", progress * 100));
+      LOG_INFO(1, getState() << String::printf(" %0.0f%% ", progress * 100)
+               << HumanSize(done) << "B of " << HumanSize(total) << 'B');
   }
 }
 

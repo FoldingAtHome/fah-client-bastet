@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.14
+ - Print down/upload sizes in progress log. #113
+
 ## v8.1.13
  - Handle cores with ``.exe`` ending in Windows.
 
