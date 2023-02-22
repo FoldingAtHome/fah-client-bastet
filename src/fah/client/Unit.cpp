@@ -981,7 +981,8 @@ void Unit::assign() {
   id = idFromSig(signature);
   insert("id", id);
 
-  LOG_INFO(1, "Requesting WU assignment");
+  LOG_INFO(1, "Requesting WU assignment for user " << getConfig().getUsername()
+           << " team " << getConfig().getTeam());
   LOG_DEBUG(3, *data);
 
   // TODO validate peer certificate
