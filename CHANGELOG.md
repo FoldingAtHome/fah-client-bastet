@@ -4,6 +4,7 @@ Folding@home Client Changelog
 ## v8.1.14
  - Print down/upload sizes in progress log. #113
  - Show user and team on WU request log line.
+ - Show GPU PCI device/vendor and cuda/opencl support in log.
 
 ## v8.1.13
  - Handle cores with ``.exe`` ending in Windows.

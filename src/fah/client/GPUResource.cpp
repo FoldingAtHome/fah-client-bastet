@@ -48,12 +48,22 @@ namespace {
 GPUResource::GPUResource(const cb::GPU &gpu, const cb::PCIDevice &pci) :
   id(makeID(pci)), gpu(gpu), pci(pci) {
 
-  insert("type", String::toLower(gpu.getType().toString()));
+  insert("type",        String::toLower(gpu.getType().toString()));
   insert("description", gpu.getDescription());
+  insert("vendor",      pci.getVendorID());
+  insert("device",      pci.getDeviceID());
 }
 
 
 void GPUResource::set(const string &name, const ComputeDevice &cd) {
+  if (cd.isValid()) {
+    JSON::ValuePtr d = new JSON::Dict;
+    d->insert("compute", cd.computeVersion.toString());
+    d->insert("driver",  cd.driverVersion.toString());
+    insert(name, d);
+
+  } else if (has(name)) erase(name);
+
   if (name == "cuda")   cuda   = cd;
   if (name == "opencl") opencl = cd;
 }
@@ -66,19 +76,8 @@ void GPUResource::writeRequest(JSON::Sink &sink) const {
   sink.insert("vendor", pci.getVendorID());
   sink.insert("device", pci.getDeviceID());
 
-  if (cuda.isValid()) {
-    sink.insertDict("cuda");
-    sink.insert("compute", cuda.computeVersion.toString());
-    sink.insert("driver",  cuda.driverVersion.toString());
-    sink.endDict();
-  }
-
-  if (opencl.isValid()) {
-    sink.insertDict("opencl");
-    sink.insert("compute", opencl.computeVersion.toString());
-    sink.insert("driver",  opencl.driverVersion.toString());
-    sink.endDict();
-  }
+  if (has("cuda"))   sink.insert("cuda",   *get("cuda"));
+  if (has("opencl")) sink.insert("opencl", *get("opencl"));
 
   sink.endDict();
 }
