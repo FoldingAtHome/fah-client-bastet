@@ -23,11 +23,15 @@ case "$1" in
       useradd -r -g $CLIENT_GROUP -K UMASK=002 $CLIENT_USER
     fi
 
-    # Add user to group if necessary
-    if ! groups $CLIENT_USER | grep -q "\b$CLIENT_GROUP\b"; then
-      echo "Adding user '$CLIENT_USER' to group '$CLIENT_GROUP'"
-      adduser $CLIENT_USER $CLIENT_GROUP
-    fi
+    # Add user to groups if necessary
+    for GROUP in $CLIENT_GROUP video render; do
+      if getent group | grep -q "^$GROUP:"; then
+        if ! groups $CLIENT_USER | grep -q "\b$GROUP\b"; then
+          echo "Adding user '$CLIENT_USER' to group '$GROUP'"
+          adduser $CLIENT_USER $GROUP
+        fi
+      fi
+    done
 
     # Create directories
     install -d -m 755 -o $CLIENT_USER -g $CLIENT_GROUP $CLIENT_HOME $CLIENT_LOGS

@@ -5,6 +5,7 @@ Folding@home Client Changelog
  - Print down/upload sizes in progress log. #113
  - Show user and team on WU request log line.
  - Show GPU PCI device/vendor and cuda/opencl support in log.
+ - Add ``fah-client`` user to groups ``video`` and ``render`` on Linux. #121
 
 ## v8.1.13
  - Handle cores with ``.exe`` ending in Windows.
