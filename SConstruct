@@ -168,7 +168,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         deb_directory      = 'install/debian',
         deb_section        = 'science',
         deb_depends        = 'libc6',
-        deb_conflicts      = 'FAHClient',
+        deb_conflicts      = 'FAHClient, fahclient',
+        deb_replaces       = 'FAHClient, fahclient',
         deb_pre_depends    = 'adduser',
         deb_priority       = 'optional',
 
