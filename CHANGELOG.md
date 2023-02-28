@@ -6,6 +6,9 @@ Folding@home Client Changelog
  - Show user and team on WU request log line.
  - Show GPU PCI device/vendor and cuda/opencl support in log.
  - Add ``fah-client`` user to groups ``video`` and ``render`` on Linux. #121
+ - Close log file before rotation to avoid prolems on Windows. #120
+ - Show unsupported GPUs.
+ - Improved GPU detection.
 
 ## v8.1.13
  - Handle cores with ``.exe`` ending in Windows.

@@ -39,6 +39,10 @@
 #include <cbang/json/Reader.h>
 #include <cbang/time/Time.h>
 #include <cbang/log/Logger.h>
+#include <cbang/gpu/OpenCLLibrary.h>
+#include <cbang/gpu/CUDALibrary.h>
+
+#include <list>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -50,22 +54,19 @@ namespace {
 
 
   template <typename LIB>
-  void match(GPUResources &gpus, const string &name) try {
-    set<string> matched;
-    auto &lib = LIB::instance();
+  vector<ComputeDevice> get_gpus() {
+    vector<ComputeDevice> devices;
 
-    for (auto &dev: lib)
-      for (unsigned i = 0; i < gpus.size(); i++) {
-        auto &gpu = *gpus.get(i).cast<GPUResource>();
+    try {
+      auto &lib = LIB::instance();
 
-        if (gpu.getPCI().getBusID()   != dev.pciBus  ||
-            gpu.getPCI().getSlotID()  != dev.pciSlot ||
-            matched.find(gpu.getID()) != matched.end()) continue;
+      for (auto &dev: lib)
+        if (dev.isValid() && dev.gpu)
+          devices.push_back(dev);
+    } CATCH_ERROR;
 
-        matched.insert(gpu.getID());
-        gpu.set(name, dev);
-      }
-  } CATCH_ERROR;
+    return devices;
+  }
 }
 
 
@@ -127,43 +128,71 @@ void GPUResources::update() {
 
 
 void GPUResources::detect() {
-  bool changed = false;
+  map<std::string, SmartPointer<GPUResource>> resources;
+
+  // Enumerate OpenCL
+  auto openclGPUs = get_gpus<OpenCLLibrary>();
+  for (auto &cd: openclGPUs) {
+    if (!cd.isPCIValid()) continue;
+    string id = "gpu:" + cd.getPCIID();
+    SmartPointer<GPUResource> res = new GPUResource(id);
+    res->set("opencl", cd);
+    resources[id] = res;
+  }
+
+#ifndef __APPLE__
+  // Enumerate CUDA and match with OpenCL
+  auto cudaGPUs = get_gpus<CUDALibrary>();
+  for (auto &cd: openclGPUs) {
+    if (!cd.isPCIValid()) continue;
+    string id = "gpu:" + cd.getPCIID();
+    auto it   = resources.find(id);
+
+    if (it != resources.end()) {
+      auto &res = it->second;
+      res->set("cuda", cd);
+      continue;
+    }
+
+    SmartPointer<GPUResource> res = new GPUResource(id);
+    res->set("cuda", cd);
+    resources[id] = res;
+  }
+#endif // __APPLE__
 
   // Enumerate PCI bus
   std::set<string> found;
   auto &info = PCIInfo::instance();
-
   for (auto &dev: info) {
-    const GPU &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
-    if (!gpu.getType()) continue;
+    const auto &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
+    string id = "gpu:" + dev.getID();
+    auto it   = resources.find(id);
 
-    SmartPointer<GPUResource> res = new GPUResource(gpu, dev);
-    string id = res->getID();
-    found.insert(id);
-    if (has(id)) continue;
+    if (it != resources.end()) {
+      auto &res = it->second;
+      res->setPCI(dev);
+      res->insertBoolean("supported", gpu.getSpecies());
+      continue;
+    }
 
-    LOG_INFO(3, "Adding GPU " << id);
-    insert(id, res);
-    changed = true;
+    if (!gpu.getType()) continue; // Ignore non-GPUs
+
+    SmartPointer<GPUResource> res = new GPUResource(id);
+    res->setPCI(dev);
+    res->insertBoolean("supported", false);
+    resources[id] = res;
   }
 
-  // Delete GPUs that are gone
-  for (unsigned i = 0; i < size();) {
-    string id = keyAt(i);
+  // Match with existing GPUResources
+  bool changed = false;
+  for (auto &p: resources) {
+    auto &id = p.first;
 
-    if (found.find(id) == found.end()) {
-      LOG_INFO(3, "Deleting GPU " << id);
-      erase(id);
+    if (!has(id) || get(id)->toString() != p.second->toString()) {
+      insert(id, p.second);
       changed = true;
-
-    } else i++;
+    }
   }
-
-  // Match with detected devices
-#ifndef __APPLE__
-  match<CUDALibrary>(*this, "cuda");
-#endif
-  match<OpenCLLibrary>(*this, "opencl");
 
   loaded = true;
   if (changed) {

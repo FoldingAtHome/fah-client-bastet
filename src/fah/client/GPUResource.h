@@ -29,11 +29,7 @@
 #pragma once
 
 #include <cbang/json/Observable.h>
-
-#include <cbang/gpu/CUDALibrary.h>
-#include <cbang/gpu/OpenCLLibrary.h>
-#include <cbang/gpu/GPU.h>
-
+#include <cbang/gpu/ComputeDevice.h>
 #include <cbang/pci/PCIInfo.h>
 
 
@@ -42,20 +38,12 @@ namespace FAH {
     class GPUResource : public cb::JSON::ObservableDict {
       std::string id;
 
-      cb::GPU gpu;
-      cb::PCIDevice pci;
-      cb::ComputeDevice cuda;
-      cb::ComputeDevice opencl;
-
     public:
-      GPUResource(const cb::GPU &gpu, const cb::PCIDevice &pci);
+      GPUResource(const std::string &id) : id(id) {}
 
       const std::string &getID() const {return id;}
 
-      const cb::GPU &getGPU() const {return gpu;}
-      const cb::PCIDevice &getPCI() const {return pci;}
-      const cb::ComputeDevice &getCUDA() const {return cuda;}
-      const cb::ComputeDevice &getOpenCL() const {return opencl;}
+      void setPCI(const cb::PCIDevice &pci);
 
       using cb::JSON::ObservableDict::set;
       void set(const std::string &name, const cb::ComputeDevice &cd);

@@ -81,14 +81,15 @@ namespace {
   }
 
 
-  void addGPUArgs(vector<string> &args, const ComputeDevice &cd,
+  void addGPUArgs(vector<string> &args, const GPUResource &gpu,
                   const string &name) {
-    if (!cd.isValid()) return;
+    if (!gpu.has(name)) return;
+    const auto &drv = *gpu.get(name);
 
     args.push_back("-" + name + "-platform");
-    args.push_back(String(cd.platformIndex));
+    args.push_back(String(drv.getU32("platform")));
     args.push_back("-" + name + "-device");
-    args.push_back(String(cd.deviceIndex));
+    args.push_back(String(drv.getU32("device")));
   }
 
 
@@ -617,11 +618,14 @@ void Unit::run() {
     auto &gpu = *app.getGPUs().get(gpus.getString(0)).cast<GPUResource>();
 
     args.push_back("-gpu-vendor");
-    args.push_back(String::toLower(gpu.getGPU().getType().toString()));
-    addGPUArgs(args, gpu.getOpenCL(), "opencl");
-    addGPUArgs(args, gpu.getCUDA(),   "cuda");
-    args.push_back("-gpu");
-    args.push_back(String(gpu.getOpenCL().deviceIndex));
+    args.push_back(gpu.getString("type"));
+    addGPUArgs(args, gpu, "opencl");
+    addGPUArgs(args, gpu, "cuda");
+
+    if (gpu.has("opencl")) {
+      args.push_back("-gpu");
+      args.push_back(String(gpu.get("opencl")->getU32("device")));
+    }
 
   } else { // CPU
     args.push_back("-np");

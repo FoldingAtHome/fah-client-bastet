@@ -30,42 +30,46 @@
 
 #include <cbang/String.h>
 #include <cbang/json/JSON.h>
-#include <cbang/log/Logger.h>
+#include <cbang/gpu/GPUVendor.h>
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-
 namespace {
-  string makeID(const cb::PCIDevice &pci) {
-    return String::printf("gpu:%02d:%02d:%02d", pci.getBusID(), pci.getSlotID(),
-                          pci.getFunctionID());
+  string getGPUVendorName(uint16_t id) {
+    return String::toLower(GPUVendor((GPUVendor::enum_t)id).toString());
   }
 }
 
 
-GPUResource::GPUResource(const cb::GPU &gpu, const cb::PCIDevice &pci) :
-  id(makeID(pci)), gpu(gpu), pci(pci) {
-
-  insert("type",        String::toLower(gpu.getType().toString()));
-  insert("description", gpu.getDescription());
-  insert("vendor",      pci.getVendorID());
-  insert("device",      pci.getDeviceID());
+void GPUResource::setPCI(const PCIDevice &pci) {
+  insert("vendor", pci.getVendorID());
+  insert("device", pci.getDeviceID());
+  insert("type",   getGPUVendorName(pci.getVendorID()));
 }
 
 
 void GPUResource::set(const string &name, const ComputeDevice &cd) {
+  if (cd.vendorID != -1) {
+    if (!hasU32("vendor"))  insert("vendor", cd.vendorID);
+    if (!hasString("type")) insert("type",   getGPUVendorName(cd.vendorID));
+  }
+
+  if (!cd.name.empty() && !hasString("description"))
+    insert("description", cd.name);
+
+  if (!cd.uuid.empty() && !hasString("uuid")) insert("uuid", cd.uuid);
+
   if (cd.isValid()) {
     JSON::ValuePtr d = new JSON::Dict;
-    d->insert("compute", cd.computeVersion.toString());
-    d->insert("driver",  cd.driverVersion.toString());
+    d->insert("platform", cd.platformIndex);
+    d->insert("device",   cd.deviceIndex);
+    d->insert("compute",  cd.computeVersion.toString());
+    d->insert("driver",   cd.driverVersion.toString());
     insert(name, d);
 
   } else if (has(name)) erase(name);
-
-  if (name == "cuda")   cuda   = cd;
-  if (name == "opencl") opencl = cd;
 }
 
 
@@ -73,8 +77,8 @@ void GPUResource::writeRequest(JSON::Sink &sink) const {
   sink.beginDict();
 
   sink.insert("gpu",    getString("type"));
-  sink.insert("vendor", pci.getVendorID());
-  sink.insert("device", pci.getDeviceID());
+  sink.insert("vendor", getU16("vendor"));
+  sink.insert("device", getU16("device"));
 
   if (has("cuda"))   sink.insert("cuda",   *get("cuda"));
   if (has("opencl")) sink.insert("opencl", *get("opencl"));
