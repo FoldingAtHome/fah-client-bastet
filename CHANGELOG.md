@@ -1,12 +1,16 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.15
+ - Fix CUDA/OpenCL driver mixup from v8.1.14.
+ - Improved OpenCL PCI info detection.
+
 ## v8.1.14
  - Print down/upload sizes in progress log. #113
  - Show user and team on WU request log line.
  - Show GPU PCI device/vendor and cuda/opencl support in log.
  - Add ``fah-client`` user to groups ``video`` and ``render`` on Linux. #121
- - Close log file before rotation to avoid prolems on Windows. #120
+ - Close log file before rotation to avoid problems on Windows. #120
  - Show unsupported GPUs.
  - Improved GPU detection.
 

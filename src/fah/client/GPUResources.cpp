@@ -42,8 +42,6 @@
 #include <cbang/gpu/OpenCLLibrary.h>
 #include <cbang/gpu/CUDALibrary.h>
 
-#include <list>
-
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -60,9 +58,12 @@ namespace {
     try {
       auto &lib = LIB::instance();
 
-      for (auto &dev: lib)
+      for (auto &dev: lib) {
+        LOG_DEBUG(3, dev);
+
         if (dev.isValid() && dev.gpu)
           devices.push_back(dev);
+      }
     } CATCH_ERROR;
 
     return devices;
@@ -128,7 +129,7 @@ void GPUResources::update() {
 
 
 void GPUResources::detect() {
-  map<std::string, SmartPointer<GPUResource>> resources;
+  map<string, SmartPointer<GPUResource>> resources;
 
   // Enumerate OpenCL
   auto openclGPUs = get_gpus<OpenCLLibrary>();
@@ -143,7 +144,7 @@ void GPUResources::detect() {
 #ifndef __APPLE__
   // Enumerate CUDA and match with OpenCL
   auto cudaGPUs = get_gpus<CUDALibrary>();
-  for (auto &cd: openclGPUs) {
+  for (auto &cd: cudaGPUs) {
     if (!cd.isPCIValid()) continue;
     string id = "gpu:" + cd.getPCIID();
     auto it   = resources.find(id);
