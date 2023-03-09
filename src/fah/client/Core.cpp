@@ -55,9 +55,9 @@ Core::Core(App &app, const JSON::ValuePtr &data) :
 }
 
 
-string Core::getURL() const {return data->getString("url");}
+string   Core::getURL()  const {return data->getString("url");}
 uint32_t Core::getType() const {return data->getU32("type");}
-string Core::getPath() const {return data->getString("path");}
+string   Core::getPath() const {return data->getString("path");}
 
 
 void Core::addProgressCallback(progress_cb_t cb) {

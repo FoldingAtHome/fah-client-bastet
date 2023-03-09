@@ -63,12 +63,12 @@ namespace FAH {
     public:
       Core(App &app, const cb::JSON::ValuePtr &data);
 
-      CoreState getState() const {return state;}
-      bool isReady() const {return state == CORE_READY;}
-      bool isInvalid() const {return state == CORE_INVALID;}
+      CoreState getState()  const {return state;}
+      bool      isReady()   const {return state == CORE_READY;}
+      bool      isInvalid() const {return state == CORE_INVALID;}
 
-      std::string getURL() const;
-      uint32_t getType() const;
+      std::string getURL()  const;
+      uint32_t    getType() const;
       std::string getPath() const;
 
       void addProgressCallback(progress_cb_t cb);

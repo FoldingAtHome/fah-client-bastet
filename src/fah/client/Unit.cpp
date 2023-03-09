@@ -551,8 +551,6 @@ void Unit::getCore() {
 
       if (core->isInvalid()) {
         LOG_INFO(1, "Failed to download core");
-        data.release();
-        setState(UNIT_ASSIGN);
         retry();
 
       } else if (core->isReady()) {
@@ -590,8 +588,10 @@ void Unit::run() {
 
   // Set environment library paths
   vector<string> paths;
+#ifdef _WIN32
   string execPath = SystemUtilities::getExecutablePath();
   paths.push_back(SystemUtilities::dirname(execPath));
+#endif
   string corePath = SystemUtilities::absolute(core->getPath());
   paths.push_back(SystemUtilities::dirname(corePath));
   const string &ldPath = SystemUtilities::library_path;
@@ -758,13 +758,6 @@ void Unit::finalizeRun() {
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_WARNING,
       "Core returned " << code << " (" << (unsigned)code << ')');
 
-#ifdef _WIN32
-  if (0xc000000 <= code)
-    LOG_WARNING("Core exited with Windows unhandled exception code "
-                << String::printf("0x%08x", (unsigned)code)
-                << ".  See https://bit.ly/2CXgWkZ for more information.");
-#endif
-
   // Notify parent
   units->triggerUpdate();
 
@@ -783,6 +776,19 @@ void Unit::finalizeRun() {
     setResults("", hash64);
     data->insert("data", Base64().encode(resultData));
     setState(UNIT_UPLOAD);
+
+  } else if (!code.isValid()) {
+#ifdef _WIN32
+    if (0xc0000000 <= (unsigned)code)
+      LOG_WARNING("Core exited with Windows unhandled exception code "
+                  << String::printf("0x%08x", (unsigned)code)
+                  << ".  See https://bit.ly/2CXgWkZ for more information.");
+    else
+#endif
+      LOG_WARNING("Core exited with an unknown error code " << (unsigned)code
+                  << " which probably indicates that it crashed");
+
+    retry();
 
   } else setState(UNIT_DUMP);
 

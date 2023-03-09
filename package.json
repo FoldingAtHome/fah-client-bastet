@@ -1,6 +1,6 @@
 {
   "name": "fah-client",
-  "version": "8.1.15",
+  "version": "8.1.16",
   "bin": {
     "fah-client": "./fah-client"
   },

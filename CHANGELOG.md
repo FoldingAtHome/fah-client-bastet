@@ -1,6 +1,11 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.16
+ - Fix core download retry logic.
+ - Only add client executable directory to lib path on Windows.
+ - Retry WU if core crashes.  #127
+
 ## v8.1.15
  - Fix CUDA/OpenCL driver mixup from v8.1.14.
  - Improved OpenCL PCI info detection.
