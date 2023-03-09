@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.17
+ - Don't show ``1B of 1B`` for completed up/download size. #130
+
 ## v8.1.16
  - Fix core download retry logic.
  - Only add client executable directory to lib path on Windows.

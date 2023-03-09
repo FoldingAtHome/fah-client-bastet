@@ -533,7 +533,8 @@ void Unit::setProgress(double done, double total) {
   if (oldValue != progress) {
     insert("progress", progress);
 
-    if (floor(oldValue * 100) < floor(progress * 100) && getState() != UNIT_RUN)
+    if (floor(oldValue * 100) < floor(progress * 100) &&
+        getState() != UNIT_RUN && 1 < total)
       LOG_INFO(1, getState() << String::printf(" %0.0f%% ", progress * 100)
                << HumanSize(done) << "B of " << HumanSize(total) << 'B');
   }
