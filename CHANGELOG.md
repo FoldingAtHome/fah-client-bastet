@@ -4,7 +4,9 @@ Folding@home Client Changelog
 ## v8.1.16
  - Fix core download retry logic.
  - Only add client executable directory to lib path on Windows.
- - Retry WU if core crashes.  #127
+ - Retry WU if core crashes. #127
+ - Fix CPU allocation when there are more GPUs than CPUs. #129
+ - Don't reserve a CPU for each disabled GPUs.
 
 ## v8.1.15
  - Fix CUDA/OpenCL driver mixup from v8.1.14.

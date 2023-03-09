@@ -200,21 +200,17 @@ void Units::update() {
     if (unitGPUs.empty()) continue;
 
     uint32_t minCPUs = unit.getMinCPUs();
-    bool     runable = minCPUs <= remainingCPUs;
+    bool     runable = minCPUs <= remainingCPUs || minCPUs < 2;
 
     std::set<string> gpusWithWU = remainingGPUs;
     for (auto id: unitGPUs) runable |= gpusWithWU.erase(id);
 
     if (runable) {
       remainingGPUs = gpusWithWU;
-      remainingCPUs -= minCPUs; // Initially allocate only minimum CPUs
+      remainingCPUs -= min(remainingCPUs, minCPUs); // Allocate minimum CPUs
       enabledWUs.insert(i);
     }
   }
-
-  // Reserve one CPU for any unused GPUs
-  uint32_t reservedCPUs = min(remainingCPUs, (uint32_t)remainingGPUs.size());
-  remainingCPUs -= reservedCPUs;
 
   // Allocate extra CPUs to enabled GPU WUs
   for (unsigned i = 0; i < size(); i++) {
@@ -226,7 +222,8 @@ void Units::update() {
     uint32_t cpus    = min(maxCPUs, remainingCPUs + minCPUs);
 
     unit.setCPUs(cpus);
-    remainingCPUs -= cpus - minCPUs; // Minimum CPUs subtracted above
+    // minCPUs was subtracted above or remainingCPUs is already zero
+    remainingCPUs -= min(remainingCPUs, cpus - minCPUs);
   }
 
   // Allocate remaining CPUs to existing CPU WUs
@@ -242,9 +239,6 @@ void Units::update() {
     remainingCPUs -= cpus;
     enabledWUs.insert(i);
   }
-
-  // Restore reserved CPUs
-  remainingCPUs += reservedCPUs;
 
   // Start and stop WUs
   for (unsigned i = 0; i < size(); i++)

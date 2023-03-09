@@ -301,7 +301,7 @@ void App::updateResources() {
     uint32_t cpus = min(config.getCPUs(), availableCPUs);
 
     info->insert("cpus", cpus + remainingCPUs);
-    availableCPUs -= cpus;
+    availableCPUs -= min(availableCPUs, cpus);
     if (cpus < config.getCPUs()) config.insert("cpus", cpus);
 
     JSON::ValuePtr groupGPUs = new JSON::Dict;
