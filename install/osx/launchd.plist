@@ -27,7 +27,7 @@
 	<key>LowPriorityIO</key>
 	<true/>
 	<key>ProcessType</key>
-	<string>Standard</string>
+	<string>Interactive</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/local/bin/fah-client</string>
