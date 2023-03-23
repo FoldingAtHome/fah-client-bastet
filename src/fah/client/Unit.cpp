@@ -242,12 +242,17 @@ bool Unit::hasGPU(const string &id) const {
 }
 
 
+uint64_t Unit::getRunTimeDelta() const {
+  return processStartTime ? Time::now() - processStartTime - clockSkew : 0;
+}
+
+
 uint64_t Unit::getRunTime() const {
   // Stored ``run-time`` is run time up to the end of the last run
   int64_t runTime = getU64("run-time", 0);
 
   // If core process is currently running, add accumulated time
-  if (processStartTime) runTime += Time::now() - processStartTime - clockSkew;
+  runTime += getRunTimeDelta();
 
   return 0 < runTime ? runTime : 0;
 }
@@ -486,6 +491,7 @@ void Unit::processStarted() {
 
 
 void Unit::processEnded() {
+  if (Time::SEC_PER_MIN * 5 < getRunTimeDelta()) retries = 0;
   insert("run-time", getRunTime());
   processStartTime = 0;
 }
@@ -572,9 +578,6 @@ void Unit::getCore() {
 
 void Unit::run() {
   if (process.isSet()) return; // Already running
-
-  // Reset retry count
-  retries = 0;
 
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
@@ -826,8 +829,8 @@ void Unit::monitorRun() {
     // Update ETA, PPD and progress
     string   eta = TimeInterval(getETA()).toString();
     uint64_t ppd = getPPD();
-    if (eta != getString("eta", "")) insert("eta", eta);
-    if (ppd != getU64   ("ppd",  0)) insert("ppd", ppd);
+    if (eta != getString("eta", "-")) insert("eta", eta);
+    if (ppd != getU64   ("ppd", -1))  insert("ppd", ppd);
     setProgress(getEstimatedProgress(), 1);
   } CATCH_ERROR;
 

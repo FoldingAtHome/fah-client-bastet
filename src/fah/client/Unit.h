@@ -127,6 +127,7 @@ namespace FAH {
       bool hasGPU(const std::string &id) const;
       bool hasGPUs() const {return !getGPUs().empty();}
 
+      uint64_t getRunTimeDelta() const;
       uint64_t getRunTime() const;
       uint64_t getRunTimeEstimate() const;
       double   getEstimatedProgress() const;

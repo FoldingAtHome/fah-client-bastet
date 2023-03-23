@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.1.17
  - Don't show ``1B of 1B`` for completed up/download size. #130
+ - Only reset retry count if WU has run for more than 5 minutes. #134
 
 ## v8.1.16
  - Fix core download retry logic.
