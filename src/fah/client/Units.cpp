@@ -203,7 +203,7 @@ void Units::update() {
     bool     runable = minCPUs <= remainingCPUs || minCPUs < 2;
 
     std::set<string> gpusWithWU = remainingGPUs;
-    for (auto id: unitGPUs) runable |= gpusWithWU.erase(id);
+    for (auto id: unitGPUs) runable &= gpusWithWU.erase(id);
 
     if (runable) {
       remainingGPUs = gpusWithWU;

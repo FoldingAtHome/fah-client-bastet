@@ -2,6 +2,7 @@ Folding@home Client Changelog
 =============================
 
 ## v8.1.17
+ - Fix GPU resource avaialble check. #135
  - Don't show ``1B of 1B`` for completed up/download size. #130
  - Only reset retry count if WU has run for more than 5 minutes. #134
 
