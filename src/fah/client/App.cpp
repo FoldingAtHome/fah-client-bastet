@@ -50,6 +50,7 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/os/SignalManager.h> // For SIGHUP on Windows
+#include <cbang/os/CPUInfo.h>
 
 #include <cbang/openssl/SSL.h>
 #include <cbang/openssl/SSLContext.h>
@@ -441,11 +442,13 @@ void App::upgradeDB() {
 
 void App::loadConfig() {
   // Info
-  info->insert("version", getVersion().toString());
-  info->insert("os",      os->getName());
-  info->insert("cpu",     os->getCPU());
-  info->insert("cpus",    SystemInfo::instance().getCPUCount());
-  info->insert("gpus",    gpus);
+  info->insert("version",    getVersion().toString());
+  info->insert("os",         os->getName());
+  info->insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
+  info->insert("cpu",        os->getCPU());
+  info->insert("cpu_brand",  CPUInfo::create()->getBrand());
+  info->insert("cpus",       SystemInfo::instance().getCPUCount());
+  info->insert("gpus",       gpus);
 
   auto &configDB = getDB("config");
 
