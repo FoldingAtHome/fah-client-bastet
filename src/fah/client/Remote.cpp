@@ -162,6 +162,12 @@ void Remote::sendChanges(const JSON::ValuePtr &changes) {
 }
 
 
+void Remote::send(const JSON::Value &msg) {
+  pingEvent->add(15);
+  Event::JSONWebsocket::send(msg);
+}
+
+
 void Remote::onMessage(const JSON::ValuePtr &msg) {
   LOG_DEBUG(3, "'" << group.getName() << "' msg: " << *msg);
 
@@ -197,12 +203,17 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
 void Remote::onOpen() {
   LOG_DEBUG(3, group.getName() << ":New client from " << getClientIP());
+  pingEvent = app.getEventBase().newEvent(this, &Remote::sendPing, 0);
   send(group);
 }
 
 
 void Remote::onComplete() {
   LOG_DEBUG(3, group.getName() << ":Closing client from " << getClientIP());
-  if (logEvent.isSet()) logEvent->del();
+  if (logEvent.isSet())  logEvent->del();
+  if (pingEvent.isSet()) pingEvent->del();
   group.remove(*this);
 }
+
+
+void Remote::sendPing() {send(JSON::String("ping"));}

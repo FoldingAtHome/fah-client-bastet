@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.18
+ - Added keep alive message to Websocket.
+
 ## v8.1.17
  - Fix GPU resource avaialble check. #135
  - Don't show ``1B of 1B`` for completed up/download size. #130

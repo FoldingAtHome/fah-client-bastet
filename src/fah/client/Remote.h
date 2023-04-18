@@ -50,6 +50,8 @@ namespace FAH {
       cb::SmartPointer<std::iostream> log;
       cb::SmartPointer<cb::Event::Event> logEvent;
 
+      cb::SmartPointer<cb::Event::Event> pingEvent;
+
     public:
       Remote(App &app, ResourceGroup &group, cb::Event::RequestMethod method,
              const cb::URI &uri, const cb::Version &version);
@@ -62,6 +64,7 @@ namespace FAH {
       void sendChanges(const cb::JSON::ValuePtr &changes);
 
       // From cb::Event::JSONWebsocket
+      void send(const cb::JSON::Value &msg);
       void onMessage(const cb::JSON::ValuePtr &msg);
 
       // From cb::Event::Websocket
@@ -69,6 +72,9 @@ namespace FAH {
 
       // From cb::Event::Request
       void onComplete();
+
+    protected:
+      void sendPing();
     };
   }
 }
