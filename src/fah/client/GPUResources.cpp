@@ -64,7 +64,9 @@ namespace {
         if (dev.isValid() && dev.gpu)
           devices.push_back(dev);
       }
-    } CATCH_ERROR;
+    } catch (const Exception &e) {
+      LOG_ERROR(LIB::getName() << " not supported: " << e.getMessage());
+    }
 
     return devices;
   }
