@@ -100,9 +100,9 @@ App::App() :
   options.add("allowed-origins", "Web origins (URLs) allowed to access this "
               "client.  Only trusted origins should be added.  Web pages at "
               "added origins will be able to control the client.")
-    ->setDefault("https://app.foldingathome.org");
+    ->setDefault("https://app.foldingathome.org http://localhost:7396");
   options.add("web-root", "Path to files to be served by the client's Web "
-              "server");
+              "server")->setDefault("fah-web-control/dist");
   options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
   options.popCategory();
@@ -139,6 +139,9 @@ App::App() :
   options.add("cpus", "Number of cpus FAH client will use.",
               new MaxConstraint<int32_t>(SystemInfo::instance().getCPUCount()));
   options.popCategory();
+
+  options["allow"].setDefault("127.0.0.1");
+  options["deny"].setDefault("0/0");
 
   // Configure log
   options["verbosity"].setDefault(3);
