@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.1.19
+ - Close remote connection on Websocket close.
+ 
 ## v8.1.18
  - Added keep alive message to Websocket.
 

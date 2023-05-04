@@ -69,6 +69,7 @@ namespace FAH {
 
       // From cb::Event::Websocket
       void onOpen();
+      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
 
       // From cb::Event::Request
       void onComplete();

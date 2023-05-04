@@ -37,6 +37,7 @@
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/event/HTTPConn.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -205,6 +206,12 @@ void Remote::onOpen() {
   LOG_DEBUG(3, group.getName() << ":New client from " << getClientIP());
   pingEvent = app.getEventBase().newEvent(this, &Remote::sendPing, 0);
   send(group);
+}
+
+
+void Remote::onClose(Event::WebsockStatus status, const string &msg) {
+  cb::Event::JSONWebsocket::onClose(status, msg);
+  if (hasConnection()) getConnection()->close();
 }
 
 
