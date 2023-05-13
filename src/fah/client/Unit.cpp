@@ -1156,21 +1156,18 @@ void Unit::response(Event::Request &req) {
   pr.release(); // Deref request object
 
   try {
-    if (req.getConnectionError()) {
-      LOG_ERROR("Failed response: " << req.getConnectionError());
-      return retry();
-    }
-
-    if (!req.isOk()) {
-      LOG_ERROR(req.getResponseCode() << ": " << req.getInput());
+    if (req.logResponseErrors()) {
+      if (req.getConnectionError()) return retry();
 
       try {
         auto msg = req.getJSONMessage();
 
-        if (msg->hasDict("error"))
-          insert("error", msg->selectString("error.message"));
-        else if (msg->hasString("error"))
-          insert("error", msg->getString("error"));
+        if (msg.isSet()) {
+          if (msg->hasDict("error"))
+            insert("error", msg->selectString("error.message"));
+          else if (msg->hasString("error"))
+            insert("error", msg->getString("error"));
+        }
       } CATCH_ERROR;
 
       // Handle HTTP reponse codes

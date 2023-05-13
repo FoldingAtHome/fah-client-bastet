@@ -43,6 +43,7 @@
 
 #include <cbang/net/IPAddress.h>
 #include <cbang/enum/ProcessPriority.h>
+#include <cbang/util/Backoff.h>
 
 #include <map>
 
@@ -63,7 +64,7 @@ namespace FAH {
     class OS;
     class ResourceGroup;
 
-    class App : public cb::Application {
+    class App : public cb::Application, public cb::Event::Enum {
       cb::Event::Base    base;
       cb::Event::DNSBase dns;
       cb::Event::Client  client;
@@ -86,6 +87,9 @@ namespace FAH {
 
       cb::KeyPair key;
       unsigned nextAS = 0;
+
+      cb::SmartPointer<cb::Event::Event> accountEvent;
+      cb::Backoff accountBackoff = cb::Backoff(60, 4 * 60 * 60);
 
     public:
       App();
@@ -136,7 +140,11 @@ namespace FAH {
       uint64_t getNextWUID();
 
       void upgradeDB();
+      void setAccountID(const std::string &account);
+      void getAccountID();
+      void updateAccount(const std::string &token);
       void loadConfig();
+      void checkAccount();
       void loadGroups();
       void loadUnits();
 

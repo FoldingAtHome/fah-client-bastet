@@ -105,6 +105,7 @@ App::App() :
               "server")->setDefault("fah-web-control/dist");
   options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
+  options.add("account-token", "Folding@home account token.")->setDefault("");
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -115,6 +116,7 @@ App::App() :
     ->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
                  "assign3.foldingathome.org assign4.foldingathome.org "
                  "assign5.foldingathome.org assign6.foldingathome.org");
+  options.add("api-server")->setDefault("https://api.foldingathome.org");
   options.popCategory();
 
   SmartPointer<Option> opt;
@@ -177,6 +179,10 @@ App::App() :
   caCert = caRes->toString();
 
   // TODO get CRL from F@H periodically
+
+  // Account check
+  accountEvent = base.newEvent(this, &App::checkAccount, EVENT_NO_SELF_REF);
+  accountEvent->activate();
 }
 
 
@@ -443,6 +449,94 @@ void App::upgradeDB() {
 }
 
 
+void App::setAccountID(const string &account) {
+  if (account.empty()) info->erase("account-id");
+  else {
+    LOG_INFO(1, "Linked Account ID = " << account);
+    info->insert("account_id", account);
+  }
+}
+
+
+void App::getAccountID() {
+  SmartPointer<Event::OutgoingRequest> pr;
+
+  auto cb = [this, pr] (Event::Request &req) mutable {
+    if (req.logResponseErrors()) {
+      if (req.getResponseCode() != HTTP_NOT_FOUND)
+        accountEvent->add((unsigned)accountBackoff.next());
+
+    } else {
+      string account = req.getInputJSON()->getAsString("account");
+      getDB("config").set("account-id", account);
+      setAccountID(account);
+    }
+
+    pr.release(); // Release request
+  };
+
+  string id = info->getString("id");
+  URI uri(options["api-server"].toString() + "/machine/" + id);
+  pr = client.call(uri, Event::RequestMethod::HTTP_GET, cb);
+  pr->send();
+}
+
+
+void App::updateAccount(const string &token) {
+  SmartPointer<Event::OutgoingRequest> pr;
+
+  auto cb = [this, pr, token] (Event::Request &req) mutable {
+    if (req.logResponseErrors()) {
+      if (req.getResponseCode() == HTTP_NOT_FOUND)
+        info->insert("account_token_status", "invalid");
+
+      else accountEvent->add((unsigned)accountBackoff.next());
+
+    } else {
+      getAccountID();
+      getDB("config").set("account-token", token);
+    }
+
+    pr.release(); // Release request
+  };
+
+  URI uri(options["api-server"].toString() + "/machine/link");
+  pr = client.call(uri, Event::RequestMethod::HTTP_PUT, cb);
+
+  string signature =
+    URLBase64().encode(key.signSHA256(URLBase64().decode(token)));
+  string pubkey    = key.publicToString();
+
+  auto writer = pr->getJSONWriter();
+  writer->beginDict();
+  writer->insert("token",     token);
+  writer->insert("signature", signature);
+  writer->insert("pubkey",    pubkey);
+  writer->endDict();
+  writer->close();
+
+  pr->send();
+}
+
+
+void App::checkAccount() {
+  auto  &db         = getDB("config");
+  string token      = options["account-token"].toString();
+  string savedToken = db.getString("account-token", "");
+  string account    = db.getString("account-id", "");
+
+  if (!token.empty() && token != savedToken) {
+    if (!savedToken.empty()) db.unset("account-token");
+    if (!account.empty())    db.unset("account-id");
+    updateAccount(token);
+
+  } else {
+    setAccountID(account);
+    if (account.empty()) getAccountID();
+  }
+}
+
+
 void App::loadConfig() {
   // Info
   info->insert("version",    getVersion().toString());
@@ -464,9 +558,9 @@ void App::loadConfig() {
   key.readPrivate(configDB.getString("key"));
 
   // Generate ID from key
-  string id = Digest::base64(key.getPublic().toBinString(), "sha256");
+  string id = Digest::urlBase64(key.getPublic().toBinString(), "sha256");
   info->insert("id", id);
-  LOG_INFO(3, "id = " << id);
+  LOG_INFO(3, "Machine ID = " << id);
 }
 
 
