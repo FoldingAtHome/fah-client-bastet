@@ -449,16 +449,18 @@ void App::upgradeDB() {
 }
 
 
-void App::setAccountID(const string &account) {
-  if (account.empty()) info->erase("account-id");
-  else {
-    LOG_INFO(1, "Linked Account ID = " << account);
-    info->insert("account_id", account);
+void App::setAccountNode(const string &node) {
+  if (node.empty()) {
+    if (info->has("account_node")) info->erase("account_node");
+
+  } else {
+    LOG_INFO(1, "Account node = " << node);
+    info->insert("account_node", node);
   }
 }
 
 
-void App::getAccountID() {
+void App::getAccountNode() {
   SmartPointer<Event::OutgoingRequest> pr;
 
   auto cb = [this, pr] (Event::Request &req) mutable {
@@ -467,15 +469,15 @@ void App::getAccountID() {
         accountEvent->add((unsigned)accountBackoff.next());
 
     } else {
-      string account = req.getInputJSON()->getAsString("account");
-      getDB("config").set("account-id", account);
-      setAccountID(account);
+      string node = req.getInputJSON()->getAsString("node");
+      getDB("config").set("account-node", node);
+      setAccountNode(node);
     }
 
     pr.release(); // Release request
   };
 
-  string id = info->getString("id");
+  string id = URLBase64().encode(Base64().decode(info->getString("id")));
   URI uri(options["api-server"].toString() + "/machine/" + id);
   pr = client.call(uri, Event::RequestMethod::HTTP_GET, cb);
   pr->send();
@@ -493,14 +495,15 @@ void App::updateAccount(const string &token) {
       else accountEvent->add((unsigned)accountBackoff.next());
 
     } else {
-      getAccountID();
+      getAccountNode();
       getDB("config").set("account-token", token);
     }
 
     pr.release(); // Release request
   };
 
-  URI uri(options["api-server"].toString() + "/machine/link");
+  string id = URLBase64().encode(Base64().decode(info->getString("id")));
+  URI uri(options["api-server"].toString() + "/machine/" + id);
   pr = client.call(uri, Event::RequestMethod::HTTP_PUT, cb);
 
   string signature =
@@ -523,16 +526,16 @@ void App::checkAccount() {
   auto  &db         = getDB("config");
   string token      = options["account-token"].toString();
   string savedToken = db.getString("account-token", "");
-  string account    = db.getString("account-id", "");
+  string node       = db.getString("account-node", "");
 
   if (!token.empty() && token != savedToken) {
     if (!savedToken.empty()) db.unset("account-token");
-    if (!account.empty())    db.unset("account-id");
+    if (!node.empty())       db.unset("account-node");
     updateAccount(token);
 
   } else {
-    setAccountID(account);
-    if (account.empty()) getAccountID();
+    setAccountNode(node);
+    if (node.empty()) getAccountNode();
   }
 }
 
@@ -558,7 +561,7 @@ void App::loadConfig() {
   key.readPrivate(configDB.getString("key"));
 
   // Generate ID from key
-  string id = Digest::urlBase64(key.getPublic().toBinString(), "sha256");
+  string id = Digest::base64(key.getPublic().toBinString(), "sha256");
   info->insert("id", id);
   LOG_INFO(3, "Machine ID = " << id);
 }

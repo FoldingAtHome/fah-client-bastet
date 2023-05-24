@@ -140,8 +140,8 @@ namespace FAH {
       uint64_t getNextWUID();
 
       void upgradeDB();
-      void setAccountID(const std::string &account);
-      void getAccountID();
+      void setAccountNode(const std::string &node);
+      void getAccountNode();
       void updateAccount(const std::string &token);
       void loadConfig();
       void checkAccount();
