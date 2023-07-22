@@ -44,6 +44,7 @@
 #include <cbang/net/IPAddress.h>
 #include <cbang/enum/ProcessPriority.h>
 #include <cbang/util/Backoff.h>
+#include <cbang/json/Observable.h>
 
 #include <map>
 
@@ -64,7 +65,11 @@ namespace FAH {
     class OS;
     class ResourceGroup;
 
-    class App : public cb::Application, public cb::Event::Enum {
+    class App :
+      public cb::Application,
+      public cb::Event::Enum,
+      public cb::JSON::ObservableDict {
+
       cb::Event::Base    base;
       cb::Event::DNSBase dns;
       cb::Event::Client  client;
@@ -76,11 +81,10 @@ namespace FAH {
       tables_t;
       tables_t tables;
 
-      cb::SmartPointer<Server>          server;
-      cb::SmartPointer<GPUResources>    gpus;
-      cb::SmartPointer<Cores>           cores;
-      cb::SmartPointer<OS>              os;
-      cb::SmartPointer<cb::JSON::Value> info;
+      cb::SmartPointer<Server>       server;
+      cb::SmartPointer<GPUResources> gpus;
+      cb::SmartPointer<Cores>        cores;
+      cb::SmartPointer<OS>           os;
 
       typedef std::map<std::string, cb::SmartPointer<ResourceGroup> > groups_t;
       groups_t groups;
@@ -140,11 +144,11 @@ namespace FAH {
       uint64_t getNextWUID();
 
       void upgradeDB();
-      void setAccountNode(const std::string &node);
-      void getAccountNode();
-      void updateAccount(const std::string &token);
+      void setAccountInfo(const cb::SmartPointer<cb::JSON::Value> &account);
+      void getAccountInfo();
+      void linkAccount(const std::string &token);
       void loadConfig();
-      void checkAccount();
+      void updateAccount();
       void loadGroups();
       void loadUnits();
 
@@ -152,6 +156,9 @@ namespace FAH {
       int init(int argc, char *argv[]);
       void run();
       void requestExit();
+
+      // From cb::JSON::Value
+      void notify(std::list<cb::JSON::ValuePtr> &change);
 
       void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
     };

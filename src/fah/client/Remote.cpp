@@ -179,23 +179,26 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     vizUnitID = unit;
     vizFrame  = msg->getU32("frame", 0);
     sendViz();
-  }
 
-  if (cmd == "log") {
+  } else if (cmd == "log") {
     followLog = msg->getBoolean("enable", false);
     logOffset = msg->getS64("offset", -(1 << 17));
     sendLog();
-  }
 
-  if (cmd == "dump")    group.getUnits()->dump(unit);
-  if (cmd == "finish")  group.getConfig()->setFinish(true);
-  if (cmd == "pause")   group.getConfig()->setPaused(true);
-  if (cmd == "unpause") group.getConfig()->setPaused(false);
+  } else if (cmd == "dump")  group.getUnits()->dump(unit);
+  else if (cmd == "finish")  group.getConfig()->setFinish(true);
+  else if (cmd == "pause")   group.getConfig()->setPaused(true);
+  else if (cmd == "unpause") group.getConfig()->setPaused(false);
+  else if (cmd == "link")    app.linkAccount(msg->getString("token"));
 
-  if (cmd == "config") {
+  else if (cmd == "config") {
     group.getConfig()->update(*msg->get("config"));
     if (group.getName().empty()) app.updateGroups();
     app.updateResources();
+
+  } else {
+    LOG_WARNING("Received unsupported remote command '" << cmd << "'");
+    return;
   }
 
   group.getUnits()->triggerUpdate(true);
@@ -206,6 +209,11 @@ void Remote::onOpen() {
   LOG_DEBUG(3, group.getName() << ":New client from " << getClientIP());
   pingEvent = app.getEventBase().newEvent(this, &Remote::sendPing, 0);
   send(group);
+
+  JSON::List info;
+  info.append("info");
+  info.append(JSON::ValuePtr::Phony(&app));
+  send(info);
 }
 
 

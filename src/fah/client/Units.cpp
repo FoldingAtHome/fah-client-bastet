@@ -282,5 +282,5 @@ void Units::shutdown(function<void ()> cb) {
 
 void Units::setWait(double delay) {
   waitUntil = Time::now() + delay;
-  group.getInfo()->insert("wait", Time(waitUntil).toString());
+  // TODO report wait to frontend
 }

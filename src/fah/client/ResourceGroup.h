@@ -49,14 +49,12 @@ namespace FAH {
 
     public:
       ResourceGroup(App &app, const std::string &name,
-                    const cb::JSON::ValuePtr &config,
-                    const cb::JSON::ValuePtr &info);
+                    const cb::JSON::ValuePtr &config);
       ~ResourceGroup();
 
       const std::string              &getName()   const {return name;}
       const cb::SmartPointer<Config> &getConfig() const {return config;}
       const cb::SmartPointer<Units>  &getUnits()  const {return units;}
-      const cb::JSON::ValuePtr       &getInfo()   const {return get("info");}
 
       void add(const cb::SmartPointer<Remote> &client);
       void remove(Remote &client);

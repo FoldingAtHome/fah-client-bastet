@@ -43,6 +43,7 @@
 #include <cbang/time/Time.h>
 #include <cbang/json/Sink.h>
 #include <cbang/util/Resource.h>
+#include <cbang/util/BIP39Words.h>
 
 #include <cbang/net/URI.h>
 #include <cbang/net/Base64.h>
@@ -83,7 +84,7 @@ namespace FAH {
 App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, 10),
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
-  gpus(new GPUResources(*this)), cores(new Cores(*this)), info(new JSON::Dict) {
+  gpus(new GPUResources(*this)), cores(new Cores(*this)) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -106,6 +107,7 @@ App::App() :
   options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
   options.add("account-token", "Folding@home account token.")->setDefault("");
+  options.add("machine-name", "Name used to identify this machine.");
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -180,8 +182,8 @@ App::App() :
 
   // TODO get CRL from F@H periodically
 
-  // Account check
-  accountEvent = base.newEvent(this, &App::checkAccount, EVENT_NO_SELF_REF);
+  // Account update
+  accountEvent = base.newEvent(this, &App::updateAccount, EVENT_NO_SELF_REF);
   accountEvent->activate();
 }
 
@@ -224,8 +226,7 @@ const SmartPointer<ResourceGroup> &App::newGroup(const string &name) {
 
   } else config = new JSON::Dict;
 
-  return groups[name] =
-    new ResourceGroup(*this, name, config, info->copy(true));
+  return groups[name] = new ResourceGroup(*this, name, config);
 }
 
 
@@ -286,7 +287,7 @@ void App::updateGroups() {
 void App::updateResources() {
   // Determine which GPUs and CPUs are already in use
   map<string, string> gpuUsedBy;
-  uint32_t availableCPUs = info->getU32("cpus");
+  uint32_t availableCPUs = getU32("cpus");
   int32_t  remainingCPUs = availableCPUs;
 
   for (auto group: groups) {
@@ -305,12 +306,12 @@ void App::updateResources() {
   if (remainingCPUs < 0) remainingCPUs = 0; // Check for over-allocation
 
   // Set group GPUs and CPUs
-  for (auto group: groups) {
-    auto  &config = *group.second->getConfig();
-    auto     info = group.second->get("info");
+  for (auto it: groups) {
+    auto   &group = *it.second;
+    auto  &config = *group.getConfig();
     uint32_t cpus = min(config.getCPUs(), availableCPUs);
 
-    info->insert("cpus", cpus + remainingCPUs);
+    config.insert("available_cpus", cpus + remainingCPUs);
     availableCPUs -= min(availableCPUs, cpus);
     if (cpus < config.getCPUs()) config.insert("cpus", cpus);
 
@@ -320,11 +321,11 @@ void App::updateResources() {
       string gpuID = gpus->keyAt(i);
 
       auto it = gpuUsedBy.find(gpuID);
-      if (it == gpuUsedBy.end() || it->second == group.second->getName())
+      if (it == gpuUsedBy.end() || it->second == group.getName())
         groupGPUs->insert(gpuID, gpus->get(i)->copy(true));
     }
 
-    if (*info->get("gpus") != *groupGPUs) info->insert("gpus", groupGPUs);
+    config.insert("available_gpus", groupGPUs);
   }
 }
 
@@ -449,70 +450,75 @@ void App::upgradeDB() {
 }
 
 
-void App::setAccountNode(const string &node) {
-  if (node.empty()) {
-    if (info->has("account_node")) info->erase("account_node");
+void App::setAccountInfo(const SmartPointer<JSON::Value> &account) {
+  if (account.isNull()) {
+    if (has("account")) erase("account");
+
+    auto &db = getDB("config");
+    if (db.has("account")) db.unset("account");
 
   } else {
-    LOG_INFO(1, "Account node = " << node);
-    info->insert("account_node", node);
+    LOG_INFO(1, "account = " << account->toString(2));
+    insert("account", account);
   }
 }
 
 
-void App::getAccountNode() {
+void App::getAccountInfo() {
   SmartPointer<Event::OutgoingRequest> pr;
 
   auto cb = [this, pr] (Event::Request &req) mutable {
     if (req.logResponseErrors()) {
-      if (req.getResponseCode() != HTTP_NOT_FOUND)
-        accountEvent->add((unsigned)accountBackoff.next());
+      if (req.getResponseCode() == HTTP_NOT_FOUND) setAccountInfo(0);
+      else accountEvent->add((unsigned)accountBackoff.next());
 
     } else {
-      string node = req.getInputJSON()->getAsString("node");
-      getDB("config").set("account-node", node);
-      setAccountNode(node);
+      auto account = req.getInputJSON();
+      getDB("config").set("account", account->toString());
+      setAccountInfo(account);
     }
 
     pr.release(); // Release request
   };
 
-  string id = URLBase64().encode(Base64().decode(info->getString("id")));
+  string id = getString("id");
   URI uri(options["api-server"].toString() + "/machine/" + id);
   pr = client.call(uri, Event::RequestMethod::HTTP_GET, cb);
   pr->send();
 }
 
 
-void App::updateAccount(const string &token) {
+void App::linkAccount(const string &token) {
   SmartPointer<Event::OutgoingRequest> pr;
 
   auto cb = [this, pr, token] (Event::Request &req) mutable {
     if (req.logResponseErrors()) {
-      if (req.getResponseCode() == HTTP_NOT_FOUND)
-        info->insert("account_token_status", "invalid");
-
-      else accountEvent->add((unsigned)accountBackoff.next());
+      if (req.getResponseCode() != HTTP_NOT_FOUND)
+        accountEvent->add((unsigned)accountBackoff.next()); // Retry
 
     } else {
-      getAccountNode();
+      LOG_INFO(1, "Account linked");
       getDB("config").set("account-token", token);
+      getAccountInfo();
     }
 
     pr.release(); // Release request
   };
 
-  string id = URLBase64().encode(Base64().decode(info->getString("id")));
+  string id = getString("id");
   URI uri(options["api-server"].toString() + "/machine/" + id);
   pr = client.call(uri, Event::RequestMethod::HTTP_PUT, cb);
 
-  string signature =
-    URLBase64().encode(key.signSHA256(URLBase64().decode(token)));
+  JSON::ValuePtr data = new JSON::Dict;
+  data->insert("name", getGroup("")->getConfig()->getMachineName());
+  data->insert("token", token);
+
+  string signature = URLBase64().encode(key.signSHA256(data->toString()));
   string pubkey    = key.publicToString();
 
   auto writer = pr->getJSONWriter();
   writer->beginDict();
-  writer->insert("token",     token);
+  writer->insert("data",      *data);
   writer->insert("signature", signature);
   writer->insert("pubkey",    pubkey);
   writer->endDict();
@@ -522,48 +528,49 @@ void App::updateAccount(const string &token) {
 }
 
 
-void App::checkAccount() {
+void App::updateAccount() {
   auto  &db         = getDB("config");
   string token      = options["account-token"].toString();
   string savedToken = db.getString("account-token", "");
-  string node       = db.getString("account-node", "");
 
-  if (!token.empty() && token != savedToken) {
-    if (!savedToken.empty()) db.unset("account-token");
-    if (!node.empty())       db.unset("account-node");
-    updateAccount(token);
-
-  } else {
-    setAccountNode(node);
-    if (node.empty()) getAccountNode();
-  }
+  if (!token.empty() && token != savedToken) linkAccount(token);
+  else if (!savedToken.empty()) getAccountInfo();
 }
 
 
 void App::loadConfig() {
   // Info
-  info->insert("version",    getVersion().toString());
-  info->insert("os",         os->getName());
-  info->insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
-  info->insert("cpu",        os->getCPU());
-  info->insert("cpu_brand",  CPUInfo::create()->getBrand());
-  info->insert("cpus",       SystemInfo::instance().getCPUCount());
-  info->insert("gpus",       gpus);
+  insert("version",    getVersion().toString());
+  insert("os",         os->getName());
+  insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
+  insert("cpu",        os->getCPU());
+  insert("cpu_brand",  CPUInfo::create()->getBrand());
+  insert("cpus",       SystemInfo::instance().getCPUCount());
+  insert("gpus",       gpus);
 
-  auto &configDB = getDB("config");
+  auto &db = getDB("config");
 
   // Generate key
-  if (!configDB.has("key")) {
+  if (!db.has("key")) {
     key.generateRSA(4096, 65537, new KeyGenPacifier("Generating RSA key"));
-    configDB.set("key", key.privateToString());
+    db.set("key", key.privateToString());
   }
 
-  key.readPrivate(configDB.getString("key"));
+  key.readPrivate(db.getString("key"));
 
   // Generate ID from key
-  string id = Digest::base64(key.getPublic().toBinString(), "sha256");
-  info->insert("id", id);
-  LOG_INFO(3, "Machine ID = " << id);
+  string id = Digest::urlBase64(key.getPublic().toBinString(), "sha256");
+  insert("id", id);
+  LOG_INFO(1, "Machine ID = " << id);
+
+  // Set default machine name from ID
+  string machName =
+    BIP39Words::getPhrase((uint8_t *)URLBase64().decode(id).data(), 4, "-");
+  options["machine-name"].setDefault(machName);
+
+  // Account info
+  if (db.has("account"))
+    setAccountInfo(JSON::Reader::parseString(db.getString("account")));
 }
 
 
@@ -648,6 +655,16 @@ void App::requestExit() {
     group.second->getUnits()->shutdown(cb);
 
   Application::requestExit();
+}
+
+
+void App::notify(list<JSON::ValuePtr> &change) {
+  change.push_front(JSON::Value::create("info"));
+  SmartPointer<JSON::List> changes =
+    new JSON::List(change.begin(), change.end());
+
+  for (auto it: groups)
+    it.second->broadcast(changes);
 }
 
 

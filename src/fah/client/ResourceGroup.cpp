@@ -39,15 +39,13 @@ using namespace FAH::Client;
 
 
 ResourceGroup::ResourceGroup(App &app, const string &name,
-                             const JSON::ValuePtr &conf,
-                             const JSON::ValuePtr &info) :
+                             const JSON::ValuePtr &conf) :
   app(app), name(name), config(new Config(app, conf)),
   units(new Units(app, *this, config)) {
 
   // Connect JSON::Observables
   insert("units",  units);
   insert("config", config);
-  insert("info",   info);
 }
 
 

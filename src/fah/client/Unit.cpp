@@ -63,6 +63,8 @@
 #include <cbang/gpu/GPUVendor.h>
 #include <cbang/json/Reader.h>
 
+#include <cinttypes>
+
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -930,9 +932,9 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("wu",      getU64("number"));
 
   // Client
-  auto &info = *units->getGroup().getInfo();
-  sink.insert("version", info.getString("version"));
-  sink.insert("id",      info.getString("id"));
+  string id = Base64().encode(URLBase64().decode(app.getString("id")));
+  sink.insert("version", app.getString("version"));
+  sink.insert("id",      id);
 
   // User
   sink.insert("user",    getConfig().getUsername());
@@ -942,7 +944,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
   // OS
   sink.insertDict("os");
   sink.insert("version", sysInfo.getOSVersion().toString());
-  sink.insert("type",    info.getString("os"));
+  sink.insert("type",    app.getString("os"));
   sink.insert("memory",  sysInfo.getFreeMemory());
   sink.endDict();
 
@@ -960,7 +962,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
   // CPU
   sink.insertDict("cpu");
-  sink.insert("cpu",            info.getString("cpu"));
+  sink.insert("cpu",            app.getString("cpu"));
   sink.insert("cpus",           getCPUs());
   sink.insert("vendor",         cpuInfo->getVendor());
   sink.insert("signature",      cpuInfo->getSignature());

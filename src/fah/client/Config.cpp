@@ -48,6 +48,7 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   if (0 < pcount && pcount < cpus) cpus = pcount;
 
   // Defaults
+  auto &options = app.getOptions();
   insert("user", "Anonymous");
   insert("team", 0);
   insert("passkey", "");
@@ -57,13 +58,14 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   insertBoolean("finish", false);
   insert("cause", "any");
   insert("cpus", cpus);
+  insert("machine_name", options["machine-name"].toString());
   insertDict("gpus");
   insertList("peers");
 
   // Load options from config file
-  auto &options = app.getOptions();
   std::set<string> keys = {
-    "user", "team", "passkey", "fold-anon", "on-idle", "key", "cause", "cpus"};
+    "user", "team", "passkey", "fold-anon", "on-idle", "key", "cause", "cpus",
+    "machine-name"};
   for (auto key : keys) {
     string _key = String::replace(key, "-", "_");
 
@@ -167,6 +169,9 @@ void Config::disableGPU(const string &id) {
   auto &gpus = *get("gpus");
   if (gpus.has(id)) gpus.erase(id);
 }
+
+
+string Config::getMachineName() const {return getString("machine_name");}
 
 
 unsigned Config::insert(const string &key, const JSON::ValuePtr &value) {

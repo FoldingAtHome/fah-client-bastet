@@ -70,6 +70,8 @@ namespace FAH {
       bool isGPUEnabled(const std::string &id) const;
       void disableGPU(const std::string &id);
 
+      std::string getMachineName() const;
+
       // From ObservableDict
       unsigned insert(const std::string &key, const cb::JSON::ValuePtr &value);
       using cb::JSON::ObservableDict::insert;
