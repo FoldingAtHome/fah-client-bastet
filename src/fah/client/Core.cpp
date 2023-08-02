@@ -205,7 +205,7 @@ void Core::download(const string &url) {
     };
 
   auto pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
-  pr->getConnection().getReadProgress().setCallback(progressCB, 1);
+  pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 

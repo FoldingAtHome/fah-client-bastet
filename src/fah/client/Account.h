@@ -28,54 +28,39 @@
 
 #pragma once
 
-#include "Unit.h"
-
-#include <string>
-#include <functional>
+#include <cbang/event/Event.h>
+#include <cbang/event/JSONWebsocket.h>
+#include <cbang/util/Backoff.h>
+#include <cbang/json/Value.h>
 
 
 namespace FAH {
   namespace Client {
-    class ResourceGroup;
-    class Config;
+    class App;
 
-    class Units : public cb::JSON::ObservableList,
-                  public UnitState::Enum {
+    class Account : public cb::Event::JSONWebsocket {
       App &app;
-      ResourceGroup &group;
-      cb::SmartPointer<Config> config;
 
-      cb::Event::EventPtr event;
-      uint32_t failures  = 0;
-      uint64_t waitUntil = 0;
-
-      std::function<void ()> shutdownCB;
+      cb::SmartPointer<cb::Event::Event> updateEvent;
+      cb::Backoff updateBackoff = cb::Backoff(60, 4 * 60 * 60);
 
     public:
-      Units(App &app, ResourceGroup &group,
-            const cb::SmartPointer<Config> &config);
+      Account(App &app);
 
-      const ResourceGroup &getGroup()  const {return group;}
-      const Config        &getConfig() const {return *config;}
+      void init();
 
-      bool isActive()    const;
-      bool hasFailure()  const;
-      bool hasUnrunWUs() const;
-      bool waitForIdle() const;
+      void setInfo(const cb::JSON::ValuePtr &account);
+      void getInfo();
 
-      void add(const cb::SmartPointer<Unit> &unit);
-      unsigned getUnitIndex(const std::string &id) const;
-      Unit &getUnit(unsigned index) const;
-      Unit &getUnit(const std::string &id) const;
-      cb::SmartPointer<Unit> removeUnit(unsigned index);
-      void dump(const std::string &unitID);
-      void unitComplete(bool success);
+      void connect(const std::string &node);
+      void link(const std::string &token);
       void update();
-      void triggerUpdate(bool updateUnits = false);
-      void shutdown(std::function<void ()> cb);
 
-    protected:
-      void setWait(double delay);
+      // From cb::Event::JSONWebsocket
+      void onOpen();
+      void onMessage(const cb::JSON::ValuePtr &msg);
+      void onPing(const std::string &payload);
+      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
     };
   }
 }

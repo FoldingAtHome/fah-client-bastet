@@ -34,7 +34,8 @@
 
 #include <cbang/event/Event.h>
 #include <cbang/event/Enum.h>
-#include <cbang/event/OutgoingRequest.h>
+#include <cbang/event/Client.h>
+#include <cbang/event/Request.h>
 
 #include <cbang/os/Subprocess.h>
 #include <cbang/os/Thread.h>
@@ -57,8 +58,8 @@ namespace FAH {
       App &app;
       cb::SmartPointer<Units> units;
 
-      cb::SmartPointer<cb::Event::Event>           event;
-      cb::SmartPointer<cb::Event::OutgoingRequest> pr;
+      cb::Event::EventPtr           event;
+      cb::Event::Client::RequestPtr pr;
 
       uint64_t    wu;
       std::string id;

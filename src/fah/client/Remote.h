@@ -53,8 +53,8 @@ namespace FAH {
       cb::SmartPointer<cb::Event::Event> pingEvent;
 
     public:
-      Remote(App &app, ResourceGroup &group, cb::Event::RequestMethod method,
-             const cb::URI &uri, const cb::Version &version);
+      Remote(App &app, ResourceGroup &group, const cb::URI &uri,
+             const cb::Version &version);
       ~Remote();
 
       ResourceGroup &getGroup() {return group;}

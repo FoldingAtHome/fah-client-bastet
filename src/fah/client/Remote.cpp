@@ -30,6 +30,7 @@
 
 #include "App.h"
 #include "Server.h"
+#include "Account.h"
 #include "Units.h"
 #include "Config.h"
 #include "ResourceGroup.h"
@@ -44,9 +45,9 @@ using namespace cb;
 using namespace std;
 
 
-Remote::Remote(App &app, ResourceGroup &group, Event::RequestMethod method,
-               const URI &uri, const Version &version) :
-  Event::JSONWebsocket(method, uri, version), app(app), group(group) {}
+Remote::Remote(App &app, ResourceGroup &group, const URI &uri,
+               const Version &version) :
+  Event::JSONWebsocket(uri, version), app(app), group(group) {}
 
 
 Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
@@ -189,7 +190,7 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
   else if (cmd == "finish")  group.getConfig()->setFinish(true);
   else if (cmd == "pause")   group.getConfig()->setPaused(true);
   else if (cmd == "unpause") group.getConfig()->setPaused(false);
-  else if (cmd == "link")    app.linkAccount(msg->getString("token"));
+  else if (cmd == "link")    app.getAccount().link(msg->getString("token"));
 
   else if (cmd == "config") {
     group.getConfig()->update(*msg->get("config"));

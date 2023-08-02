@@ -418,7 +418,7 @@ void Unit::save() {
 void Unit::cancelRequest() {
   if (pr.isSet()) {
     pr->setCallback(0);
-    pr->getConnection().close();
+    pr->getConnection()->close();
     pr.release();
   }
 }
@@ -1073,7 +1073,7 @@ void Unit::download() {
 
   data->write(*pr->getJSONWriter());
   setProgress(0, 0);
-  pr->getConnection().getReadProgress().setCallback(progressCB, 1);
+  pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 
@@ -1117,7 +1117,7 @@ void Unit::upload() {
   writer->close();
 
   setProgress(0, 0);
-  pr->getConnection().getWriteProgress().setCallback(progressCB, 1);
+  pr->getConnection()->getWriteProgress().setCallback(progressCB, 1);
   pr->send();
 }
 

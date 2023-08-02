@@ -43,7 +43,6 @@
 
 #include <cbang/net/IPAddress.h>
 #include <cbang/enum/ProcessPriority.h>
-#include <cbang/util/Backoff.h>
 #include <cbang/json/Observable.h>
 
 #include <map>
@@ -58,6 +57,7 @@ namespace cb {
 namespace FAH {
   namespace Client {
     class Server;
+    class Account;
     class GPUResources;
     class Units;
     class Cores;
@@ -73,6 +73,7 @@ namespace FAH {
       cb::Event::Base    base;
       cb::Event::DNSBase dns;
       cb::Event::Client  client;
+      cb::KeyPair        key;
 
       cb::Certificate caCert;
 
@@ -82,6 +83,7 @@ namespace FAH {
       tables_t tables;
 
       cb::SmartPointer<Server>       server;
+      cb::SmartPointer<Account>      account;
       cb::SmartPointer<GPUResources> gpus;
       cb::SmartPointer<Cores>        cores;
       cb::SmartPointer<OS>           os;
@@ -89,11 +91,7 @@ namespace FAH {
       typedef std::map<std::string, cb::SmartPointer<ResourceGroup> > groups_t;
       groups_t groups;
 
-      cb::KeyPair key;
       unsigned nextAS = 0;
-
-      cb::SmartPointer<cb::Event::Event> accountEvent;
-      cb::Backoff accountBackoff = cb::Backoff(60, 4 * 60 * 60);
 
     public:
       App();
@@ -103,10 +101,12 @@ namespace FAH {
       cb::Event::Base    &getEventBase() {return base;}
       cb::Event::DNSBase &getEventDNS()  {return dns;}
       cb::Event::Client  &getClient()    {return client;}
+      cb::KeyPair        &getKey()       {return key;}
 
       cb::DB::NameValueTable &getDB(const std::string name);
 
       Server             &getServer()    {return *server;}
+      Account            &getAccount()   {return *account;}
       GPUResources       &getGPUs()      {return *gpus;}
       Cores              &getCores()     {return *cores;}
       OS                 &getOS()        {return *os;}
@@ -144,11 +144,7 @@ namespace FAH {
       uint64_t getNextWUID();
 
       void upgradeDB();
-      void setAccountInfo(const cb::SmartPointer<cb::JSON::Value> &account);
-      void getAccountInfo();
-      void linkAccount(const std::string &token);
       void loadConfig();
-      void updateAccount();
       void loadGroups();
       void loadUnits();
 

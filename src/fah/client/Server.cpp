@@ -99,7 +99,7 @@ Server::createRequest(Event::RequestMethod method, const URI &uri,
     string name = uri.getPath().substr(14);
 
     auto group = app.getGroup(name);
-    SmartPointer<Remote> client = new Remote(app, *group, method, uri, version);
+    auto client = SmartPtr(new Remote(app, *group, uri, version));
     group->add(client);
     return client;
   }

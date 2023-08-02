@@ -29,8 +29,6 @@
 #pragma once
 
 #include <cbang/event/WebServer.h>
-#include <cbang/event/JSONWebsocket.h>
-
 #include <cbang/json/Value.h>
 #include <cbang/openssl/SSLContext.h>
 
