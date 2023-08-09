@@ -103,7 +103,7 @@ namespace {
 
 
 #undef CBANG_LOG_PREFIX
-#define CBANG_LOG_PREFIX << getLogPrefix()
+#define CBANG_LOG_PREFIX getLogPrefix()
 
 
 Unit::Unit(App &app) :

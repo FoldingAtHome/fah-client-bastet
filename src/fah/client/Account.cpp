@@ -162,10 +162,17 @@ void Account::onMessage(const JSON::ValuePtr &msg) {
 
 void Account::onPing(const string &payload) {
   Websocket::onPing(payload);
-  LOG_INFO(1, "ping");
+  LOG_INFO(1, CBANG_FUNC);
+}
+
+
+void Account::onPong(const string &payload) {
+  Websocket::onPong(payload);
+  LOG_INFO(1, CBANG_FUNC);
 }
 
 
 void Account::onClose(Event::WebsockStatus status, const string &msg) {
   LOG_INFO(1, "Account WS closed: " << status << " msg=" << msg);
+  updateEvent->add(15);
 }

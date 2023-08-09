@@ -60,6 +60,7 @@ namespace FAH {
       void onOpen();
       void onMessage(const cb::JSON::ValuePtr &msg);
       void onPing(const std::string &payload);
+      void onPong(const std::string &payload);
       void onClose(cb::Event::WebsockStatus status, const std::string &msg);
     };
   }

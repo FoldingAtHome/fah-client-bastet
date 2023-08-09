@@ -47,7 +47,7 @@ using namespace cb;
 using namespace std;
 
 #undef CBANG_LOG_PREFIX
-#define CBANG_LOG_PREFIX << group.getName() << ':'
+#define CBANG_LOG_PREFIX group.getName() << ':'
 
 
 Units::Units(App &app, ResourceGroup &group,

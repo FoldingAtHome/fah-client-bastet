@@ -232,4 +232,9 @@ void Remote::onComplete() {
 }
 
 
-void Remote::sendPing() {send(JSON::String("ping"));}
+void Remote::sendPing() {
+  // This "ping" is sent because the browser front-end is unable to detect
+  // Websocket protocol level PING/PONG events.  With out this application level
+  // ping, the front-end would be unable to quickly detect client disconnects.
+  send(JSON::String("ping"));
+}
