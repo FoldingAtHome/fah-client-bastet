@@ -29,10 +29,10 @@ done
 if [ -z "$BROWSER" ]; then
   # error or failed to open a browser; open default
   # page may open behind other windows
-  $SUDO open https://app.foldingathome.org/
+  $SUDO open %(PACKAGE_URL)s
 else
   # most browsers, when launched, will open previous session in front
   # wait for app to hopfully finish launch before opening page
   sleep 2
-  $SUDO open -a "${BROWSER}.app" https://app.foldingathome.org/
+  $SUDO open -a "${BROWSER}.app" %(PACKAGE_URL)s
 fi

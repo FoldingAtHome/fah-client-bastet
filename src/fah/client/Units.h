@@ -36,13 +36,11 @@
 
 namespace FAH {
   namespace Client {
-    class ResourceGroup;
     class Config;
 
     class Units : public cb::JSON::ObservableList,
                   public UnitState::Enum {
       App &app;
-      ResourceGroup &group;
       cb::SmartPointer<Config> config;
 
       cb::Event::EventPtr event;
@@ -52,11 +50,9 @@ namespace FAH {
       std::function<void ()> shutdownCB;
 
     public:
-      Units(App &app, ResourceGroup &group,
-            const cb::SmartPointer<Config> &config);
+      Units(App &app, const cb::SmartPointer<Config> &config);
 
-      const ResourceGroup &getGroup()  const {return group;}
-      const Config        &getConfig() const {return *config;}
+      const Config &getConfig() const {return *config;}
 
       bool isActive()    const;
       bool hasFailure()  const;

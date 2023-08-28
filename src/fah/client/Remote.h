@@ -28,19 +28,16 @@
 
 #pragma once
 
-#include <cbang/event/JSONWebsocket.h>
-#include <map>
+#include <cbang/json/JSON.h>
+#include <cbang/event/Event.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
-    class ResourceGroup;
 
-
-    class Remote : public cb::Event::JSONWebsocket {
+    class Remote {
       App &app;
-      ResourceGroup &group;
 
       std::string vizUnitID;
       unsigned vizFrame = 0;
@@ -50,32 +47,24 @@ namespace FAH {
       cb::SmartPointer<std::iostream> log;
       cb::SmartPointer<cb::Event::Event> logEvent;
 
-      cb::SmartPointer<cb::Event::Event> pingEvent;
-
     public:
-      Remote(App &app, ResourceGroup &group, const cb::URI &uri,
-             const cb::Version &version);
-      ~Remote();
+      Remote(App &app);
+      virtual ~Remote();
 
-      ResourceGroup &getGroup() {return group;}
+      App &getApp() const {return app;}
+
+      virtual std::string getName() const = 0;
+      virtual void send(const cb::JSON::ValuePtr &msg) = 0;
+      virtual void close() = 0;
 
       void sendViz();
+      void readLogToNextLine();
       void sendLog();
       void sendChanges(const cb::JSON::ValuePtr &changes);
 
-      // From cb::Event::JSONWebsocket
-      void send(const cb::JSON::Value &msg);
       void onMessage(const cb::JSON::ValuePtr &msg);
-
-      // From cb::Event::Websocket
       void onOpen();
-      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
-
-      // From cb::Event::Request
       void onComplete();
-
-    protected:
-      void sendPing();
     };
   }
 }

@@ -26,26 +26,38 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM
-#ifndef FAH_CAUSE_PREF_H
-#define FAH_CAUSE_PREF_H
+#pragma once
 
-#define CBANG_ENUM_NAME CausePref
-#define CBANG_ENUM_NAMESPACE FAH
-#define CBANG_ENUM_NAMESPACE2 Client
-#define CBANG_ENUM_PATH fah/client
-#define CBANG_ENUM_PREFIX 11
-#include <cbang/enum/MakeEnumeration.def>
+#include "Remote.h"
 
-#endif // FAH_CAUSE_PREF_H
-#else // CBANG_ENUM
+#include <cbang/event/JSONWebsocket.h>
 
-CBANG_ENUM(CAUSE_PREF_ANY)
-CBANG_ENUM(CAUSE_PREF_ALZHEIMERS)
-CBANG_ENUM(CAUSE_PREF_CANCER)
-CBANG_ENUM(CAUSE_PREF_HUNTINGTONS)
-CBANG_ENUM(CAUSE_PREF_PARKINSONS)
-CBANG_ENUM(CAUSE_PREF_COVID_19)
-CBANG_ENUM(CAUSE_PREF_HIGH_PRIORITY)
 
-#endif // CBANG_ENUM
+namespace FAH {
+  namespace Client {
+    class WebsocketRemote : public Remote, public cb::Event::JSONWebsocket {
+      cb::SmartPointer<cb::Event::Event> pingEvent;
+
+    public:
+      WebsocketRemote(App &app, const cb::URI &uri, const cb::Version &version);
+
+      // From Remote
+      std::string getName() const {return getClientIP().toString();}
+      void send(const cb::JSON::ValuePtr &msg);
+      void close();
+
+      // From cb::Event::JSONWebsocket
+      void onMessage(const cb::JSON::ValuePtr &msg) {Remote::onMessage(msg);}
+
+      // From cb::Event::Websocket
+      void onOpen();
+      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
+
+      // From cb::Event::Request
+      void onComplete();
+
+    protected:
+      void sendPing();
+    };
+  }
+}

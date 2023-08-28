@@ -26,67 +26,34 @@
 
 \******************************************************************************/
 
-#include "ResourceGroup.h"
-#include "App.h"
+#include "NodeRemote.h"
+#include "Account.h"
 
-#include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
-#include <cbang/event/HTTPConn.h>
 
 using namespace std;
 using namespace cb;
 using namespace FAH::Client;
 
 
-ResourceGroup::ResourceGroup(App &app, const string &name,
-                             const JSON::ValuePtr &conf) :
-  app(app), name(name), config(new Config(app, conf)),
-  units(new Units(app, *this, config)) {
+NodeRemote::NodeRemote(
+  App &app, Account &account, const string &sid) :
+  Remote(app), account(account), sid(sid) {}
 
-  // Connect JSON::Observables
-  insert("units",  units);
-  insert("config", config);
+
+string NodeRemote::getName() const {return sid;}
+
+
+void NodeRemote::send(const JSON::ValuePtr &msg) {
+  LOG_DEBUG(5, "Sending " << *msg << " to " << getName());
+
+  JSON::Dict payload;
+
+  payload.insert("session", sid);
+  payload.insert("content", msg);
+
+  account.sendEncrypted(payload, sid);
 }
 
 
-ResourceGroup::~ResourceGroup() {
-  // Closing a client causes it to remove itself so first copy the list
-  auto clients = this->clients;
-
-  for (auto client: clients)
-    TRY_CATCH_ERROR(client->getConnection()->close());
-}
-
-
-void ResourceGroup::add(const SmartPointer<Remote> &client) {
-  clients.push_back(client);
-}
-
-
-void ResourceGroup::remove(Remote &client) {
-  for (auto it = clients.begin(); it != clients.end(); it++)
-    if (*it == &client) return (void)clients.erase(it);
-}
-
-
-void ResourceGroup::broadcast(const JSON::ValuePtr &changes) {
-  LOG_DEBUG(5, __func__ << ' ' << *changes);
-
-  for (auto client: clients)
-    if (client->isActive())
-      client->sendChanges(changes);
-}
-
-
-void ResourceGroup::notify(list<JSON::ValuePtr> &change) {
-  SmartPointer<JSON::List> changes =
-    new JSON::List(change.begin(), change.end());
-
-  broadcast(changes);
-
-  // Automatically save changes to config
-  if (!change.empty() && change.front()->getString() == "config") {
-    app.saveGroup(*this);
-    units->triggerUpdate();
-  }
-}
+void NodeRemote::close() {onComplete();}

@@ -54,7 +54,7 @@ case "$1" in
     echo
     echo "Access the web interface by going to:"
     echo
-    echo "  https://app.foldingathome.org/"
+    echo "  %(PACKAGE_URL)s"
     echo
     echo "File storage locations:"
     echo "  Logs: /var/log/fah-client"

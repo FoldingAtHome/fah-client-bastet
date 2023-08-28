@@ -34,10 +34,13 @@
 #include <cbang/log/Logger.h>
 #include <cbang/json/Reader.h>
 #include <cbang/os/SystemInfo.h>
+#include <cbang/util/Resource.h>
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
+
+namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 
 
 Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
@@ -48,26 +51,16 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   if (0 < pcount && pcount < cpus) cpus = pcount;
 
   // Defaults
-  auto &options = app.getOptions();
-  insert("user", "Anonymous");
-  insert("team", 0);
-  insert("passkey", "");
-  insertBoolean("fold_anon", false);
-  insertBoolean("on_idle", false);
-  insertBoolean("paused", false);
-  insertBoolean("finish", false);
-  insert("cause", "any");
-  insert("cpus", cpus);
-  insert("machine_name", options["machine-name"].toString());
-  insertDict("gpus");
-  insertList("peers");
+  auto r = FAH::Client::resource0.find("config.json");
+  if (!r) THROW("Could not find config.json resource");
+  defaults = JSON::Reader::parseString(r->toString());
+  merge(*defaults);
 
   // Load options from config file
-  std::set<string> keys = {
-    "user", "team", "passkey", "fold-anon", "on-idle", "key", "cause", "cpus",
-    "machine-name"};
-  for (auto key : keys) {
-    string _key = String::replace(key, "-", "_");
+  auto &options = app.getOptions();
+  for (unsigned i = 0; i < config->size(); i++) {
+    string _key = config->keyAt(i);
+    string key  = String::replace(_key, "_", "-");
 
     if (options.has(key) && !options[key].isDefault() && options[key].isSet())
       switch (options[key].getType()) {
@@ -79,7 +72,10 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
   }
 
   // Load config data
-  merge(*config);
+  for (unsigned i = 0; i < config->size(); i++) {
+    string key = config->keyAt(i);
+    if (defaults->has(key)) insert(key, config->get(i));
+  }
 }
 
 
@@ -91,14 +87,6 @@ void Config::update(const JSON::Value &config) {
 
 void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 bool Config::getOnIdle() const {return getBoolean("on_idle");}
-void Config::setFoldAnon(bool foldAnon) {insertBoolean("fold_anon", foldAnon);}
-bool Config::getFoldAnon() const {return getBoolean("fold_anon");}
-
-
-bool Config::waitForConfig() const {
-  return !getFoldAnon() && String::toLower(getUsername()) == "anonymous" &&
-    !getTeam() && getPasskey().empty();
-}
 
 
 void Config::setPaused(bool paused) {
@@ -113,22 +101,16 @@ bool Config::getFinish() const {return getBoolean("finish");}
 
 
 string Config::getUsername() const {
-  if (getFoldAnon()) return "Anonymous";
   string user = getString("user", "Anonymous");
   return user.empty() ? "Anonymous" : user;
 }
 
 
-string Config::getPasskey() const {
-  return getFoldAnon() ? "" : getString("passkey", "");
-}
-
-
-uint32_t Config::getTeam() const {
-  return getFoldAnon() ? 0 : getU32("team", 0);
-}
-
-
+void Config::setUsername(const string &user) {insert("user", user);}
+string Config::getPasskey() const {return getString("passkey", "");}
+void Config::setPasskey(const string &passkey) {insert("passkey", passkey);}
+uint32_t Config::getTeam() const {return getU32("team", 0);}
+void Config::setTeam(uint32_t team) {insert("team", team);}
 uint64_t Config::getProjectKey() const {return getU64("key", 0);}
 
 
@@ -171,18 +153,29 @@ void Config::disableGPU(const string &id) {
 }
 
 
-string Config::getMachineName() const {return getString("machine_name");}
+int Config::insert(const string &key, const JSON::ValuePtr &value) {
+  if (!defaults->has(key)) {
+    LOG_WARNING("Ignoring unsupported config key '" << key << "'");
+    return -1;
+  }
 
+  auto def = defaults->get(key);
+  if (def->getType() != value->getType())
+    return JSON::ObservableDict::insert(key, def);
 
-unsigned Config::insert(const string &key, const JSON::ValuePtr &value) {
-  if (key == "user" && (!value->isString() || value->getString().empty()))
-    return JSON::ObservableDict::insert(key, "Anonymous");
+  if (key == "advanced" && value->isString())
+    try {
+      vector<string> lines;
+      String::tokenize(value->asString(), lines, "\n\r\t ");
 
-  if (key == "team" && !value->isU32())
-    return JSON::ObservableDict::insert(key, 0);
+      for (unsigned i = 0; i < lines.size(); i++) {
+        string line = String::toLower(lines[i]);
 
-  if (key == "key" && !value->isU64())
-    return JSON::ObservableDict::insert(key, 0);
+        if (line == "beta") insertBoolean("beta", true);
+        if (String::startsWith(line, "key="))
+          insert("key", String::parseU64(line.substr(4)));
+      }
+    } CATCH_ERROR;
 
   return JSON::ObservableDict::insert(key, value);
 }

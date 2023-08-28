@@ -26,6 +26,28 @@
 
 \******************************************************************************/
 
-#define CBANG_ENUM_IMPL
-#include "CausePref.h"
-#include <cbang/enum/MakeEnumerationImpl.def>
+#pragma once
+
+#include "Remote.h"
+
+
+namespace FAH {
+  namespace Client {
+    class Account;
+
+    class NodeRemote : public Remote {
+      Account &account;
+      const std::string sid;
+
+    public:
+      NodeRemote(App &app, Account &account, const std::string &sid);
+
+      const std::string &getSessionID() const {return sid;}
+
+      // From Remote
+      std::string getName() const;
+      void send(const cb::JSON::ValuePtr &msg);
+      void close();
+    };
+  }
+}

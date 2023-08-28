@@ -3,7 +3,7 @@
 !define PROJECT_NAME            "Folding@home"
 !define DISPLAY_NAME            "Folding@home Client"
 
-!define WEB_CLIENT_URL          "https://app.foldingathome.org/"
+!define WEB_CLIENT_URL          "%(PACKAGE_URL)s"
 
 !define CLIENT_NAME             "FAHClient"
 !define CLIENT_EXE              "FAHClient.exe"
@@ -18,7 +18,7 @@
 !define PRODUCT_LICENSE         "${CLIENT_HOME}\LICENSE"
 !define PRODUCT_VENDOR          "foldingathome.org"
 !define PRODUCT_TARGET          "${CLIENT_HOME}\%(package)s"
-!define PRODUCT_VERSION         "%(version)s"
+!define PRODUCT_VERSION         "%(PACKAGE_VERSION)s"
 !define PRODUCT_WEBSITE         "https://foldingathome.org/"
 !define PRODUCT_UNINST_KEY \
   "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

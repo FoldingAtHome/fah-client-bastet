@@ -20,13 +20,15 @@ with open('package.json', 'r') as f:
 
 # Config vars
 version = package_info['version']
+env.Append(BUILD_INFO_PACKAGE_VARS = 'URL')
 env.Replace(RESOURCES_NS      = 'FAH::Client')
 env.Replace(BUILD_INFO_NS     = 'FAH::Client::BuildInfo')
 env.Replace(PACKAGE_VERSION   = version)
-env.Replace(PACKAGE_AUTHOR = 'Joseph Coffland <joseph@cauldrondevelopment.com>')
-env.Replace(PACKAGE_COPYRIGHT = '2023 foldingathome.org')
-env.Replace(PACKAGE_HOMEPAGE  = 'https://foldingathome.org/')
-env.Replace(PACKAGE_LICENSE   = 'https://www.gnu.org/licenses/gpl-3.0.txt')
+env.Replace(PACKAGE_AUTHOR    = package_info['author'])
+env.Replace(PACKAGE_COPYRIGHT = package_info['copyright'])
+env.Replace(PACKAGE_HOMEPAGE  = package_info['homepage'])
+env.Replace(PACKAGE_LICENSE   = package_info['license'])
+env.Replace(PACKAGE_URL       = package_info['url'])
 env.Replace(PACKAGE_ORG       = 'foldingathome.org')
 
 
@@ -85,6 +87,26 @@ short_description = package_info.get('description', 'Folding@home client')
 description += short_description
 
 if 'package' in COMMAND_LINE_TARGETS:
+    import shutil
+
+    # Resolve <filename>.in files
+    for root, subdirs, files in os.walk('install'):
+        target = 'build/' + root
+        os.makedirs(target, exist_ok = True)
+
+        for name in files:
+            src = root   + '/' + name
+            dst = target + '/' + name
+
+            if src.endswith('.in'):
+                with open(src, 'r') as inF:
+                    with open(dst[:-3], 'w') as outF:
+                        outF.write(inF.read() % env)
+
+                shutil.copymode(src, dst[:-3])
+
+            else: shutil.copy2(src, dst)
+
     # Code sign key password
     path = os.environ.get('CODE_SIGN_KEY_PASS_FILE')
     if path is not None:
@@ -100,12 +122,13 @@ if 'package' in COMMAND_LINE_TARGETS:
         client_home = '.'
         client_root = client_home + '/build/pkg/root'
         pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
-                 ['install/osx/fahclient.url',
-                  'Applications/Folding@home/fahclient.url', 0o644],
-                 ['install/osx/uninstall.url',
-                  'Applications/Folding@home/uninstall.url', 0o644],
-                 ['install/osx/launchd.plist', 'Library/LaunchDaemons/' +
-                  'org.foldingathome.fahclient.plist', 0o644]]
+                     ['build/install/osx/fahclient.url',
+                      'Applications/Folding@home/fahclient.url', 0o644],
+                     ['build/install/osx/uninstall.url',
+                      'Applications/Folding@home/uninstall.url', 0o644],
+                     ['build/install/osx/launchd.plist',
+                      'Library/LaunchDaemons/' +
+                      'org.foldingathome.fahclient.plist', 0o644]]
         distpkg_components = [
             {
                 # name is component pkg file name and name shown in installer
@@ -116,7 +139,7 @@ if 'package' in COMMAND_LINE_TARGETS:
                 # client repo directory
                 'home'        : client_home,
                 # relative to home
-                'pkg_scripts' : 'install/osx/scripts',
+                'pkg_scripts' : 'build/install/osx/scripts',
                 # abs path or relative to PWD
                 # default build/pkg/root, as per cbang config pkg module
                 'root'        : client_root,
@@ -131,16 +154,14 @@ if 'package' in COMMAND_LINE_TARGETS:
                 'pkg_files'   : pkg_files,
             },
         ]
-
         # min pkg target macos 10.13
         distpkg_target = env.get('osx_min_ver', '10.13')
         ver = tuple([int(x) for x in distpkg_target.split('.')])
-        if ver < (10,13):
-            distpkg_target = '10.13'
+        if ver < (10,13): distpkg_target = '10.13'
 
     # Package
     pkg = env.Packager(
-        package_info.get('name', 'fah-client'),
+        package_info.get('name'),
 
         version            = version,
         maintainer         = env['PACKAGE_AUTHOR'],
@@ -156,16 +177,16 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         documents          = docs,
         programs           = [str(client[0])],
-        desktop_menu       = ['install/lin/fah-client.desktop'],
+        desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
-        platform_independent = ['install/lin/fah-client.service'],
+        platform_independent = ['build/install/lin/fah-client.service'],
 
-        nsi                = 'install/win/fah-client.nsi',
+        nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
         code_sign_key      = os.environ.get('CODE_SIGN_KEY', None),
         code_sign_key_pass = code_sign_key_pass,
 
-        deb_directory      = 'install/debian',
+        deb_directory      = 'build/install/debian',
         deb_section        = 'science',
         deb_depends        = 'libc6',
         deb_conflicts      = 'FAHClient, fahclient',
@@ -177,12 +198,12 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_group          = 'Applications/Internet',
         rpm_pre_requires   = 'shadow-utils',
         rpm_requires       = 'expat, bzip2-libs',
-        rpm_build          = 'install/rpm/build',
-        rpm_post           = 'install/rpm/post',
-        rpm_preun          = 'install/rpm/preun',
+        rpm_build          = 'build/install/rpm/build',
+        rpm_post           = 'build/install/rpm/post',
+        rpm_preun          = 'build/install/rpm/preun',
 
         pkg_type           = 'dist',
-        distpkg_resources  = [['install/osx/Resources', '.'],
+        distpkg_resources  = [['build/install/osx/Resources', '.'],
                               ['LICENSE', 'en.lproj/LICENSE.txt']],
         distpkg_welcome    = 'Welcome.rtf',
         distpkg_readme     = 'Readme.rtf',
@@ -197,5 +218,5 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     AlwaysBuild(pkg)
     env.Alias('package', pkg)
-    Clean(pkg, ['build/pkg', 'build/flatdistpkg', 'package-description.txt'])
+    Clean(pkg, ['build/pkg', 'build/flatdistpkg'])
     NoClean(pkg, [Glob('*.pkg'), 'package.txt'])

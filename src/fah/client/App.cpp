@@ -34,17 +34,16 @@
 #include "Cores.h"
 #include "Config.h"
 #include "OS.h"
-#include "ResourceGroup.h"
 #include "PasskeyConstraint.h"
-#include "CausePref.h"
+#include "Remote.h"
 
 #include <cbang/Catch.h>
+#include <cbang/Info.h>
 #include <cbang/event/Event.h>
 #include <cbang/log/Logger.h>
 #include <cbang/time/Time.h>
 #include <cbang/json/Sink.h>
 #include <cbang/util/Resource.h>
-#include <cbang/util/BIP39Words.h>
 
 #include <cbang/net/URI.h>
 #include <cbang/net/Base64.h>
@@ -63,10 +62,8 @@
 
 #include <cbang/config/MinMaxConstraint.h>
 #include <cbang/config/MinConstraint.h>
-#include <cbang/config/EnumConstraint.h>
 
 #include <set>
-
 #include <csignal>
 
 
@@ -90,6 +87,7 @@ App::App() :
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
+  string url = Info::instance().get(getName(), "URL");
 
   // Configure commandline
   cmdLine.setAllowConfigAsFirstArg(true);
@@ -103,13 +101,10 @@ App::App() :
   options.add("allowed-origins", "Web origins (URLs) allowed to access this "
               "client.  Only trusted origins should be added.  Web pages at "
               "added origins will be able to control the client.")
-    ->setDefault("https://app.foldingathome.org http://localhost:7396");
+    ->setDefault(url + " http://localhost:7396");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server")->setDefault("fah-web-control/dist");
-  options.add("fold-anon", "Enable folding anonymously.")->setDefault(false);
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
-  options.add("account-token", "Folding@home account token.")->setDefault("");
-  options.add("machine-name", "Name used to identify this machine.");
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
@@ -137,8 +132,8 @@ App::App() :
   options.add("project-key", "Key for access to restricted testing projects."
               )->setDefault(0);
   options.alias("project-key", "key");
-  options.add("cause", "The cause you prefer to support.",
-              new EnumConstraint<CausePref>)->setDefault("any");
+  options.add("cause", "The cause you prefer to support.")->setDefault("any");
+  options.add("advanced", "Advanced settings.");
   options.popCategory();
 
   options.pushCategory("Resource Settings");
@@ -209,164 +204,33 @@ DB::NameValueTable &App::getDB(const string name) {
 }
 
 
-const SmartPointer<ResourceGroup> &App::newGroup(const string &name) {
-  if (shouldQuit()) THROW("Shutting down");
+string App::getPubKey() const {return Base64().encode(key.publicToSPKI());}
 
-  auto &db = getDB("groups");
-  JSON::ValuePtr config;
 
-  if (db.has(name)) config = db.getJSON(name);
-  else if (db.has("")) {
-    config = db.getJSON("");
-    config->insert("cpus", 0);
-    config->erase("gpus");
-    config->erase("peers");
-
-  } else config = new JSON::Dict;
-
-  return groups[name] = new ResourceGroup(*this, name, config);
+void App::add(const SmartPointer<Remote> &remote) {
+  LOG_DEBUG(3, "Adding remote " << remote->getName());
+  remotes.push_back(remote);
 }
 
 
-const SmartPointer<ResourceGroup> &App::getGroup(const string &name) const {
-  auto it = groups.find(name);
-  if (it == groups.end()) THROW("Group '" << name << "' not found");
-  return it->second;
+void App::remove(Remote &remote) {
+  LOG_DEBUG(3, "Removing remote " << remote.getName());
+  remotes.remove(SmartPointer<Remote>::Phony(&remote));
 }
 
 
-void App::saveGroup(const ResourceGroup &group) {
-  getDB("groups").set(group.getName(), *group.getConfig());
-}
-
-
-void App::updateGroups() {
-  std::set<string> peers;
-  auto &root   = *getGroup("");
-  auto &config = *root.getConfig();
-
-  // Add new groups
-  if (config.hasList("peers")) {
-    auto &list = *config.get("peers");
-
-    for (unsigned i = 0; i < list.size(); i++) {
-      string name = list.getString(i);
-
-      if (!name.empty() && name[0] == '/') {
-        if (groups.find(name) == groups.end()) newGroup(name);
-        peers.insert(name);
-      }
-    }
-  }
-
-  auto db = getDB("groups");
-
-  // Remove deleted groups
-  for (auto it = groups.begin(); it != groups.end();) {
-    const string &name = it->first;
-
-    if (!name.empty() && name[0] == '/' && peers.find(name) == peers.end()) {
-      // Dump any WUs and move to root group
-      auto &units = *it->second->getUnits();
-      while (units.size()) {
-        auto unit = units.removeUnit(0);
-        root.getUnits()->add(unit);
-        unit->dumpWU();
-      }
-
-      it = groups.erase(it);
-      db.unset(name);
-
-    } else it++;
-  }
-}
-
-
-void App::updateResources() {
-  // Determine which GPUs and CPUs are already in use
-  map<string, string> gpuUsedBy;
-  uint32_t availableCPUs = getU32("cpus");
-  int32_t  remainingCPUs = availableCPUs;
-
-  for (auto group: groups) {
-    auto &config = *group.second->getConfig();
-    remainingCPUs -= config.getCPUs();
-
-    for (unsigned i = 0; i < gpus->size(); i++) {
-      string gpuID = gpus->keyAt(i);
-
-      if (config.isGPUEnabled(gpuID) &&
-          gpuUsedBy.find(gpuID) == gpuUsedBy.end())
-        gpuUsedBy[gpuID] = group.second->getName();
-    }
-  }
-
-  if (remainingCPUs < 0) remainingCPUs = 0; // Check for over-allocation
-
-  // Set group GPUs and CPUs
-  for (auto it: groups) {
-    auto   &group = *it.second;
-    auto  &config = *group.getConfig();
-    uint32_t cpus = min(config.getCPUs(), availableCPUs);
-
-    config.insert("available_cpus", cpus + remainingCPUs);
-    availableCPUs -= min(availableCPUs, cpus);
-    if (cpus < config.getCPUs()) config.insert("cpus", cpus);
-
-    JSON::ValuePtr groupGPUs = new JSON::Dict;
-
-    for (unsigned i = 0; i < gpus->size(); i++) {
-      string gpuID = gpus->keyAt(i);
-
-      auto it = gpuUsedBy.find(gpuID);
-      if (it == gpuUsedBy.end() || it->second == group.getName())
-        groupGPUs->insert(gpuID, gpus->get(i)->copy(true));
-    }
-
-    config.insert("available_gpus", groupGPUs);
-  }
-}
-
-
-void App::triggerUpdate() {
-  for (auto group: groups)
-    group.second->getUnits()->triggerUpdate(true);
-}
-
-
-bool App::isActive() const {
-  for (auto group: groups)
-    if (group.second->getUnits()->isActive())
-      return true;
-
-  return false;
-}
-
-
-bool App::hasFailure() const {
-  for (auto group: groups)
-    if (group.second->getUnits()->hasFailure())
-      return true;
-
-  return false;
-}
+void App::triggerUpdate()    {units->triggerUpdate(true);}
+bool App::isActive() const   {return units->isActive();}
+bool App::hasFailure() const {return units->hasFailure();}
 
 
 void App::setPaused(bool paused) {
-  for (auto group: groups)
-    group.second->getConfig()->setPaused(paused);
-
+  config->setPaused(paused);
   triggerUpdate();
 }
 
 
-bool App::getPaused() const {
-  for (auto group: groups)
-    if (!group.second->getConfig()->getPaused())
-      return false;
-
-  return true;
-}
+bool App::getPaused() const {return config->getPaused();}
 
 
 void App::validate(const Certificate &cert,
@@ -410,7 +274,7 @@ void App::check(const string &certificate, const string &intermediate,
   if (!valid) THROW("Certificate not valid for F@H key usage " << usage);
 
   // Check signature
-  cert.getPublicKey()->verify(signature, hash);
+  cert.getPublicKey().verify(signature, hash);
 }
 
 
@@ -440,71 +304,76 @@ uint64_t App::getNextWUID() {
 
 
 void App::upgradeDB() {
-  auto &configDB = getDB("config");
-  auto &groupsDB = getDB("groups");
+  auto &db = getDB("config");
+  auto version = db.getInteger("version", 0);
 
-  if (!groupsDB.has("") && configDB.has("config"))
-    groupsDB.set("", configDB.getString("config"));
+  switch (version) {
+  case 0: {
+    auto &groupsDB = getDB("groups");
+    if (groupsDB.has("")) db.set("config", groupsDB.getString(""));
+  }
+
+  default:
+    db.set("version", 1);
+    break;
+
+  case 1: break;
+  }
 }
 
 
 void App::loadConfig() {
   // Info
-  insert("version",    getVersion().toString());
-  insert("os",         os->getName());
-  insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
-  insert("cpu",        os->getCPU());
-  insert("cpu_brand",  CPUInfo::create()->getBrand());
-  insert("cpus",       SystemInfo::instance().getCPUCount());
-  insert("gpus",       gpus);
+  insertDict("info");
+  auto info = get("info");
+  info->insert("version",    getVersion().toString());
+  info->insert("os",         os->getName());
+  info->insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
+  info->insert("cpu",        os->getCPU());
+  info->insert("cpu_brand",  CPUInfo::create()->getBrand());
+  info->insert("cpus",       SystemInfo::instance().getCPUCount());
+  info->insert("gpus",       gpus);
+  info->insert("mach_name",  account->getMachName());
+  try {
+    info->insert("hostname", SystemInfo::instance().getHostname());
+  } CATCH_WARNING;
 
   auto &db = getDB("config");
 
   // Generate key
   if (!db.has("key")) {
     key.generateRSA(4096, 65537, new KeyGenPacifier("Generating RSA key"));
-    db.set("key", key.privateToString());
+    db.set("key", key.privateToPEMString());
   }
 
-  key.readPrivate(db.getString("key"));
+  key.readPrivatePEM(db.getString("key"));
 
   // Generate ID from key
-  string id = Digest::urlBase64(key.getPublic().toBinString(), "sha256");
-  insert("id", id);
+  string id = Digest::urlBase64(key.getRSA_N().toBinString(), "sha256");
+  info->insert("id", id);
   LOG_INFO(1, "Machine ID = " << id);
 
-  // Set default machine name from ID
-  string machName =
-    BIP39Words::getPhrase((uint8_t *)URLBase64().decode(id).data(), 4, "-");
-  options["machine-name"].setDefault(machName);
-}
-
-
-void App::loadGroups() {
-  newGroup("");
-  updateGroups();
+  // Config
+  config = new Config(*this, db.getJSON("config", new JSON::Dict));
+  insert("config", config);
 }
 
 
 void App::loadUnits() {
+  units = new Units(*this, config);
+  insert("units", units);
+
   unsigned count = 0;
 
   getDB("units").foreach(
     [this, &count] (const string &id, const string &dataStr) {
       try {
         auto data  = JSON::Reader::parseString(dataStr);
-        auto group = data->selectString("state.group", "");
         auto wu    = data->selectU64("state.number");
-        bool dump  = groups.find(group) == groups.end();
 
-        if (dump) group = "";
-
-        LOG_INFO(3, "Loading work unit " << wu << " to group '" << group
-                 << "' with ID " << id);
-
+        LOG_INFO(3, "Loading work unit " << wu << "' with ID " << id);
         SmartPointer<Unit> unit = new Unit(*this, data);
-        getGroup(group)->getUnits()->add(unit);
-        if (dump) unit->dumpWU();
+        units->add(unit);
         count++;
       } CATCH_ERROR;
     });
@@ -537,15 +406,14 @@ void App::run() {
 
   // Initialize
   upgradeDB();
+  loadConfig();
   server->init();
   account->init();
-  loadConfig();
-  loadGroups();
   loadUnits();
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
-    SystemUtilities::openURI("https://app.foldingathome.org/");
+    SystemUtilities::openURI(Info::instance().get(getName(), "URL"));
 
   // Event loop
   os->dispatch();
@@ -555,23 +423,27 @@ void App::run() {
 
 
 void App::requestExit() {
-  SmartPointer<unsigned> count = new unsigned(groups.size());
-  auto cb = [count, this]() {if (!--*count) base.loopExit();};
-
-  for (auto group: groups)
-    group.second->getUnits()->shutdown(cb);
-
+  units->shutdown([this]() {base.loopExit();});
   Application::requestExit();
 }
 
 
 void App::notify(list<JSON::ValuePtr> &change) {
-  change.push_front(JSON::Value::create("info"));
-  SmartPointer<JSON::List> changes =
-    new JSON::List(change.begin(), change.end());
+  if (remotes.empty()) return; // Avoids many calls during init
 
-  for (auto it: groups)
-    it.second->broadcast(changes);
+  bool isConfig = !change.empty() && change.front()->getString() == "config";
+
+  auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
+  LOG_DEBUG(5, __func__ << ' ' << *changes);
+
+  for (auto &remote: remotes)
+    remote->sendChanges(changes);
+
+  // Automatically save changes to config
+  if (isConfig) {
+    getDB("config").set("config", config->toString());
+    units->triggerUpdate();
+  }
 }
 
 

@@ -26,43 +26,52 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "WebsocketRemote.h"
+#include "App.h"
 
-#include "Config.h"
-#include "Units.h"
-#include "Remote.h"
+#include <cbang/event/HTTPConn.h>
 
-#include <cbang/json/Observable.h>
+using namespace std;
+using namespace cb;
+using namespace FAH::Client;
 
 
-namespace FAH {
-  namespace Client {
-    class App;
+WebsocketRemote::WebsocketRemote(
+  App &app, const URI &uri, const Version &version) :
+  Remote(app), Event::JSONWebsocket(uri, version) {}
 
-    class ResourceGroup : public cb::JSON::ObservableDict {
-      App   &app;
-      const std::string name;
 
-      cb::SmartPointer<Config> config;
-      cb::SmartPointer<Units>  units;
-      std::list<cb::SmartPointer<Remote> > clients;
+void WebsocketRemote::send(const cb::JSON::ValuePtr &msg) {
+  pingEvent->add(15);
+  if (isActive()) Event::JSONWebsocket::send(*msg);
+}
 
-    public:
-      ResourceGroup(App &app, const std::string &name,
-                    const cb::JSON::ValuePtr &config);
-      ~ResourceGroup();
 
-      const std::string              &getName()   const {return name;}
-      const cb::SmartPointer<Config> &getConfig() const {return config;}
-      const cb::SmartPointer<Units>  &getUnits()  const {return units;}
+void WebsocketRemote::close() {getConnection()->close();}
 
-      void add(const cb::SmartPointer<Remote> &client);
-      void remove(Remote &client);
 
-      void broadcast(const cb::JSON::ValuePtr &changes);
+void WebsocketRemote::onOpen() {
+  pingEvent = getApp().getEventBase()
+    .newEvent(this, &WebsocketRemote::sendPing, 0);
+  Remote::onOpen();
+}
 
-      // From cb::JSON::Value
-      void notify(std::list<cb::JSON::ValuePtr> &change);
-    };
-  }
+
+void WebsocketRemote::onClose(Event::WebsockStatus status, const string &msg) {
+  cb::Event::JSONWebsocket::onClose(status, msg);
+  if (hasConnection()) getConnection()->close();
+}
+
+
+void WebsocketRemote::onComplete() {
+  if (pingEvent.isSet()) pingEvent->del();
+  Remote::onComplete();
+}
+
+
+void WebsocketRemote::sendPing() {
+  // This "ping" is sent because the browser front-end is unable to detect
+  // Websocket protocol level PING/PONG events.  With out this application level
+  // ping, the front-end would be unable to quickly detect client disconnects.
+  send(new JSON::String("ping"));
 }

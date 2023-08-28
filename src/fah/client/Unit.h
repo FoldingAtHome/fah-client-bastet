@@ -93,7 +93,7 @@ namespace FAH {
       Unit(App &app);
 
     public:
-      Unit(App &app, uint64_t wu, const std::string &group, uint32_t cpus,
+      Unit(App &app, uint64_t wu, uint32_t cpus,
            const std::set<std::string> &gpus);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
@@ -101,7 +101,6 @@ namespace FAH {
       void setUnits(const cb::SmartPointer<Units> &units);
       const Config &getConfig() const;
 
-      std::string getGroup() const;
       const std::string &getID() const {return id;}
       cb::JSON::ValuePtr getTopology() const {return topology;}
       const std::vector<cb::JSON::ValuePtr> &getFrames() const {return frames;}
@@ -110,8 +109,6 @@ namespace FAH {
       UnitState getState() const;
       bool atRunState() const;
       bool hasRun() const;
-
-      uint64_t getProjectKey() const;
 
       bool isWaiting() const;
       bool isPaused() const;
@@ -176,7 +173,7 @@ namespace FAH {
       void assignResponse(const cb::JSON::ValuePtr &data);
       void writeProjectRestrictions(cb::JSON::Sink &sink,
                                     const cb::JSON::ValuePtr &project);
-      void writeRequest(cb::JSON::Sink &sink);
+      void writeRequest(cb::JSON::Sink &sink) const;
       void assign();
       void downloadResponse(const cb::JSON::ValuePtr &data);
       void download();

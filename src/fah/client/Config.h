@@ -40,6 +40,7 @@ namespace FAH {
 
     class Config : public cb::JSON::ObservableDict {
       App &app;
+      cb::JSON::ValuePtr defaults;
 
     public:
       Config(App &app, const cb::JSON::ValuePtr &config);
@@ -49,10 +50,6 @@ namespace FAH {
       void setOnIdle(bool onIdle);
       bool getOnIdle() const;
 
-      void setFoldAnon(bool foldAnon);
-      bool getFoldAnon() const;
-      bool waitForConfig() const;
-
       void setPaused(bool paused);
       bool getPaused() const;
 
@@ -60,8 +57,11 @@ namespace FAH {
       bool getFinish() const;
 
       std::string getUsername() const;
+      void setUsername(const std::string &user);
       std::string getPasskey() const;
+      void setPasskey(const std::string &passkey);
       uint32_t getTeam() const;
+      void setTeam(uint32_t team);
       uint64_t getProjectKey() const;
 
       uint32_t getCPUs() const;
@@ -70,10 +70,8 @@ namespace FAH {
       bool isGPUEnabled(const std::string &id) const;
       void disableGPU(const std::string &id);
 
-      std::string getMachineName() const;
-
       // From ObservableDict
-      unsigned insert(const std::string &key, const cb::JSON::ValuePtr &value);
+      int insert(const std::string &key, const cb::JSON::ValuePtr &value);
       using cb::JSON::ObservableDict::insert;
     };
   }

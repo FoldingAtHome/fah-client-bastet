@@ -40,9 +40,7 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/tar/Tar.h>
 #include <cbang/iostream/CompressionFilter.h>
-
-#include <boost/iostreams/filtering_stream.hpp>
-namespace io = boost::iostreams;
+#include <cbang/boost/IOStreams.h>
 
 using namespace FAH::Client;
 using namespace cb;

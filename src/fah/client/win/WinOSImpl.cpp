@@ -33,6 +33,7 @@
 #include <cbang/Exception.h>
 #include <cbang/SStream.h>
 #include <cbang/Catch.h>
+#include <cbang/Info.h>
 #include <cbang/os/SysError.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/log/Logger.h>
@@ -296,7 +297,8 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
 
 void WinOSImpl::openWebControl() {
-  if (ShellExecute(hWnd, "open", "https://app.foldingathome.org/", 0, 0,
+  string url = Info::instance().get(appName, "URL");
+  if (ShellExecute(hWnd, "open", url.c_str(), 0, 0,
                    SW_SHOWDEFAULT) <= (HINSTANCE)32)
     LOG_ERROR("Failed to open Web control: " << SysError());
 }

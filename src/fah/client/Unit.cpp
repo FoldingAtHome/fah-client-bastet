@@ -37,7 +37,6 @@
 #include "Cores.h"
 #include "Config.h"
 #include "ExitCode.h"
-#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 
@@ -62,6 +61,8 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/gpu/GPUVendor.h>
 #include <cbang/json/Reader.h>
+#include <cbang/json/Builder.h>
+#include <cbang/json/BufferWriter.h>
 
 #include <cinttypes>
 
@@ -110,12 +111,10 @@ Unit::Unit(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
 
 
-Unit::Unit(App &app, uint64_t wu, const string &group, uint32_t cpus,
-           const std::set<string> &gpus) :
+Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
   Unit(app) {
   this->wu = wu;
   insert("number", wu);
-  insert("group", group);
   setCPUs(cpus);
   setGPUs(gpus);
   setState(UNIT_ASSIGN);
@@ -146,18 +145,8 @@ Unit::~Unit() {
 }
 
 
-void Unit::setUnits(const cb::SmartPointer<Units> &units) {
-  this->units = units;
-
-  if (units.isSet()) {
-    string group = units->getGroup().getName();
-    if (group != getGroup()) insert("group", group);
-  }
-}
-
-
+void Unit::setUnits(const SmartPointer<Units> &units) {this->units = units;}
 const Config &Unit::getConfig() const {return units->getConfig();}
-string    Unit::getGroup() const {return getString("group", "");}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 
 
@@ -168,7 +157,6 @@ bool Unit::atRunState() const {
 
 
 bool Unit::hasRun() const {return getRunTime() || UNIT_RUN <= getState();}
-uint64_t Unit::getProjectKey() const {return getConfig().getProjectKey();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
@@ -324,7 +312,7 @@ uint64_t Unit::getPPD() const {
 
 
 string Unit::getLogPrefix() const {
-  return String::printf("%s:WU%" PRIu64 ":", getGroup().c_str(), wu);
+  return String::printf("WU%" PRIu64 ":", wu);
 }
 
 
@@ -920,7 +908,7 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 }
 
 
-void Unit::writeRequest(JSON::Sink &sink) {
+void Unit::writeRequest(JSON::Sink &sink) const {
   auto &sysInfo = SystemInfo::instance();
   auto cpuInfo = CPUInfo::create();
   CPURegsX86 cpuRegsX86;
@@ -932,8 +920,8 @@ void Unit::writeRequest(JSON::Sink &sink) {
   sink.insert("wu",      getU64("number"));
 
   // Client
-  string id = Base64().encode(URLBase64().decode(app.getString("id")));
-  sink.insert("version", app.getString("version"));
+  string id = Base64().encode(URLBase64().decode(app.getID()));
+  sink.insert("version", app.selectString("info.version"));
   sink.insert("id",      id);
 
   // User
@@ -944,17 +932,17 @@ void Unit::writeRequest(JSON::Sink &sink) {
   // OS
   sink.insertDict("os");
   sink.insert("version", sysInfo.getOSVersion().toString());
-  sink.insert("type",    app.getString("os"));
+  sink.insert("type",    app.selectString("info.os"));
   sink.insert("memory",  sysInfo.getFreeMemory());
   sink.endDict();
 
   // Project
   sink.insertDict("project");
-  if (getConfig().hasString("release"))
-    sink.insert("release", getConfig().getString("release"));
   if (getConfig().hasString("cause"))
     sink.insert("cause", getConfig().getString("cause"));
-  if (getProjectKey()) sink.insert("key", getProjectKey());
+  sink.insertBoolean("beta", getConfig().getBoolean("beta", false));
+  auto key = getConfig().getProjectKey();
+  if (key) sink.insert("key", key);
   sink.endDict(); // project
 
   // Compute resources
@@ -962,7 +950,7 @@ void Unit::writeRequest(JSON::Sink &sink) {
 
   // CPU
   sink.insertDict("cpu");
-  sink.insert("cpu",            app.getString("cpu"));
+  sink.insert("cpu",            app.selectString("info.cpu"));
   sink.insert("cpus",           getCPUs());
   sink.insert("vendor",         cpuInfo->getVendor());
   sink.insert("signature",      cpuInfo->getSignature());
@@ -1011,7 +999,7 @@ void Unit::assign() {
   writer->beginDict();
   writer->insert("data", *data);
   writer->insert("signature", Base64().encode(signature));
-  writer->insert("pub-key", app.getKey().publicToString());
+  writer->insert("pub-key", app.getKey().publicToPEMString());
   writer->endDict();
   writer->close();
 

@@ -28,8 +28,7 @@
 
 #include "Server.h"
 #include "App.h"
-#include "Remote.h"
-#include "ResourceGroup.h"
+#include "WebsocketRemote.h"
 
 #include <cbang/log/Logger.h>
 
@@ -98,9 +97,8 @@ Server::createRequest(Event::RequestMethod method, const URI &uri,
       String::startsWith(uri.getPath(), "/api/websocket")) {
     string name = uri.getPath().substr(14);
 
-    auto group = app.getGroup(name);
-    auto client = SmartPtr(new Remote(app, *group, uri, version));
-    group->add(client);
+    auto client = SmartPtr(new WebsocketRemote(app, uri, version));
+    app.add(client);
     return client;
   }
 

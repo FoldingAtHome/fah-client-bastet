@@ -63,7 +63,7 @@ namespace FAH {
     class Cores;
     class Config;
     class OS;
-    class ResourceGroup;
+    class Remote;
 
     class App :
       public cb::Application,
@@ -87,9 +87,10 @@ namespace FAH {
       cb::SmartPointer<GPUResources> gpus;
       cb::SmartPointer<Cores>        cores;
       cb::SmartPointer<OS>           os;
+      cb::SmartPointer<Config>       config;
+      cb::SmartPointer<Units>        units;
 
-      typedef std::map<std::string, cb::SmartPointer<ResourceGroup> > groups_t;
-      groups_t groups;
+      std::list<cb::SmartPointer<Remote>> remotes;
 
       unsigned nextAS = 0;
 
@@ -110,14 +111,14 @@ namespace FAH {
       GPUResources       &getGPUs()      {return *gpus;}
       Cores              &getCores()     {return *cores;}
       OS                 &getOS()        {return *os;}
+      Config             &getConfig()    {return *config;}
+      Units              &getUnits()     {return *units;}
 
-      const groups_t getGroups() const {return groups;}
-      const cb::SmartPointer<ResourceGroup> &newGroup(const std::string &name);
-      const cb::SmartPointer<ResourceGroup> &
-      getGroup(const std::string &name) const;
-      void saveGroup(const ResourceGroup &group);
-      void updateGroups();
-      void updateResources();
+      std::string getID() const {return selectString("info.id");}
+      std::string getPubKey() const;
+
+      void add(const cb::SmartPointer<Remote> &remote);
+      void remove(Remote &remote);
 
       void triggerUpdate();
       bool isActive() const;
@@ -145,7 +146,6 @@ namespace FAH {
 
       void upgradeDB();
       void loadConfig();
-      void loadGroups();
       void loadUnits();
 
       // From cb::Application

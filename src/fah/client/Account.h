@@ -32,36 +32,59 @@
 #include <cbang/event/JSONWebsocket.h>
 #include <cbang/util/Backoff.h>
 #include <cbang/json/Value.h>
+#include <cbang/openssl/Cipher.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
+    class NodeRemote;
 
     class Account : public cb::Event::JSONWebsocket {
       App &app;
 
+      std::string token;
+      std::string machName = "machine-#";
+      cb::JSON::ValuePtr data;
+
+      std::string key;
+      cb::SmartPointer<cb::Cipher> cipher;
+
       cb::SmartPointer<cb::Event::Event> updateEvent;
-      cb::Backoff updateBackoff = cb::Backoff(60, 4 * 60 * 60);
+      cb::Backoff updateBackoff = cb::Backoff(15, 4 * 60);
+
+      std::set<std::string> ivs;
+
+      typedef std::map<std::string, cb::SmartPointer<NodeRemote>> nodes_t;
+      nodes_t nodes;
 
     public:
       Account(App &app);
 
+      void setData(const cb::JSON::ValuePtr &data);
+      void setToken(const std::string &token);
+
+      const std::string &getMachName() const {return machName;}
+      void setMachName(const std::string &name) {machName = name;}
+
       void init();
+      void reset();
 
-      void setInfo(const cb::JSON::ValuePtr &account);
-      void getInfo();
+      void sendEncrypted(const cb::JSON::Value &msg, const std::string &sid);
 
-      void connect(const std::string &node);
-      void link(const std::string &token);
+    protected:
+      void requestInfo();
+      void connect();
+      void link();
       void update();
 
-      // From cb::Event::JSONWebsocket
+      // From cb::Event::Websocket
       void onOpen();
       void onMessage(const cb::JSON::ValuePtr &msg);
-      void onPing(const std::string &payload);
-      void onPong(const std::string &payload);
       void onClose(cb::Event::WebsockStatus status, const std::string &msg);
+
+      // From cb::Event::JSONWebsocket
+      void send(const cb::JSON::Value &msg);
     };
   }
 }

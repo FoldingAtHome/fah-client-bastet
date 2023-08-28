@@ -2,7 +2,7 @@
 Encoding=UTF-8
 Type=Link
 Name=Folding@home Client
-URL=https://app.foldingathome.org/
+URL=%(PACKAGE_URL)s
 Categories=Education;Science;Biology;;
 Comment=Folding@home Client
 Icon=fahlogo.png

@@ -19,4 +19,4 @@ The four below are known to work:\
 \
 If you choose Brave browser, you will probably need to use "Shields Down" for the Folding@home web control app:\
 \
-{\field{\*\fldinst{HYPERLINK "https://app.foldingathome.org/"}}{\fldrslt https://app.foldingathome.org}}}
+{\field{\*\fldinst{HYPERLINK "%(PACKAGE_URL)s"}}{\fldrslt %(PACKAGE_URL)s}}}

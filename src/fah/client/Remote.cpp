@@ -33,30 +33,24 @@
 #include "Account.h"
 #include "Units.h"
 #include "Config.h"
-#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
-#include <cbang/event/HTTPConn.h>
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
 
-Remote::Remote(App &app, ResourceGroup &group, const URI &uri,
-               const Version &version) :
-  Event::JSONWebsocket(uri, version), app(app), group(group) {}
-
-
+Remote::Remote(App &app) : app(app) {}
 Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
 
 
 void Remote::sendViz() {
   if (vizUnitID.empty()) return;
 
-  auto &unit    = group.getUnits()->getUnit(vizUnitID);
+  auto &unit    = app.getUnits().getUnit(vizUnitID);
   auto topology = unit.getTopology();
   auto frames   = unit.getFrames();
 
@@ -86,6 +80,17 @@ void Remote::sendViz() {
 }
 
 
+void Remote::readLogToNextLine() {
+  const unsigned size = 1024;
+  char buffer[size];
+
+  do {
+    log->clear();
+    log->getline(buffer, size);
+  } while (log->rdstate() & ios::failbit && log->gcount());
+}
+
+
 void Remote::sendLog() {
   if (!followLog) return;
 
@@ -103,6 +108,7 @@ void Remote::sendLog() {
       if (logOffset < -len) logOffset = -len;
 
       log->seekg(logOffset, logOffset < 0 ? ios::end : ios::beg);
+      readLogToNextLine();
       sendLog();
     } CATCH_ERROR;
 
@@ -110,38 +116,54 @@ void Remote::sendLog() {
   }
 
   try {
-    for (int i = 0; i < 64; i++) {
-      const unsigned size = 4096;
+    bool done = false;
+    SmartPointer<JSON::List> lines = new JSON::List;
+
+    for (int i = 0; i < 256; i++) {
+      const unsigned size = 1024;
       char buffer[size];
 
       log->getline(buffer, size);
       streamsize count = log->gcount();
+      auto state = log->rdstate();
 
-      bool done = false;
-      if (log->eof() && !log->bad()) {
+      if (state & ios::eofbit) {
         log->clear();
         done = true;
       }
 
       if (count) {
         if (buffer[count - 1] == '\r') buffer[count - 1] = 0;
-
-        SmartPointer<JSON::List> changes = new JSON::List;
-        changes->append("log");
-        changes->append(-1);
-        changes->append(buffer);
-        sendChanges(changes);
+        lines->append(buffer);
       }
+
+      // Handle incomplete long lines
+      if ((state & ios::failbit) && count)
+        readLogToNextLine();
 
       logOffset = log->tellg();
 
+      if (state & ios::badbit) {
+        done = true;
+        log.release();
+      }
+
       if (done) {
         logEvent->add(1);
-        return;
+        break;
       }
     }
 
-    logEvent->activate();
+    if (!done) logEvent->activate();
+
+    if (!lines->empty()) {
+      SmartPointer<JSON::List> changes = new JSON::List;
+      changes->append("log");
+      changes->append(-2);
+      changes->append(lines);
+      sendChanges(changes);
+    }
+
     return;
   } CATCH_ERROR;
 
@@ -151,32 +173,32 @@ void Remote::sendLog() {
 
 
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
-  send(*changes);
+  send(changes);
 
   // Check for viz frame changes: ["units", <unit index>, "frames", #]
   if (changes->size() == 4 && changes->getString(0) == "units" &&
-      changes->getString(2) == "frames") {
-    unsigned unitIndex = changes->getU32(1);
-    string   unitID    = group.getUnits()->getUnit(unitIndex).getID();
-
-    if (vizUnitID == unitID) sendViz();
-  }
-}
-
-
-void Remote::send(const JSON::Value &msg) {
-  pingEvent->add(15);
-  Event::JSONWebsocket::send(msg);
+      changes->getString(2) == "frames") sendViz();
 }
 
 
 void Remote::onMessage(const JSON::ValuePtr &msg) {
-  LOG_DEBUG(3, "'" << group.getName() << "' msg: " << *msg);
+  LOG_DEBUG(3, "msg: " << *msg);
 
   string cmd  = msg->getString("cmd",  "");
   string unit = msg->getString("unit", "");
 
-  if (cmd == "viz") {
+  if      (cmd == "dump")    app.getUnits().dump(unit);
+  else if (cmd == "finish")  app.getConfig().setFinish(true);
+  else if (cmd == "pause")   app.getConfig().setPaused(true);
+  else if (cmd == "unpause") app.getConfig().setPaused(false);
+  else if (cmd == "config")  app.getConfig().update(*msg->get("config"));
+  else if (cmd == "reset")   app.getAccount().reset();
+  else if (cmd == "unlink")  app.getAccount().setToken("");
+  else if (cmd == "link") {
+    app.getAccount().setToken(msg->getString("token"));
+    app.getAccount().setMachName(msg->getString("name"));
+
+  } else if (cmd == "viz") {
     vizUnitID = unit;
     vizFrame  = msg->getU32("frame", 0);
     sendViz();
@@ -186,55 +208,23 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     logOffset = msg->getS64("offset", -(1 << 17));
     sendLog();
 
-  } else if (cmd == "dump")  group.getUnits()->dump(unit);
-  else if (cmd == "finish")  group.getConfig()->setFinish(true);
-  else if (cmd == "pause")   group.getConfig()->setPaused(true);
-  else if (cmd == "unpause") group.getConfig()->setPaused(false);
-  else if (cmd == "link")    app.getAccount().link(msg->getString("token"));
-
-  else if (cmd == "config") {
-    group.getConfig()->update(*msg->get("config"));
-    if (group.getName().empty()) app.updateGroups();
-    app.updateResources();
-
   } else {
     LOG_WARNING("Received unsupported remote command '" << cmd << "'");
     return;
   }
 
-  group.getUnits()->triggerUpdate(true);
+  app.getUnits().triggerUpdate(true);
 }
 
 
 void Remote::onOpen() {
-  LOG_DEBUG(3, group.getName() << ":New client from " << getClientIP());
-  pingEvent = app.getEventBase().newEvent(this, &Remote::sendPing, 0);
-  send(group);
-
-  JSON::List info;
-  info.append("info");
-  info.append(JSON::ValuePtr::Phony(&app));
-  send(info);
-}
-
-
-void Remote::onClose(Event::WebsockStatus status, const string &msg) {
-  cb::Event::JSONWebsocket::onClose(status, msg);
-  if (hasConnection()) getConnection()->close();
+  LOG_DEBUG(3, "New client " << getName());
+  send(SmartPointer<JSON::Value>::Phony(&app));
 }
 
 
 void Remote::onComplete() {
-  LOG_DEBUG(3, group.getName() << ":Closing client from " << getClientIP());
-  if (logEvent.isSet())  logEvent->del();
-  if (pingEvent.isSet()) pingEvent->del();
-  group.remove(*this);
-}
-
-
-void Remote::sendPing() {
-  // This "ping" is sent because the browser front-end is unable to detect
-  // Websocket protocol level PING/PONG events.  With out this application level
-  // ping, the front-end would be unable to quickly detect client disconnects.
-  send(JSON::String("ping"));
+  LOG_DEBUG(3, "Closing client " << getName());
+  if (logEvent.isSet()) logEvent->del();
+  app.remove(*this);
 }

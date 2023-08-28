@@ -33,7 +33,6 @@
 #include "Config.h"
 #include "OS.h"
 #include "GPUResources.h"
-#include "ResourceGroup.h"
 
 #include <cbang/Catch.h>
 #include <cbang/json/JSON.h>
@@ -46,13 +45,9 @@ using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-#undef CBANG_LOG_PREFIX
-#define CBANG_LOG_PREFIX group.getName() << ':'
 
-
-Units::Units(App &app, ResourceGroup &group,
-             const SmartPointer<Config> &config) :
-  app(app), group(group), config(config),
+Units::Units(App &app, const SmartPointer<Config> &config) :
+  app(app), config(config),
   event(app.getEventBase().newEvent(this, &Units::update, 0)) {
   triggerUpdate();
 }
@@ -179,7 +174,7 @@ void Units::update() {
   }
 
   // No further action if paused or idle
-  if (config->getPaused() || config->waitForConfig() || waitForIdle())
+  if (config->getPaused() || waitForIdle())
     return setWait(0); // Pausing clears wait timer
 
   // Wait on failures
@@ -256,8 +251,7 @@ void Units::update() {
   // Add new WU if we don't already have too many and there are some resources
   const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
   if (size() < maxWUs && (remainingCPUs || remainingGPUs.size())) {
-    add(new Unit(app, app.getNextWUID(), group.getName(), remainingCPUs,
-                 remainingGPUs));
+    add(new Unit(app, app.getNextWUID(), remainingCPUs, remainingGPUs));
     LOG_INFO(1, "Added new work unit: cpus:" << remainingCPUs << " gpus:"
              << String::join(remainingGPUs, ","));
     triggerUpdate();
