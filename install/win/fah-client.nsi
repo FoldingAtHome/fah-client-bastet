@@ -8,7 +8,7 @@
 !define CLIENT_NAME             "FAHClient"
 !define CLIENT_EXE              "FAHClient.exe"
 !define CLIENT_ICON             "FAHClient.ico"
-!define CLIENT_HOME             "..\.."
+!define CLIENT_HOME             "..\..\.."
 
 !define MENU_PATH               "$SMPROGRAMS\${PROJECT_NAME}"
 
