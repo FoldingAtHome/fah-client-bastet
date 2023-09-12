@@ -47,6 +47,7 @@ namespace FAH {
       void close();
 
       // From cb::Event::JSONWebsocket
+      using cb::Event::JSONWebsocket::send;
       void onMessage(const cb::JSON::ValuePtr &msg) {Remote::onMessage(msg);}
 
       // From cb::Event::Websocket
