@@ -238,8 +238,8 @@ uint64_t Unit::getRunTimeDelta() const {
 
 
 uint64_t Unit::getRunTime() const {
-  // Stored ``run-time`` is run time up to the end of the last run
-  int64_t runTime = getU64("run-time", 0);
+  // Stored ``run_time`` is run time up to the end of the last run
+  int64_t runTime = getU64("run_time", 0);
 
   // If core process is currently running, add accumulated time
   runTime += getRunTimeDelta();
@@ -257,8 +257,8 @@ uint64_t Unit::getRunTimeEstimate() const {
   if (getKnownProgress() && lastKnownProgressUpdateRunTime)
     return lastKnownProgressUpdateRunTime / getKnownProgress();
 
-  // Make a wild guess based on timeout
-  return 0.2 * data->selectU64("assignment.data.timeout", 1);
+  // Make a wild guess based on timeout or 1 day
+  return 0.2 * data->selectU64("assignment.data.timeout", Time::SEC_PER_DAY);
 }
 
 
@@ -307,7 +307,7 @@ uint64_t Unit::getETA() const {
 
 
 uint64_t Unit::getPPD() const {
-  return getCreditEstimate() / getRunTimeEstimate() * Time::SEC_PER_DAY;
+  return (double)getCreditEstimate() / getRunTimeEstimate() * Time::SEC_PER_DAY;
 }
 
 
@@ -428,8 +428,8 @@ void Unit::next() {
   }
 
   // Update pause reason
-  if (isPaused()) insert("pause-reason", getPauseReason());
-  else if (hasString("pause-reason")) erase("pause-reason");
+  if (isPaused()) insert("pause_reason", getPauseReason());
+  else if (hasString("pause_reason")) erase("pause_reason");
 
   // Monitor running core process
   if (process.isSet()) {
@@ -482,7 +482,7 @@ void Unit::processStarted() {
 
 void Unit::processEnded() {
   if (Time::SEC_PER_MIN * 5 < getRunTimeDelta()) retries = 0;
-  insert("run-time", getRunTime());
+  insert("run_time", getRunTime());
   processStartTime = 0;
 }
 
