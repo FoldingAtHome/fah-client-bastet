@@ -33,6 +33,7 @@
 #include <cbang/util/Backoff.h>
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Cipher.h>
+#include <cbang/openssl/KeyPair.h>
 
 
 namespace FAH {
@@ -47,7 +48,8 @@ namespace FAH {
       std::string machName = "machine-#";
       cb::JSON::ValuePtr data;
 
-      std::string key;
+      cb::KeyPair accountKey;
+      std::string sessionKey;
       cb::SmartPointer<cb::Cipher> cipher;
 
       cb::SmartPointer<cb::Event::Event> updateEvent;
@@ -77,6 +79,10 @@ namespace FAH {
       void connect();
       void link();
       void update();
+
+      void onEncrypted   (const cb::JSON::ValuePtr &msg);
+      void onBroadcast   (const cb::JSON::ValuePtr &msg);
+      void onSessionClose(const cb::JSON::ValuePtr &msg);
 
       // From cb::Event::Websocket
       void onOpen();

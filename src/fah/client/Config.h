@@ -45,7 +45,8 @@ namespace FAH {
     public:
       Config(App &app, const cb::JSON::ValuePtr &config);
 
-      void update(const cb::JSON::Value &config);
+      void configure(const cb::JSON::Value &msg);
+      void setState(const cb::JSON::Value &msg);
 
       void setOnIdle(bool onIdle);
       bool getOnIdle() const;

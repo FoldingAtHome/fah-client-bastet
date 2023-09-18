@@ -67,7 +67,6 @@ void Account::setData(const JSON::ValuePtr &data) {
   this->data = data;
 
   string akey = data->getString("pubkey");
-  KeyPair accountKey;
   accountKey.readPublicSPKI(Base64().decode(akey));
   string aid = Digest::urlBase64(accountKey.getRSA_N().toBinString(), "sha256");
   app.getDict("info").insert("account", aid);
@@ -109,29 +108,29 @@ void Account::reset() {
 }
 
 
-void Account::sendEncrypted(const JSON::Value &msg, const string &sid) {
-  string payload = msg.toString(0, false);
+void Account::sendEncrypted(const JSON::Value &_msg, const string &sid) {
+  string payload = _msg.toString(0, false);
   string iv = Random::instance().string(16);
-  Cipher cipher("aes-256-cbc", true, key.data(), iv.data());
-  JSON::ValuePtr data = new JSON::Dict;
+  Cipher cipher("aes-256-cbc", true, sessionKey.data(), iv.data());
+  JSON::Dict msg;
 
   ivs.insert(iv); // Prevent IV reuse and message replay
 
   if (10000 < payload.length()) {
-    data->insert("compression", "gzip");
+    msg.insert("compression", "gzip");
     payload = Press("gzip").compress(payload);
   }
 
-  data->insert("type",    "message");
-  data->insert("client",  app.getID());
-  data->insert("session", sid);
+  msg.insert("type",    "message");
+  msg.insert("client",  app.getID());
+  msg.insert("session", sid);
 
-  LOG_DEBUG(3, "Sending: " << data->toString() << " with payload="
+  LOG_DEBUG(3, "Sending: " << msg.toString() << " with payload="
             << payload.size());
 
-  data->insert("iv",      URLBase64().encode(iv));
-  data->insert("payload", URLBase64().encode(cipher.crypt(payload)));
-  send(*data);
+  msg.insert("iv",      URLBase64().encode(iv));
+  msg.insert("payload", URLBase64().encode(cipher.crypt(payload)));
+  send(msg);
 }
 
 
@@ -238,16 +237,76 @@ void Account::update() {
 }
 
 
+void Account::onEncrypted(const JSON::ValuePtr &_msg) {
+  string iv      = Base64().decode(_msg->getString("iv"));
+  string payload = Base64().decode(_msg->getString("payload"));
+
+  // Check that this is a unique IV.  Also prevents replay attacks.
+  if (!ivs.insert(iv).second) THROW("IV cannot be used more than once");
+
+  // Reset connection to prevent memory overflow.
+  if (4e6 < ivs.size()) THROW("Too many IVs");
+
+  Cipher cipher("aes-256-cbc", false, sessionKey.data(), iv.data());
+  JSON::ValuePtr msg = JSON::Reader::parseString(cipher.crypt(payload));
+
+  LOG_DEBUG(5, *msg);
+
+  string type = msg->getString("type");
+  string sid  = msg->getString("session");
+
+  if (type == "message") {
+    auto it = nodes.find(sid);
+    if (it == nodes.end()) THROW("Session " << sid << " does not exist");
+
+    auto remote = it->second;
+    remote->onMessage(msg->get("content"));
+
+  } else if (type == "session-open") {
+    // Open the session
+    auto remote = SmartPtr(new NodeRemote(app, *this, sid));
+    app.add(remote);
+    remote->onOpen();
+    nodes[sid] = remote;
+  }
+}
+
+
+void Account::onBroadcast(const JSON::ValuePtr &msg) {
+  auto payload     = msg->get("payload");
+  string signature = msg->getString("signature");
+
+  // Verify signature
+  accountKey.verifyBase64SHA256(signature, payload->toString(0, true));
+
+  // Process command
+  string cmd = payload->getString("cmd");
+
+  if (cmd == "state")  return app.getConfig().setState(*payload);
+  if (cmd == "config") return app.getConfig().configure(*payload);
+  if (cmd == "reset")  return reset();
+
+  LOG_WARNING("Unsupported broadcast message '" << cmd << "'");
+}
+
+
+void Account::onSessionClose(const JSON::ValuePtr &msg) {
+  // Close all remotes with this session ID
+  string sid = msg->getString("session");
+
+  const auto &it = nodes.find(sid);
+  if (it != nodes.end()) {
+    it->second->close();
+    nodes.erase(it);
+  }
+}
+
+
 void Account::onOpen() {
   LOG_INFO(1, "Logging into node account");
 
-  // Read account public key
-  string akey = data->getString("pubkey");
-  KeyPair accountKey;
-  accountKey.readPublicSPKI(Base64().decode(akey));
-
   // Generate encryption key
-  key = Random::instance().string(32);
+  sessionKey = Random::instance().string(32);
   ivs.clear(); // Reset IVs
 
   // Encrypt key with account public key using RSA-OAEP
@@ -255,7 +314,7 @@ void Account::onOpen() {
   kctx.encryptInit();
   kctx.setRSAPadding(KeyContext::PKCS1_OAEP_PADDING);
   kctx.setRSAOAEPMD("SHA-256");
-  string encryptedKey = Base64().encode(kctx.encrypt(key));
+  string encryptedKey = Base64().encode(kctx.encrypt(sessionKey));
 
   // Login payload
   JSON::ValuePtr payload = new JSON::Dict;
@@ -279,49 +338,9 @@ void Account::onMessage(const JSON::ValuePtr &msg) {
 
   string type = msg->getString("type");
 
-  if (type == "message") {
-    string iv      = Base64().decode(msg->getString("iv"));
-    string payload = Base64().decode(msg->getString("payload"));
-
-    // Check that this is a unique IV.  Also prevents replay attacks.
-    if (!ivs.insert(iv).second) THROW("IV cannot be used more than once");
-
-    // Reset connection to prevent memory overflow.
-    if (4e6 < ivs.size()) THROW("Too many IVs");
-
-    Cipher cipher("aes-256-cbc", false, key.data(), iv.data());
-    JSON::ValuePtr msg = JSON::Reader::parseString(cipher.crypt(payload));
-
-    LOG_DEBUG(5, *msg);
-
-    type = msg->getString("type");
-    string sid = msg->getString("session");
-
-    if (type == "message") {
-      auto it = nodes.find(sid);
-      if (it == nodes.end()) THROW("Session " << sid << " does not exist");
-
-      auto remote = it->second;
-      remote->onMessage(msg->get("content"));
-
-    } else if (type == "session-open") {
-      // Open the session
-      auto remote = SmartPtr(new NodeRemote(app, *this, sid));
-      app.add(remote);
-      remote->onOpen();
-      nodes[sid] = remote;
-    }
-
-  } else if (type == "session-close") {
-    // Close all remotes with this session ID
-    string sid = msg->getString("session");
-
-    const auto &it = nodes.find(sid);
-    if (it != nodes.end()) {
-      it->second->close();
-      nodes.erase(it);
-    }
-  }
+  if (type == "message")       return onEncrypted(msg);
+  if (type == "broadcast")     return onBroadcast(msg);
+  if (type == "session-close") return onSessionClose(msg);
 }
 
 

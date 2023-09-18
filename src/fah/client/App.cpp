@@ -303,6 +303,22 @@ uint64_t App::getNextWUID() {
 }
 
 
+bool App::validateChange(const JSON::Value &msg) {
+  string cmd  = msg.getString("cmd");
+  string time = msg.getString("time", Time().toString());
+  auto &db    = getDB("config");
+  string key  = cmd + "-change-time";
+
+  if (db.has(key) && Time::parse(time) <= Time::parse(db.getString(key)))
+    return false; // outdated
+
+  // Save change time
+  db.set(key, time);
+
+  return true;
+}
+
+
 void App::upgradeDB() {
   auto &db = getDB("config");
   auto version = db.getInteger("version", 0);

@@ -144,6 +144,8 @@ namespace FAH {
       std::string getNextAS();
       uint64_t getNextWUID();
 
+      bool validateChange(const cb::JSON::Value &msg);
+
       void upgradeDB();
       void loadConfig();
       void loadUnits();

@@ -79,9 +79,27 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
 }
 
 
-void Config::update(const JSON::Value &config) {
+void Config::configure(const JSON::Value &msg) {
+  if (!app.validateChange(msg)) return;
+
+  auto &config = *msg.get("config");
+
   for (unsigned i = 0; i < config.size(); i++)
-    insert(config.keyAt(i), config.get(i));
+    if (has(config.keyAt(i)))
+      insert(config.keyAt(i), config.get(i));
+}
+
+
+void Config::setState(const cb::JSON::Value &msg) {
+  if (!app.validateChange(msg)) return;
+
+  string state = msg.getString("state");
+
+  if (state == "pause")   return setPaused(true);
+  if (state == "unpause") return setPaused(false);
+  if (state == "finish")  return setFinish(true);
+
+  LOG_WARNING("Unsupported config state '" << state << "'");
 }
 
 
