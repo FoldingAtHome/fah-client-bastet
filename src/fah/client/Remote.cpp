@@ -184,9 +184,9 @@ void Remote::sendChanges(const JSON::ValuePtr &changes) {
 void Remote::onMessage(const JSON::ValuePtr &msg) {
   LOG_DEBUG(3, "msg: " << *msg);
 
-  string cmd  = msg->getString("cmd",  "");
+  string cmd = msg->getString("cmd", "");
 
-  if      (cmd == "dump")    app.getUnits().dump(msg->getString("unit"));
+  if      (cmd == "dump")    app.getUnits().dump(msg->getString("unit", ""));
   else if (cmd == "finish")  app.getConfig().setFinish(true);  // Deprecated
   else if (cmd == "pause")   app.getConfig().setPaused(true);  // Deprecated
   else if (cmd == "unpause") app.getConfig().setPaused(false); // Deprecated
@@ -198,7 +198,7 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     app.getAccount().setMachName(msg->getString("name"));
 
   } else if (cmd == "viz") {
-    vizUnitID = msg->getString("unit");
+    vizUnitID = msg->getString("unit", "");
     vizFrame  = msg->getU32("frame", 0);
     sendViz();
 
