@@ -3,7 +3,7 @@
 NAME=fah-client
 
 case "$1" in
-  upgrade)
-    systemctl stop $NAME
+  remove)
+    systemctl stop $NAME || true
     ;;
 esac

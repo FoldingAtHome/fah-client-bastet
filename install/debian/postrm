@@ -3,31 +3,12 @@
 NAME=fah-client
 
 case "$1" in
-  remove)
-    service $NAME stop || true
-
-    if [ -x insserv ]; then
-      ACTIVE=$(systemctl is-active $NAME || true)
-
-      # Stop the service
-      if [ "$ACTIVE" = "active" ]; then
-        service $NAME stop
-      fi
-    fi
-    ;;
-
   purge)
     # Remove all files
-    rm -rf /var/lib/$NAME /var/log/$NAME
+    rm -rf /etc/$NAME /var/lib/$NAME /var/log/$NAME
 
-    # Remove user if it does exists
-    if getent passwd | grep -q "^$NAME:"; then
-      echo -n "Removing system user $NAME..."
-      if deluser --quiet $NAME 2>/dev/null; then
-        echo "done"
-      else
-        echo "failed"
-      fi
-    fi
+    # Remove user and group
+    deluser  --quiet $NAME || true
+    delgroup --quiet $NAME || true
     ;;
 esac
