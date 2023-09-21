@@ -126,6 +126,14 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) :
   this->data = data->get("data");
   merge(*data->get("state"));
 
+  // Fix old var names
+  const char *vars[] = {"run-time", "pause-reason", 0};
+  for (int i = 0; vars[i]; i++)
+    if (has(vars[i])) {
+      insert(String::replace(vars[i], "-", "_"), get(vars[i]));
+      erase(vars[i]);
+    }
+
   wu = getU64("number", -1);
   id = getString("id", "");
   if (id.empty()) setState(UNIT_DONE); // Invalid WU
