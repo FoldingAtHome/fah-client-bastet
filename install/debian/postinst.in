@@ -14,24 +14,15 @@ case "$1" in
     # Create group if it does not exist
     if ! getent group | grep -q "^$CLIENT_GROUP:"; then
       echo "Adding group '$CLIENT_GROUP'."
-      groupadd $CLIENT_GROUP
+      groupadd --system $CLIENT_GROUP
     fi
 
     # Create user if it does not exist
     if ! getent passwd | grep -q "^$CLIENT_USER:"; then
       echo "Adding user '$CLIENT_USER'."
-      useradd -r -g $CLIENT_GROUP -K UMASK=002 $CLIENT_USER
+      useradd --system -g $CLIENT_GROUP -K UMASK=002 $CLIENT_USER \
+              --groups video,render
     fi
-
-    # Add user to groups if necessary
-    for GROUP in $CLIENT_GROUP video render; do
-      if getent group | grep -q "^$GROUP:"; then
-        if ! groups $CLIENT_USER | grep -q "\b$GROUP\b"; then
-          echo "Adding user '$CLIENT_USER' to group '$GROUP'"
-          adduser $CLIENT_USER $GROUP
-        fi
-      fi
-    done
 
     # Create directories
     install -d -m 755 -o $CLIENT_USER -g $CLIENT_GROUP $CLIENT_HOME $CLIENT_LOGS
