@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 NAME=fah-client
 CLIENT_HOME=/var/lib/$NAME
