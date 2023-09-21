@@ -13,7 +13,8 @@ case "$1" in
 
     # Create user if it does not exist
     if ! getent passwd $NAME >/dev/null; then
-      useradd --system -g $NAME -K UMASK=002 $NAME --groups video,render
+      useradd --system --gid $NAME --shell /usr/sbin/nologin \
+        --home-dir $CLIENT_HOME --no-create-home --groups video,render $NAME
     fi
 
     # Create directories
