@@ -138,9 +138,9 @@ void GPUResources::detect() {
   for (auto &cd: openclGPUs) {
     if (!cd.isPCIValid()) continue;
     string id = "gpu:" + cd.getPCIID();
-    SmartPointer<GPUResource> res = new GPUResource(id);
+
+    SmartPointer<GPUResource> res = resources[id] = new GPUResource(id);
     res->set("opencl", cd);
-    resources[id] = res;
   }
 
 #ifndef __APPLE__
@@ -149,17 +149,13 @@ void GPUResources::detect() {
   for (auto &cd: cudaGPUs) {
     if (!cd.isPCIValid()) continue;
     string id = "gpu:" + cd.getPCIID();
-    auto it   = resources.find(id);
 
-    if (it != resources.end()) {
-      auto &res = it->second;
-      res->set("cuda", cd);
-      continue;
-    }
+    SmartPointer<GPUResource> res;
+    auto it = resources.find(id);
+    if (it != resources.end()) res = it->second;
+    else resources[id] = res = new GPUResource(id);
 
-    SmartPointer<GPUResource> res = new GPUResource(id);
     res->set("cuda", cd);
-    resources[id] = res;
   }
 #endif // __APPLE__
 
@@ -169,21 +165,20 @@ void GPUResources::detect() {
   for (auto &dev: info) {
     const auto &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
     string id = "gpu:" + dev.getID();
-    auto it   = resources.find(id);
 
-    if (it != resources.end()) {
-      auto &res = it->second;
-      res->setPCI(dev);
-      res->insertBoolean("supported", gpu.getSpecies());
-      continue;
-    }
+    SmartPointer<GPUResource> res;
+    auto it = resources.find(id);
+    if (it != resources.end()) res = it->second;
+    else if (!gpu.getType()) continue; // Ignore non-GPUs
+    else resources[id] = res = new GPUResource(id);
 
-    if (!gpu.getType()) continue; // Ignore non-GPUs
+    // NOTE, It's possible the device was found by OpenCL/CUDA but the driver
+    // did not report PCI info.
 
-    SmartPointer<GPUResource> res = new GPUResource(id);
     res->setPCI(dev);
-    res->insertBoolean("supported", false);
-    resources[id] = res;
+    res->insertBoolean("supported", gpu.getSpecies() && it != resources.end());
+    if (!res->hasString("description") && !gpu.getDescription().empty())
+      res->insert("description", gpu.getDescription());
   }
 
   // Match with existing GPUResources
