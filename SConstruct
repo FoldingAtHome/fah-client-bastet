@@ -179,7 +179,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         programs           = [str(client[0])],
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
-        platform_independent = ['build/install/lin/fah-client.service'],
+        misc               = [('build/install/lin/fah-client.service',
+                               'lib/systemd/system/fah-client.service')],
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
