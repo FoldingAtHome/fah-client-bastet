@@ -23,6 +23,7 @@ case "$1" in
     ln -sf /etc/fahclient/config.xml $CLIENT_HOME/config.xml
 
     # Start the service
+    systemctl daemon-reload
     systemctl enable $NAME
     systemctl start $NAME
 
