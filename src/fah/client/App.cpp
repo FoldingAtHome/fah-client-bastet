@@ -158,8 +158,8 @@ App::App() :
   base.newSignal(SIGTERM, this, &App::signalEvent)->add();
 
   // Network timeout
-  client.setReadTimeout(45);
-  client.setWriteTimeout(45);
+  client.setReadTimeout(60);
+  client.setWriteTimeout(60);
 
   // Ignore SIGPIPE & SIGHUP
 #ifndef _WIN32
