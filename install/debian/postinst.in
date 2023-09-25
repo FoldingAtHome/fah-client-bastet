@@ -24,9 +24,14 @@ case "$1" in
     ln -sf /etc/fahclient/config.xml $CLIENT_HOME/config.xml
 
     # Start the service
+    if [ -n "$2" ]; then
+      ACTION=restart
+    else
+      ACTION=start
+    fi
     systemctl daemon-reload
     systemctl enable $NAME
-    systemctl start $NAME
+    systemctl $ACTION $NAME
 
     echo
     echo "The Folding@home client is now installed"
