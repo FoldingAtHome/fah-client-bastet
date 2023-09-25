@@ -148,7 +148,7 @@ void Account::requestInfo() {
         setData(req.getInputJSON());
 
         auto &config = app.getConfig();
-        config.setUsername(data->getString("name", "Anonymous"));
+        config.setUsername(data->getString("user", "Anonymous"));
         config.setPasskey(data->getString("passkey", ""));
         config.setTeam(data->getU32("team", 0));
         config.insert("cause", data->getString("cause", "any"));
