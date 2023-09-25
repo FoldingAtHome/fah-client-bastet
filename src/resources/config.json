@@ -10,6 +10,5 @@
   "key":      0,
   "cpus":     0,
   "gpus":     {},
-  "priority": "idle",
-  "advanced": ""
+  "priority": "idle"
 }

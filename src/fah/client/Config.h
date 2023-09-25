@@ -63,11 +63,14 @@ namespace FAH {
       void setPasskey(const std::string &passkey);
       uint32_t getTeam() const;
       void setTeam(uint32_t team);
-      uint64_t getProjectKey() const;
+      uint64_t getProjectKey(const std::set<std::string> &gpus) const;
+      bool getBeta(const std::set<std::string> &gpus) const;
 
       uint32_t getCPUs() const;
       cb::ProcessPriority getCorePriority() const;
       std::set<std::string> getGPUs() const;
+      cb::JSON::ValuePtr getGPUOverride(
+        const std::string &id, const std::string &key) const;
       bool isGPUEnabled(const std::string &id) const;
       void disableGPU(const std::string &id);
 

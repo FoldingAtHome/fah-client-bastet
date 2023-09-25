@@ -936,6 +936,8 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   sink.insert("user",    getConfig().getUsername());
   sink.insert("team",    getConfig().getTeam());
   sink.insert("passkey", getConfig().getPasskey());
+  string aid = app.selectString("info.account", "");
+  if (!aid.empty()) sink.insert("account", aid);
 
   // OS
   sink.insertDict("os");
@@ -945,11 +947,12 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   sink.endDict();
 
   // Project
+  auto gpus = getGPUs();
   sink.insertDict("project");
   if (getConfig().hasString("cause"))
     sink.insert("cause", getConfig().getString("cause"));
-  sink.insertBoolean("beta", getConfig().getBoolean("beta", false));
-  auto key = getConfig().getProjectKey();
+  sink.insertBoolean("beta", getConfig().getBeta(gpus));
+  auto key = getConfig().getProjectKey(gpus);
   if (key) sink.insert("key", key);
   sink.endDict(); // project
 
@@ -971,11 +974,9 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   sink.endDict(); // cpu
 
   // GPU
-  auto &gpus = *get("gpus");
-  for (unsigned i = 0; i < gpus.size(); i++) {
-    auto &gpu = *app.getGPUs().get(gpus.getString(i)).cast<GPUResource>();
-
-    sink.beginInsert(gpu.getID());
+  for (auto &id: gpus) {
+    auto &gpu = *app.getGPUs().get(id).cast<GPUResource>();
+    sink.beginInsert(id);
     gpu.writeRequest(sink);
   }
 

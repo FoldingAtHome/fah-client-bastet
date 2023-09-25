@@ -95,9 +95,9 @@ void Config::setState(const cb::JSON::Value &msg) {
 
   string state = msg.getString("state");
 
-  if (state == "pause")   return setPaused(true);
-  if (state == "unpause") return setPaused(false);
-  if (state == "finish")  return setFinish(true);
+  if (state == "pause")  return setPaused(true);
+  if (state == "fold")   return setPaused(false);
+  if (state == "finish") return setFinish(true);
 
   LOG_WARNING("Unsupported config state '" << state << "'");
 }
@@ -129,7 +129,26 @@ string Config::getPasskey() const {return getString("passkey", "");}
 void Config::setPasskey(const string &passkey) {insert("passkey", passkey);}
 uint32_t Config::getTeam() const {return getU32("team", 0);}
 void Config::setTeam(uint32_t team) {insert("team", team);}
-uint64_t Config::getProjectKey() const {return getU64("key", 0);}
+
+
+uint64_t Config::getProjectKey(const std::set<string> &gpus) const {
+  for (auto id: gpus) {
+    auto value = getGPUOverride(id, "key");
+    if (value.isSet() && value->isU64()) return value->getU64();
+  }
+
+  return getU64("key", 0);
+}
+
+
+bool Config::getBeta(const std::set<string> &gpus) const {
+  for (auto id: gpus) {
+    auto value = getGPUOverride(id, "beta");
+    if (value.isSet() && value->isBoolean()) return value->getBoolean();
+  }
+
+  return getBoolean("beta", false);
+}
 
 
 uint32_t Config::getCPUs() const {
@@ -158,6 +177,12 @@ std::set<string> Config::getGPUs() const {
 }
 
 
+JSON::ValuePtr Config::getGPUOverride(
+  const string &id, const string &key) const {
+  return select("gpus." + id + "." + key, 0);
+}
+
+
 bool Config::isGPUEnabled(const string &id) const {
   auto &gpus = *get("gpus");
   if (!gpus.has(id)) return false;
@@ -180,20 +205,6 @@ int Config::insert(const string &key, const JSON::ValuePtr &value) {
   auto def = defaults->get(key);
   if (def->getType() != value->getType())
     return JSON::ObservableDict::insert(key, def);
-
-  if (key == "advanced" && value->isString())
-    try {
-      vector<string> lines;
-      String::tokenize(value->asString(), lines, "\n\r\t ");
-
-      for (unsigned i = 0; i < lines.size(); i++) {
-        string line = String::toLower(lines[i]);
-
-        if (line == "beta") insertBoolean("beta", true);
-        if (String::startsWith(line, "key="))
-          insert("key", String::parseU64(line.substr(4)));
-      }
-    } CATCH_ERROR;
 
   return JSON::ObservableDict::insert(key, value);
 }

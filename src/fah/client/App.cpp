@@ -133,7 +133,7 @@ App::App() :
               )->setDefault(0);
   options.alias("project-key", "key");
   options.add("cause", "The cause you prefer to support.")->setDefault("any");
-  options.add("advanced", "Advanced settings.");
+  options.add("beta", "Accept beta projects.")->setDefault(false);
   options.popCategory();
 
   options.pushCategory("Resource Settings");
