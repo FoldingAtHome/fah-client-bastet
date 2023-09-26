@@ -1,9 +1,19 @@
 Folding@home Client Changelog
 =============================
 
+## v8.2.1
+ - Folding@home account login.
+ - Remote access to machines via account and fah-node.
+ - Removed resource groups feature.
+ - Removed peers feature.  Replaced by fah-node access.
+ - Added GPU specific beta mode and project key.
+ - Improved Debian package.
+ - Improved GPU detection.
+ - Don't automatically reserve a CPU for each GPU
+
 ## v8.1.19
  - Close remote connection on Websocket close.
- 
+
 ## v8.1.18
  - Added keep alive message to Websocket.
 
