@@ -3,6 +3,10 @@
 NAME=fah-client
 
 case "$1" in
+  remove)
+    systemctl daemon-reload
+    ;;
+
   purge)
     # Remove all files
     rm -rf /etc/$NAME /var/lib/$NAME /var/log/$NAME
