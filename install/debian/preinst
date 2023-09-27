@@ -1,9 +1,0 @@
-#!/bin/sh -e
-
-NAME=fah-client
-
-case "$1" in
-  upgrade)
-    systemctl stop $NAME
-    ;;
-esac
