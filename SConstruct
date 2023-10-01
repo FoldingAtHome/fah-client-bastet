@@ -76,6 +76,7 @@ if hide_console is not None: distfiles.append(hide_console)
 tar = env.TarBZ2Dist('fah-client', distfiles)
 Alias('dist', tar)
 AlwaysBuild(tar)
+Clean(tar, ['dist.txt'])
 
 description = \
 '''Folding@home performs research on human diseases using the computing
@@ -173,7 +174,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         description        = description,
         short_description  = short_description,
         prefix             = '/usr',
-        icons              = ('images/fahlogo.icns', 'images/fahlogo.png'),
+        icons              = ['images/fahlogo.png'],
 
         documents          = docs,
         programs           = [str(client[0])],
@@ -219,5 +220,4 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     AlwaysBuild(pkg)
     env.Alias('package', pkg)
-    Clean(pkg, ['build/pkg', 'build/flatdistpkg'])
-    NoClean(pkg, [Glob('*.pkg'), 'package.txt'])
+    Clean(pkg, ['build/pkg', 'build/flatdistpkg', 'package.txt'])

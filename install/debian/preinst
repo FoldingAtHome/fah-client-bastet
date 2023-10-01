@@ -1,0 +1,28 @@
+#!/bin/sh -e
+
+NAME=fah-client
+CLIENT_HOME=/var/lib/$NAME
+
+case "$1" in
+  install)
+    # old v7 init script is broken and does not stop when told so
+    if [ -e /etc/init.d/FAHClient ]; then
+      systemctl kill FAHClient || true
+    fi
+    # Create group if it does not exist
+    if ! getent group $NAME >/dev/null; then
+      groupadd --force --system $NAME
+    fi
+    # Create user if it does not exist
+    if ! getent passwd $NAME >/dev/null; then
+      useradd --system --gid $NAME --shell /usr/sbin/nologin \
+        --home-dir $CLIENT_HOME --no-create-home --groups video,render $NAME
+    fi
+    ;;
+
+  upgrade)
+    systemctl stop $NAME || true
+    # remove old, possibly outdated service symlink
+    systemctl -q disable $NAME || true
+    ;;
+esac
