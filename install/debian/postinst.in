@@ -23,6 +23,9 @@ case "$1" in
     # Create a symbolic link to the configuration file
     ln -sf /etc/fahclient/config.xml $CLIENT_HOME/config.xml
 
+    # Remove old unit if it exists
+    rm -f /etc/systemd/system/${NAME}.service
+
     # Start the service
     if [ -n "$2" ]; then
       ACTION=restart

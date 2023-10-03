@@ -1,6 +1,11 @@
 Folding@home Client Changelog
 =============================
 
+## v8.2.2
+ - Windows: Fixed fail to start from installer or desktop icon.
+ - Windows: Fixed "vector subscript out of range" crash.
+ - Debian: Remove old systemd unit file if it exists.
+
 ## v8.2.1
  - Folding@home account login.
  - Remote access to machines via account and fah-node.
