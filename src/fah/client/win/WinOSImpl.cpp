@@ -333,7 +333,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
 
 void WinOSImpl::updateIcon() {
   if (OS::hasFailure())
-    setSysTray(IDI_FAILURE, "One or more folding process has failed");
+    setSysTray(IDI_FAILURE, "One or more folding processes have failed");
   else if (!OS::isActive()) setSysTray(IDI_INACTIVE, "Not folding");
   else setSysTray(IDI_NORMAL, "Folding active");
 }
