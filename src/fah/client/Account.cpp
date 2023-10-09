@@ -232,7 +232,7 @@ void Account::update() {
   else {
     // If we already have the account info, try to connect to the node
     if (data.isSet() && !data->getString("node", "").empty()) connect();
-    else if (!savedToken.empty()) requestInfo(); // Otherwise get account info
+    else if (!token.empty()) requestInfo(); // Otherwise get account info
   }
 }
 
