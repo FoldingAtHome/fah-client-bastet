@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.2.3
+ - Potential fix for account link/unlink getting stuck.
+ - Linux build uses older glibc for wider compatibility.
+
 ## v8.2.2
  - Windows: Fixed fail to start from installer or desktop icon.
  - Windows: Fixed "vector subscript out of range" crash.
