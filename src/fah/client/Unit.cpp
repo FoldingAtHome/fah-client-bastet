@@ -1082,8 +1082,9 @@ void Unit::uploadResponse(const JSON::ValuePtr &data) {
 
   // Log credit record
   try {
-    SystemUtilities::ensureDirectory("credits");
-    data->write(*SystemUtilities::oopen("credits/" + getID() + ".json"));
+    string dir = Time().toString("credits/%Y/%m/");
+    SystemUtilities::ensureDirectory(dir);
+    data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
   } CATCH_ERROR;
 }
 
