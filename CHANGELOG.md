@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.2.4
+ - Organize credit logs by year/month. #59
+
 ## v8.2.3
  - Potential fix for account link/unlink getting stuck.
  - Linux build uses older glibc for wider compatibility.
