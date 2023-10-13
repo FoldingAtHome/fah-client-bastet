@@ -1,0 +1,1 @@
+# rpmbuild requeries %%build and %%install sections present to auto strip binaries

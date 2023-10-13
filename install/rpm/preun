@@ -1,8 +1,9 @@
-SERVICE_SCRIPT=/etc/init.d/FAHClient
+%systemd_preun fah-client.service
 
-
-# Stop the service
-$SERVICE_SCRIPT stop || true
-
-# Uninstall init.d script
-/sbin/chkconfig --del FAHClient
+## purge-like behaviour
+## package uninstall
+#if [ $1 -eq 0 ]; then
+#  rm -rf /etc/fah-client/*
+#  rm -rf /var/lib/fah-client/*
+#  rm -rf /var/log/fah-client/*
+#fi

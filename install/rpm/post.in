@@ -1,0 +1,41 @@
+# initial install
+if [ $1 -eq 1 ]; then
+  # migrate v7 configuration
+  if [ ! -f /etc/fah-client/config.xml ]; then
+    if [ -f /etc/fahclient/config.xml ]; then
+      cp --remove-destination /etc/fahclient/config.xml /etc/fah-client/
+      echo
+      echo "v7 client configuration copied to /etc/fah-client/config.xml"
+    else
+      echo "<config/>" > /etc/fah-client/config.xml
+    fi
+
+    chown fah-client:fah-client /etc/fah-client/config.xml
+    chmod 0644 /etc/fah-client/config.xml
+  fi
+fi
+
+%%systemd_post fah-client.service
+# the above macro uses systemctl preset, based on distribution policy to enable units
+systemctl -q enable fah-client.service
+systemctl start fah-client.service
+
+echo
+echo "The Folding@home client is now installed"
+echo
+echo "File locations:"
+echo
+echo "  Logs: /var/log/fah-client"
+echo "  Data: /var/lib/fah-client"
+echo
+echo "Service commands:"
+echo
+echo "  systemctl status --no-pager -l fah-client"
+echo "  sudo systemctl start fah-client"
+echo "  sudo systemctl stop fah-client"
+echo "  sudo systemctl restart fah-client"
+echo
+echo "Access the web interface by going to:"
+echo
+echo "  %(PACKAGE_URL)s"
+echo
