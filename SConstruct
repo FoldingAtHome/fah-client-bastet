@@ -115,8 +115,8 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     if 'SIGNTOOL' in os.environ: env['SIGNTOOL'] = os.environ['SIGNTOOL']
 
-    distpkg_target = None
-    distpkg_components = []
+    pkg_target = None
+    pkg_components = []
     if env['PLATFORM'] == 'darwin':
         # Specify components for the osx distribution pkg
         client_home = '.'
@@ -129,7 +129,7 @@ if 'package' in COMMAND_LINE_TARGETS:
                      ['build/install/osx/launchd.plist',
                       'Library/LaunchDaemons/' +
                       'org.foldingathome.fahclient.plist', 0o644]]
-        distpkg_components = [
+        pkg_components = [
             {
                 # name is component pkg file name and name shown in installer
                 'name'        : 'FAHClient',
@@ -155,9 +155,9 @@ if 'package' in COMMAND_LINE_TARGETS:
             },
         ]
         # min pkg target macos 10.13
-        distpkg_target = env.get('osx_min_ver', '10.13')
-        ver = tuple([int(x) for x in distpkg_target.split('.')])
-        if ver < (10,13): distpkg_target = '10.13'
+        pkg_target = env.get('osx_min_ver', '10.13')
+        ver = tuple([int(x) for x in pkg_target.split('.')])
+        if ver < (10,13): pkg_target = '10.13'
 
     # Package
     pkg = env.Packager(
@@ -169,7 +169,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         url                = env['PACKAGE_HOMEPAGE'],
         license            = 'LICENSE',
         bug_url            = 'https://github.com/FoldingAtHome/fah-client',
-        summary            = 'Folding@home Client ' + version,
+        summary            = 'Folding@home Client',
         description        = description,
         short_description  = short_description,
         prefix             = '/usr',
@@ -204,17 +204,17 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_preun          = 'build/install/rpm/preun',
 
         pkg_type           = 'dist',
-        distpkg_resources  = [['build/install/osx/Resources', '.'],
+        pkg_resources      = [['build/install/osx/Resources', '.'],
                               ['LICENSE', 'en.lproj/LICENSE.txt']],
-        distpkg_welcome    = 'Welcome.rtf',
-        distpkg_readme     = 'Readme.rtf',
-        distpkg_license    = 'LICENSE.txt',
-        distpkg_conclusion = 'Conclusion.rtf',
-        distpkg_background = 'fah-opacity-50.png',
-        distpkg_customize  = 'always',
-        distpkg_target     = distpkg_target,
-        distpkg_arch       = env.get('package_arch', 'x86_64'),
-        distpkg_components = distpkg_components,
+        pkg_welcome        = 'Welcome.rtf',
+        pkg_readme         = 'Readme.rtf',
+        pkg_license        = 'LICENSE.txt',
+        pkg_conclusion     = 'Conclusion.rtf',
+        pkg_background     = 'fah-opacity-50.png',
+        pkg_customize      = 'always',
+        pkg_target         = pkg_target,
+        pkg_arch           = env.get('package_arch', 'x86_64'),
+        pkg_components     = pkg_components,
     )
 
     AlwaysBuild(pkg)
