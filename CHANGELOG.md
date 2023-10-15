@@ -2,7 +2,9 @@ Folding@home Client Changelog
 =============================
 
 ## v8.2.4
- - Organize credit logs by year/month. #59
+ - Organize credit logs by year/month. #59 (Kevin Bernhagen)
+ - RPM build config. (Marcos Mello, Kevin Bernhagen)
+ - Debian package improvements. (Marcos Mello, Kevin Bernhagen)
 
 ## v8.2.3
  - Potential fix for account link/unlink getting stuck.
