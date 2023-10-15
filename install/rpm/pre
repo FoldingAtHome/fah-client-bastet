@@ -1,0 +1,18 @@
+# initial install
+if [ $1 -eq 1 ]; then
+  # old v7 init script is broken and does not stop when told so
+  if [ -e /etc/init.d/FAHClient ]; then
+    systemctl kill FAHClient || true
+  fi
+
+  # create group if it does not exist
+  if ! getent group fah-client >/dev/null; then
+    groupadd --system fah-client || true
+  fi
+
+  # create user if it does not exist
+  if ! getent passwd fah-client >/dev/null; then
+    useradd --system --gid fah-client --shell /usr/sbin/nologin \
+      --home-dir /var/lib/fah-client --no-create-home --groups video,render fah-client || true
+  fi
+fi

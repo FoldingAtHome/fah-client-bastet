@@ -1,0 +1,8 @@
+%systemd_postun_with_restart fah-client.service
+
+## purge-like behaviour
+## package uninstall
+#if [ $1 -eq 0 ]; then
+#  userdel  fah-client 2>/dev/null || true
+#  groupdel fah-client 2>/dev/null || true
+#fi
