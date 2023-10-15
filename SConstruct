@@ -210,7 +210,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_post_requires  = 'systemd, coreutils',
         rpm_preun_requires = 'systemd',
         rpm_postun_requires= 'systemd',
-        rpm_client_dirs    = ['var/lib/fah-client', 'var/log/fah-client', 'etc/fah-client'],
+        rpm_client_dirs    = [
+            'var/lib/fah-client', 'var/log/fah-client', 'etc/fah-client'],
 
         pkg_type           = 'dist',
         pkg_resources      = [['build/install/osx/Resources', '.'],
