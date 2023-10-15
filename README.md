@@ -63,7 +63,7 @@ it is recommend that you first uninstall any previous Folding@home client
 software.  You can then install the package like this:
 
 ```
-sudo dpkg -i fah-client-bastet/fah-client_<version>_amd64.deb
+sudo apt install ./fah-client-bastet/fah-client_<version>_amd64.deb
 ```
 
 Where ``<version>`` is the software version number.

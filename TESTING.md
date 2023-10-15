@@ -82,8 +82,9 @@ provide more information, perform further testing or test out a fix.
 It is possible to run
 [fah-client-bastet](https://github.com/FoldingAtHome/fah-client-bastet) without
 the frontend.  You can then configure either by passing options on the
-command line or using a ``config.xml`` file.  In Linux there will be a
-configuration file at ``/etc/fahclient/config.xml``.  Here is an example file:
+command line or using a ``config.xml`` file.  In Linux, there will be a
+configuration file at ``/etc/fah-client/config.xml``.
+Here is an example file:
 
 ```xml
 <config>
@@ -93,7 +94,10 @@ configuration file at ``/etc/fahclient/config.xml``.  Here is an example file:
 </config>
 ```
 
-Note, that the ``config.xml`` configuration file will be overridden if a user
+If manually running the client somewhere other than ``/var/lib/fah-client/``, 
+``config.xml`` should be in the current working directory.
+
+Note that the ``config.xml`` configuration file will be overridden if a user
 sets the configuration via the frontend.
 
 In Linux, the ``fah-client`` service can be stopped and started using service

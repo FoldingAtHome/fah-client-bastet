@@ -1,59 +1,62 @@
 #!/bin/sh -e
 
 NAME=fah-client
+CLIENT_CONFIG=/etc/$NAME
 CLIENT_HOME=/var/lib/$NAME
 CLIENT_LOGS=/var/log/$NAME
 
-case "$1" in
-  reconfigure|configure)
-    # Create group if it does not exist
-    if ! getent group $NAME >/dev/null; then
-      groupadd --force --system $NAME
-    fi
+# Create directories
+install -d -m 755 -o $NAME -g $NAME $CLIENT_HOME $CLIENT_LOGS $CLIENT_CONFIG
 
-    # Create user if it does not exist
-    if ! getent passwd $NAME >/dev/null; then
-      useradd --system --gid $NAME --shell /usr/sbin/nologin \
-        --home-dir $CLIENT_HOME --no-create-home --groups video,render $NAME
-    fi
+# migrate configuration
 
-    # Create directories
-    install -d -m 755 -o $NAME -g $NAME $CLIENT_HOME $CLIENT_LOGS
+# remove obsolete symlink installed by previous v8 packages
+[ -L $CLIENT_HOME/config.xml ] && rm -f $CLIENT_HOME/config.xml || true
 
-    # Create a symbolic link to the configuration file
-    ln -sf /etc/fahclient/config.xml $CLIENT_HOME/config.xml
+if [ ! -e $CLIENT_CONFIG/config.xml ]; then
+  if [ -f /etc/fahclient/config.xml ]; then
+    cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
+    echo
+    echo "v7 client configuration copied to $CLIENT_CONFIG/config.xml"
+    echo
+    echo "It's recommended to purge the old package to remove leftover files:"
+    echo
+    echo "  sudo apt purge fahclient"
+  elif [ -f $CLIENT_HOME/config.xml ]; then
+    mv -f $CLIENT_HOME/config.xml $CLIENT_CONFIG/
+  else
+    echo "<config/>" > $CLIENT_CONFIG/config.xml
+  fi
 
-    # Remove old unit if it exists
-    rm -f /etc/systemd/system/${NAME}.service
+  chown $NAME:$NAME $CLIENT_CONFIG/config.xml
+  chmod 0644 $CLIENT_CONFIG/config.xml
 
-    # Start the service
-    if [ -n "$2" ]; then
-      ACTION=restart
-    else
-      ACTION=start
-    fi
-    systemctl daemon-reload
-    systemctl enable $NAME
-    systemctl $ACTION $NAME
+elif [ -f $CLIENT_HOME/config.xml ]; then
+  echo
+  echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
+fi
 
-    echo
-    echo "The Folding@home client is now installed"
-    echo
-    echo "File locations:"
-    echo
-    echo "  Logs: /var/log/$NAME"
-    echo "  Data: /var/lib/$NAME"
-    echo
-    echo "Service commands:"
-    echo
-    echo "  systemctl status --no-pager -l $NAME"
-    echo "  sudo systemctl start $NAME"
-    echo "  sudo systemctl stop $NAME"
-    echo "  sudo systemctl restart $NAME"
-    echo
-    echo "Access the web interface by going to:"
-    echo
-    echo "  %(PACKAGE_URL)s"
-    echo
-    ;;
-esac
+# Start the service
+systemctl daemon-reload
+systemctl -q enable $NAME
+systemctl start $NAME
+
+echo
+echo "The Folding@home client is now installed"
+echo
+echo "File locations:"
+echo
+echo "  Logs: /var/log/$NAME"
+echo "  Data: /var/lib/$NAME"
+echo
+echo "Service commands:"
+echo
+echo "  systemctl status --no-pager -l $NAME"
+echo "  sudo systemctl start $NAME"
+echo "  sudo systemctl stop $NAME"
+echo "  sudo systemctl restart $NAME"
+echo
+echo "Access the web interface by going to:"
+echo
+echo "  %(PACKAGE_URL)s"
+echo
