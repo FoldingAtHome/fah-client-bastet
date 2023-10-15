@@ -204,8 +204,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_preun          = 'build/install/rpm/preun',
         rpm_conflicts      = 'FAHClient, fahclient',
         rpm_obsoletes      = 'FAHClient, fahclient',
-        # In RHEL >= 8 and Fedora, BuildRequires: systemd-rpm-macros
-        rpm_build_requires = 'systemd',
+        rpm_build_requires = 'systemd-rpm-macros',
         rpm_pre_requires   = 'systemd, shadow-utils',
         rpm_post_requires  = 'systemd, coreutils',
         rpm_preun_requires = 'systemd',
