@@ -36,10 +36,21 @@ elif [ -f $CLIENT_HOME/config.xml ]; then
   echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
 fi
 
-# Start the service
-systemctl daemon-reload
-systemctl -q enable $NAME
-systemctl start $NAME
+systemctl daemon-reload || true
+
+# only enable/start on initial install
+if [ -z "$2" ]; then
+  systemctl -q enable $NAME || true
+  systemctl start $NAME || true
+else
+  # upgrade
+  # reenable if fixing broken symlink
+  if dpkg --compare-versions "$2" lt 8.2.1; then
+    systemctl -q enable $NAME || true
+  fi
+
+  systemctl try-restart $NAME || true
+fi
 
 echo
 echo "The Folding@home client is now installed"
