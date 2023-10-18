@@ -196,7 +196,6 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         rpm_license        = env['PACKAGE_LICENSE'],
         rpm_group          = 'Applications/Internet',
-        rpm_build          = 'build/install/rpm/build',
         rpm_install        = 'build/install/rpm/install',
         rpm_post           = 'build/install/rpm/post',
         rpm_postun         = 'build/install/rpm/postun',
