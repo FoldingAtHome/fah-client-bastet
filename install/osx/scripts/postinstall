@@ -2,6 +2,8 @@
 
 # fah-client-bastet postinstall
 
+SCRIPTS="$(dirname "$0")"
+
 # Setup run directory
 RUN_DIR="/Library/Application Support/FAHClient"
 if [ ! -d "$RUN_DIR" ]; then mkdir -p "$RUN_DIR"; fi
@@ -9,6 +11,8 @@ chmod -R u+rwX,go-w "$RUN_DIR"
 chown -R nobody:nobody "$RUN_DIR"
 
 PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
+
+"$SCRIPTS"/organize-credits.sh || true
 
 # Start service
 chmod 0644 "$PLIST"
@@ -26,7 +30,6 @@ if [ "$SUDO_USER" != "" ]; then
 elif [ "$USER" != "" ]; then
   SUDO="sudo -u $USER"
 fi
-SCRIPTS="$(dirname "$0")"
 
 # this won't work in onquit
 # the temp pkg with scripts gets deleted when this script exits
