@@ -17,8 +17,11 @@ fi
 
 %%systemd_post fah-client.service
 # the above macro uses systemctl preset, based on distribution policy to enable units
-systemctl -q enable fah-client.service
-systemctl start fah-client.service
+# only enable/start on initial install
+if [ $1 -eq 1 ]; then
+  systemctl -q enable fah-client.service || true
+  systemctl start fah-client.service || true
+fi
 
 echo
 echo "The Folding@home client is now installed"
