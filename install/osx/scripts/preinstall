@@ -23,18 +23,13 @@ if [ -f "$OLD_LAUNCHD" ]; then
     rm -f "$OLD_LAUNCHD" || true
 fi
 
-D="/Applications/Folding@home"
-if [ -d "$D" ]; then
-    chmod 0755 "$D"
-else
-    mkdir -m 0755 "$D"
-fi
-
 # Assuming upgrade, remove old stuff
 F1="/Applications/FAHClient.url"
 F2="/Applications/Folding@home/Web Control.url"
+F3="/Library/Application Support/FAHClient/GPUs.txt"
 [ -f "$F1" ] && rm -f "$F1" || true
 [ -f "$F2" ] && rm -f "$F2" || true
+[ -f "$F3" ] && rm -f "$F3" || true
 A1="/Applications/Folding@home/FAHControl.app"
 A2="/Applications/Folding@home/FAHViewer.app"
 [ -d "$A1" ] && rm -rf "$A1" || true
