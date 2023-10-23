@@ -1,0 +1,4 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: %(PACKAGE_URL)s
+License: %(PACKAGE_LICENSE)s
+Copyright: %(PACKAGE_COPYRIGHT)s
