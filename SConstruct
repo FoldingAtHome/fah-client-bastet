@@ -173,7 +173,6 @@ if 'package' in COMMAND_LINE_TARGETS:
         summary            = 'Folding@home Client',
         description        = description,
         short_description  = short_description,
-        prefix             = '/usr',
         icons              = ['images/fahlogo.png'],
 
         documents          = docs,
