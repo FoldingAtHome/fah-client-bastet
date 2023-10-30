@@ -12,7 +12,7 @@ chown -R nobody:nobody "$RUN_DIR"
 
 PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
 
-"$SCRIPTS"/organize-credits.sh || true
+"$SCRIPTS"/organize-credits.sh &
 
 # Start service
 chmod 0644 "$PLIST"
