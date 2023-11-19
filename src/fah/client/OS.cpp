@@ -29,6 +29,7 @@
 #include "OS.h"
 
 #include <fah/client/App.h>
+#include <fah/client/Config.h>
 
 #if defined(_WIN32)
 #include "win/WinOSImpl.h"
@@ -90,7 +91,7 @@ void OS::togglePause() const {
 
 
 void OS::update() {
-  if (isSystemIdle() != idle) {
+  if (app.getConfig().getOnIdle() && isSystemIdle() != idle) {
     idle = !idle;
     app.triggerUpdate();
   }
