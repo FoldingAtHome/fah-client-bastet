@@ -38,8 +38,8 @@ development purposes.
 
 ## Install the Prerequisites
 ```
-sudo apt-get update
-sudo apt-get install -y scons git npm build-essential libssl-dev
+sudo apt update
+sudo apt install -y scons git npm build-essential libssl-dev libsystemd-dev
 ```
 
 ## Get the code
