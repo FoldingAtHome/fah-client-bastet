@@ -344,7 +344,7 @@ void App::loadConfig() {
   auto info = get("info");
   info->insert("version",    getVersion().toString());
   info->insert("os",         os->getName());
-  info->insert("os_version", SystemInfo::instance().getOSVersion().getMajor());
+  info->insert("os_version", SystemInfo::instance().getOSVersion().toString());
   info->insert("cpu",        os->getCPU());
   info->insert("cpu_brand",  CPUInfo::create()->getBrand());
   info->insert("cpus",       SystemInfo::instance().getCPUCount());
