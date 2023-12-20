@@ -34,8 +34,6 @@
 namespace FAH {
   namespace Client {
     class Units : public cb::JSON::ObservableList {
-      App &app;
-
    public:
       Units(App &app);
 

@@ -41,7 +41,7 @@ using namespace cb;
 using namespace std;
 
 
-Units::Units(App &app) : app(app) {
+Units::Units(App &app) {
   unsigned count = 0;
 
   app.getDB("units").foreach(
