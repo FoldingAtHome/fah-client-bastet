@@ -30,6 +30,7 @@
 #include "App.h"
 #include "NodeRemote.h"
 #include "Config.h"
+#include "Groups.h"
 
 #include <cbang/Catch.h>
 #include <cbang/json/Reader.h>
@@ -146,13 +147,7 @@ void Account::requestInfo() {
 
       } else { // Account is valid, connect to node
         setData(req.getInputJSON());
-
-        auto &config = app.getConfig();
-        config.setUsername(data->getString("user", "Anonymous"));
-        config.setPasskey(data->getString("passkey", ""));
-        config.setTeam(data->getU32("team", 0));
-        config.insert("cause", data->getString("cause", "any"));
-
+        app.getConfig()->setAccountData(data);
         app.getDB("config").set("account", data->toString());
         connect();
         updateBackoff.reset();
@@ -281,9 +276,10 @@ void Account::onBroadcast(const JSON::ValuePtr &msg) {
 
   // Process command
   string cmd = payload->getString("cmd");
+  auto &group = app.getGroups()->getGroup(payload->getString("group", ""));
 
-  if (cmd == "state")  return app.getConfig().setState(*payload);
-  if (cmd == "config") return app.getConfig().configure(*payload);
+  if (cmd == "state")  return group.getConfig().setState(*payload);
+  if (cmd == "config") return group.getConfig().configure(*payload);
   if (cmd == "reset")  return reset();
 
   LOG_WARNING("Unsupported broadcast message '" << cmd << "'");

@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.0
+ - Return of resource groups.
+
 ## v8.2.4
  - Organize credit logs by year/month. #59 (Kevin Bernhagen)
  - RPM build config. (Marcos Mello, Kevin Bernhagen)

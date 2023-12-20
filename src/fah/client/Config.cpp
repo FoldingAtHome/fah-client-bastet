@@ -44,32 +44,10 @@ namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 
 
 Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
-  unsigned cpus = SystemInfo::instance().getCPUCount();
-  if (1 < cpus) cpus--; // Reserve one CPU by default
-
-  unsigned pcount = SystemInfo::instance().getPerformanceCPUCount();
-  if (0 < pcount && pcount < cpus) cpus = pcount;
-
-  // Defaults
-  auto r = FAH::Client::resource0.find("config.json");
-  if (!r) THROW("Could not find config.json resource");
-  defaults = JSON::Reader::parseString(r->toString());
+  // Load defaults
+  auto &r  = FAH::Client::resource0.get("config.json");
+  defaults = JSON::Reader::parseString(r.toString());
   merge(*defaults);
-
-  // Load options from config file
-  auto &options = app.getOptions();
-  for (unsigned i = 0; i < config->size(); i++) {
-    string _key = config->keyAt(i);
-    string key  = String::replace(_key, "_", "-");
-
-    if (options.has(key) && !options[key].isDefault() && options[key].isSet())
-      switch (options[key].getType()) {
-      case Option::INTEGER_TYPE: insert(_key, options[key].toInteger()); break;
-      case Option::DOUBLE_TYPE:  insert(_key, options[key].toDouble());  break;
-      case Option::BOOLEAN_TYPE: insert(_key, options[key].toBoolean()); break;
-      default:                   insert(_key, options[key]);             break;
-      }
-  }
 
   // Load config data
   for (unsigned i = 0; i < config->size(); i++) {
@@ -79,20 +57,30 @@ Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
 }
 
 
-void Config::configure(const JSON::Value &msg) {
-  if (!app.validateChange(msg)) return;
+void Config::load(const Options &opts) {
+  for (unsigned i = 0; i < size(); i++) {
+    string _key = keyAt(i);
+    string key  = String::replace(_key, "_", "-");
 
-  auto &config = *msg.get("config");
+    if (opts.has(key) && !opts[key].isDefault() && opts[key].isSet())
+      switch (opts[key].getType()) {
+      case Option::INTEGER_TYPE: insert(_key, opts[key].toInteger()); break;
+      case Option::DOUBLE_TYPE:  insert(_key, opts[key].toDouble());  break;
+      case Option::BOOLEAN_TYPE: insert(_key, opts[key].toBoolean()); break;
+      default:                   insert(_key, opts[key]);             break;
+      }
+  }
+}
 
+
+void Config::configure(const JSON::Value &config) {
   for (unsigned i = 0; i < config.size(); i++)
     if (has(config.keyAt(i)))
       insert(config.keyAt(i), config.get(i));
 }
 
 
-void Config::setState(const cb::JSON::Value &msg) {
-  if (!app.validateChange(msg)) return;
-
+void Config::setState(const JSON::Value &msg) {
   string state = msg.getString("state");
 
   if (state == "pause")  return setPaused(true);
@@ -132,21 +120,11 @@ void Config::setTeam(uint32_t team) {insert("team", team);}
 
 
 uint64_t Config::getProjectKey(const std::set<string> &gpus) const {
-  for (auto id: gpus) {
-    auto value = getGPUOverride(id, "key");
-    if (value.isSet() && value->isU64()) return value->getU64();
-  }
-
   return getU64("key", 0);
 }
 
 
 bool Config::getBeta(const std::set<string> &gpus) const {
-  for (auto id: gpus) {
-    auto value = getGPUOverride(id, "beta");
-    if (value.isSet() && value->isBoolean()) return value->getBoolean();
-  }
-
   return getBoolean("beta", false);
 }
 
@@ -155,11 +133,6 @@ uint32_t Config::getCPUs() const {
   uint32_t maxCPUs = SystemInfo::instance().getCPUCount();
   uint32_t cpus    = getU32("cpus");
   return maxCPUs < cpus ? maxCPUs : cpus;
-}
-
-
-ProcessPriority Config::getCorePriority() const {
-  return ProcessPriority::parse(getString("priority", "idle"));
 }
 
 
@@ -177,12 +150,6 @@ std::set<string> Config::getGPUs() const {
 }
 
 
-JSON::ValuePtr Config::getGPUOverride(
-  const string &id, const string &key) const {
-  return select("gpus." + id + "." + key, 0);
-}
-
-
 bool Config::isGPUEnabled(const string &id) const {
   auto &gpus = *get("gpus");
   if (!gpus.has(id)) return false;
@@ -196,15 +163,24 @@ void Config::disableGPU(const string &id) {
 }
 
 
+void Config::setAccountData(const JSON::ValuePtr &data) {
+  setUsername(data->getString("user", "Anonymous"));
+  setPasskey(data->getString("passkey", ""));
+  setTeam(data->getU32("team", 0));
+  insert("cause", data->getString("cause", "any"));
+}
+
+
 int Config::insert(const string &key, const JSON::ValuePtr &value) {
   if (!defaults->has(key)) {
     LOG_WARNING("Ignoring unsupported config key '" << key << "'");
     return -1;
   }
 
-  auto def = defaults->get(key);
-  if (def->getType() != value->getType())
-    return JSON::ObservableDict::insert(key, def);
+  if (defaults->get(key)->getType() != value->getType()) {
+    LOG_WARNING("Ignoring config key '" << key << "' with wrong type");
+    return -1;
+  }
 
-  return JSON::ObservableDict::insert(key, value);
+  return Super_T::insert(key, value);
 }

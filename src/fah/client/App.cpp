@@ -30,6 +30,7 @@
 #include "Server.h"
 #include "Account.h"
 #include "GPUResources.h"
+#include "Groups.h"
 #include "Units.h"
 #include "Cores.h"
 #include "Config.h"
@@ -75,6 +76,18 @@ namespace FAH {
   namespace Client {
     namespace BuildInfo {void addBuildInfo(const char *category);}
     extern const DirectoryResource resource0;
+  }
+}
+
+
+namespace {
+  unsigned getDefaultCPUs() {
+    unsigned count  = SystemInfo::instance().getCPUCount();
+    unsigned pcount = SystemInfo::instance().getPerformanceCPUCount();
+
+    if (1 < count) count--; // Reserve one CPU by default
+
+    return (pcount && pcount < count) ? pcount : count;
   }
 }
 
@@ -138,7 +151,7 @@ App::App() :
 
   options.pushCategory("Resource Settings");
   options.add("cpus", "Number of cpus FAH client will use.",
-              new MaxConstraint<int32_t>(SystemInfo::instance().getCPUCount()));
+              new MaxConstraint<int32_t>(getDefaultCPUs()));
   options.popCategory();
 
   options["allow"].setDefault("127.0.0.1");
@@ -204,6 +217,32 @@ DB::NameValueTable &App::getDB(const string name) {
 }
 
 
+SmartPointer<Groups> App::getGroups() const {
+  return get("groups").cast<Groups>();
+}
+
+
+SmartPointer<Config> App::getConfig() const {
+  return get("config").cast<Config>();
+}
+
+
+SmartPointer<Units> App::getUnits() const {
+  return get("units").cast<Units>();
+}
+
+
+void App::configure(const JSON::Value &msg) {
+  if (!validateChange(msg)) return;
+
+  auto config = msg.get("config", createDict());
+  getGroups()->configure(*config->get("groups", createDict()));
+  getConfig()->configure(*config);
+
+  triggerUpdate();
+}
+
+
 string App::getPubKey() const {return Base64().encode(key.publicToSPKI());}
 
 
@@ -219,18 +258,26 @@ void App::remove(Remote &remote) {
 }
 
 
-void App::triggerUpdate()    {units->triggerUpdate(true);}
-bool App::isActive() const   {return units->isActive();}
-bool App::hasFailure() const {return units->hasFailure();}
+void App::triggerUpdate() {getGroups()->triggerUpdate(true);}
+bool App::isActive()   const {return getUnits()->isActive();}
+bool App::hasFailure() const {return getUnits()->hasFailure();}
 
 
-void App::setPaused(bool paused) {
-  config->setPaused(paused);
-  triggerUpdate();
+void App::setState(const JSON::Value &msg) {
+  if (!validateChange(msg)) return;
+  getGroups()->setState(msg);
 }
 
 
-bool App::getPaused() const {return config->getPaused();}
+void App::setState(const string &state) {
+  auto msg = createDict();
+  msg->insert("cmd", "state");
+  msg->insert("state", state);
+  setState(*msg);
+}
+
+
+bool App::getPaused() const {return getGroups()->getPaused();}
 
 
 void App::validate(const Certificate &cert,
@@ -278,10 +325,9 @@ void App::check(const string &certificate, const string &intermediate,
 }
 
 
-void App::checkBase64SHA256(const string &certificate,
-                            const string &intermediate,
-                            const string &sig64, const string &data,
-                            const string &usage) {
+void App::checkBase64SHA256(
+  const string &certificate, const string &intermediate,
+  const string &sig64, const string &data, const string &usage) {
   check(certificate, intermediate, Base64().decode(sig64),
         Digest::hash(data, "sha256"), usage);
 }
@@ -306,8 +352,10 @@ uint64_t App::getNextWUID() {
 bool App::validateChange(const JSON::Value &msg) {
   string cmd  = msg.getString("cmd");
   string time = msg.getString("time", Time().toString());
+  string key  = "change-time-" + cmd;
   auto &db    = getDB("config");
-  string key  = cmd + "-change-time";
+
+  if (msg.hasString("group")) key += "-" + msg.getString("group");
 
   if (db.has(key) && Time::parse(time) <= Time::parse(db.getString(key)))
     return false; // outdated
@@ -320,21 +368,13 @@ bool App::validateChange(const JSON::Value &msg) {
 
 
 void App::upgradeDB() {
-  auto &db = getDB("config");
+  auto &db     = getDB("config");
   auto version = db.getInteger("version", 0);
 
-  switch (version) {
-  case 0: {
-    auto &groupsDB = getDB("groups");
-    if (groupsDB.has("")) db.set("config", groupsDB.getString(""));
-  }
+  if (db.has("config") && (version == 1 || !getDB("groups").has("")))
+    getDB("groups").set("", db.getString("config"));
 
-  default:
-    db.set("version", 1);
-    break;
-
-  case 1: break;
-  }
+  if (version < 2) db.set("version", 2);
 }
 
 
@@ -369,32 +409,13 @@ void App::loadConfig() {
   info->insert("id", id);
   LOG_INFO(1, "Machine ID = " << id);
 
-  // Config
-  config = new Config(*this, db.getJSON("config", new JSON::Dict));
+  // Global config
+  auto data = db.getJSON("config", new JSON::Dict);
+  SmartPointer<Config> config = new Config(*this, data);
+  config->load(getOptions());
+  if (!data->has("cpus"))
+    config->insert("cpus", getOptions()["cpus"].toInteger());
   insert("config", config);
-}
-
-
-void App::loadUnits() {
-  units = new Units(*this, config);
-  insert("units", units);
-
-  unsigned count = 0;
-
-  getDB("units").foreach(
-    [this, &count] (const string &id, const string &dataStr) {
-      try {
-        auto data  = JSON::Reader::parseString(dataStr);
-        auto wu    = data->selectU64("state.number");
-
-        LOG_INFO(3, "Loading work unit " << wu << "' with ID " << id);
-        SmartPointer<Unit> unit = new Unit(*this, data);
-        units->add(unit);
-        count++;
-      } CATCH_ERROR;
-    });
-
-  LOG_INFO(3, "Loaded " << count << " wus.");
 }
 
 
@@ -423,9 +444,10 @@ void App::run() {
   // Initialize
   upgradeDB();
   loadConfig();
+  insert("groups", new Groups(*this));
   server->init();
   account->init();
-  loadUnits();
+  insert("units", new Units(*this));
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
@@ -434,32 +456,34 @@ void App::run() {
   // Event loop
   os->dispatch();
 
+  // Dealocate
+  clear();
+
   LOG_INFO(1, "Clean exit");
 }
 
 
 void App::requestExit() {
-  units->shutdown([this]() {base.loopExit();});
+  auto &groups = *getGroups();
+  SmartPointer<unsigned> count = new unsigned(groups.size());
+
+  auto cb = [this, count]() {if (!--*count) base.loopExit();};
+
+  for (auto &name: groups.keys())
+    groups.getGroup(name).shutdown(cb);
+
   Application::requestExit();
 }
 
 
-void App::notify(list<JSON::ValuePtr> &change) {
-  if (remotes.empty()) return; // Avoids many calls during init
-
-  bool isConfig = !change.empty() && change.front()->getString() == "config";
+void App::notify(const list<JSON::ValuePtr> &change) {
+  if (remotes.empty()) return; // Avoid many calls during init
 
   auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
   LOG_DEBUG(5, __func__ << ' ' << *changes);
 
   for (auto &remote: remotes)
     remote->sendChanges(changes);
-
-  // Automatically save changes to config
-  if (isConfig) {
-    getDB("config").set("config", config->toString());
-    units->triggerUpdate();
-  }
 }
 
 

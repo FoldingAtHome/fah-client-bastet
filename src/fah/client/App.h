@@ -42,7 +42,6 @@
 #include <cbang/openssl/CertificateChain.h>
 
 #include <cbang/net/IPAddress.h>
-#include <cbang/enum/ProcessPriority.h>
 #include <cbang/json/Observable.h>
 
 #include <map>
@@ -59,9 +58,12 @@ namespace FAH {
     class Server;
     class Account;
     class GPUResources;
-    class Units;
-    class Cores;
+    class Group;
+    class Groups;
     class Config;
+    class Units;
+    class Unit;
+    class Cores;
     class OS;
     class Remote;
 
@@ -83,12 +85,11 @@ namespace FAH {
       tables_t tables;
 
       cb::SmartPointer<Server>       server;
+      cb::SmartPointer<Config>       config;
       cb::SmartPointer<Account>      account;
       cb::SmartPointer<GPUResources> gpus;
       cb::SmartPointer<Cores>        cores;
       cb::SmartPointer<OS>           os;
-      cb::SmartPointer<Config>       config;
-      cb::SmartPointer<Units>        units;
 
       std::list<cb::SmartPointer<Remote>> remotes;
 
@@ -111,8 +112,12 @@ namespace FAH {
       GPUResources       &getGPUs()      {return *gpus;}
       Cores              &getCores()     {return *cores;}
       OS                 &getOS()        {return *os;}
-      Config             &getConfig()    {return *config;}
-      Units              &getUnits()     {return *units;}
+
+      cb::SmartPointer<Groups> getGroups() const;
+      cb::SmartPointer<Config> getConfig() const;
+      cb::SmartPointer<Units>  getUnits()  const;
+
+      void configure(const cb::JSON::Value &msg);
 
       std::string getID() const {return selectString("info.id");}
       std::string getPubKey() const;
@@ -123,7 +128,8 @@ namespace FAH {
       void triggerUpdate();
       bool isActive() const;
       bool hasFailure() const;
-      void setPaused(bool paused);
+      void setState(const cb::JSON::Value &msg);
+      void setState(const std::string &state);
       bool getPaused() const;
 
       const cb::KeyPair &getKey() const {return key;}
@@ -148,15 +154,14 @@ namespace FAH {
 
       void upgradeDB();
       void loadConfig();
-      void loadUnits();
 
       // From cb::Application
-      int init(int argc, char *argv[]);
-      void run();
-      void requestExit();
+      int init(int argc, char *argv[]) override;
+      void run() override;
+      void requestExit() override;
 
       // From cb::JSON::Value
-      void notify(std::list<cb::JSON::ValuePtr> &change);
+      void notify(const std::list<cb::JSON::ValuePtr> &change) override;
 
       void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
     };

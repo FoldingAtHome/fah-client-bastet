@@ -33,6 +33,7 @@
 #include "Account.h"
 #include "Units.h"
 #include "Config.h"
+#include "Group.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
@@ -50,9 +51,14 @@ Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
 void Remote::sendViz() {
   if (vizUnitID.empty()) return;
 
-  auto &unit    = app.getUnits().getUnit(vizUnitID);
-  auto topology = unit.getTopology();
-  auto frames   = unit.getFrames();
+  auto unit = app.getUnits()->findUnit(vizUnitID);
+  if (unit.isNull()) {
+    vizUnitID = "";
+    return;
+  }
+
+  auto topology = unit->getTopology();
+  auto frames   = unit->getFrames();
 
   if (topology.isNull()) return;
 
@@ -104,7 +110,7 @@ void Remote::sendLog() {
 
       // Check offset bounds
       streamsize len = SystemUtilities::getFileSize(filename);
-      if (len < logOffset) logOffset = len;
+      if (len < logOffset)  logOffset = len;
       if (logOffset < -len) logOffset = -len;
 
       log->seekg(logOffset, logOffset < 0 ? ios::end : ios::beg);
@@ -186,12 +192,13 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
   string cmd = msg->getString("cmd", "");
 
-  if      (cmd == "dump")    app.getUnits().dump(msg->getString("unit", ""));
-  else if (cmd == "finish")  app.getConfig().setFinish(true);  // Deprecated
-  else if (cmd == "pause")   app.getConfig().setPaused(true);  // Deprecated
-  else if (cmd == "unpause") app.getConfig().setPaused(false); // Deprecated
-  else if (cmd == "state")   app.getConfig().setState(*msg);
-  else if (cmd == "config")  app.getConfig().configure(*msg);
+  if (cmd == "dump")
+    app.getUnits()->getUnit(msg->getString("unit", ""))->dumpWU();
+  else if (cmd == "finish")  app.setState("finish"); // Deprecated
+  else if (cmd == "pause")   app.setState("pause");  // Deprecated
+  else if (cmd == "unpause") app.setState("fold");   // Deprecated
+  else if (cmd == "state")   app.setState(*msg);
+  else if (cmd == "config")  app.configure(*msg);
   else if (cmd == "reset")   app.getAccount().reset();
   else if (cmd == "link") {
     app.getAccount().setToken(msg->getString("token"));
@@ -211,8 +218,6 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     LOG_WARNING("Received unsupported remote command '" << cmd << "'");
     return;
   }
-
-  app.getUnits().triggerUpdate(true);
 }
 
 

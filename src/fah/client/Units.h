@@ -30,48 +30,24 @@
 
 #include "Unit.h"
 
-#include <string>
-#include <functional>
-
 
 namespace FAH {
   namespace Client {
-    class Config;
-
-    class Units : public cb::JSON::ObservableList,
-                  public UnitState::Enum {
+    class Units : public cb::JSON::ObservableList {
       App &app;
-      cb::SmartPointer<Config> config;
 
-      cb::Event::EventPtr event;
-      uint32_t failures  = 0;
-      uint64_t waitUntil = 0;
-
-      std::function<void ()> shutdownCB;
-
-    public:
-      Units(App &app, const cb::SmartPointer<Config> &config);
-
-      const Config &getConfig() const {return *config;}
+   public:
+      Units(App &app);
 
       bool isActive()    const;
       bool hasFailure()  const;
-      bool hasUnrunWUs() const;
-      bool waitForIdle() const;
 
       void add(const cb::SmartPointer<Unit> &unit);
-      unsigned getUnitIndex(const std::string &id) const;
-      Unit &getUnit(unsigned index) const;
-      Unit &getUnit(const std::string &id) const;
-      cb::SmartPointer<Unit> removeUnit(unsigned index);
-      void dump(const std::string &unitID);
-      void unitComplete(bool success);
-      void update();
-      void triggerUpdate(bool updateUnits = false);
-      void shutdown(std::function<void ()> cb);
-
-    protected:
-      void setWait(double delay);
+      int getUnitIndex(const std::string &id) const;
+      cb::SmartPointer<Unit> findUnit(const std::string &id);
+      cb::SmartPointer<Unit> getUnit(unsigned index) const;
+      cb::SmartPointer<Unit> getUnit(const std::string &id) const;
+      void removeUnit(const std::string &id);
     };
   }
 }

@@ -46,7 +46,7 @@
 namespace FAH {
   namespace Client {
     class App;
-    class Units;
+    class Group;
     class GPUResource;
     class Core;
     class Config;
@@ -56,7 +56,7 @@ namespace FAH {
       public cb::Event::Enum,
       public UnitState::Enum {
       App &app;
-      cb::SmartPointer<Units> units;
+      cb::SmartPointer<Group> group;
 
       cb::Event::EventPtr           event;
       cb::Event::Client::RequestPtr pr;
@@ -93,12 +93,14 @@ namespace FAH {
       Unit(App &app);
 
     public:
-      Unit(App &app, uint64_t wu, uint32_t cpus,
+      Unit(App &app, const std::string &group, uint64_t wu, uint32_t cpus,
            const std::set<std::string> &gpus);
       Unit(App &app, const cb::JSON::ValuePtr &data);
       ~Unit();
 
-      void setUnits(const cb::SmartPointer<Units> &units);
+      void setGroup(const cb::SmartPointer<Group> &group);
+      Group &getGroup() const {return *group;}
+
       const Config &getConfig() const;
 
       const std::string &getID() const {return id;}

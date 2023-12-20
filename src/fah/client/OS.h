@@ -64,7 +64,7 @@ namespace FAH {
       bool isActive()   const {return active;}
       bool hasFailure() const {return failure;}
       void requestExit() const;
-      void togglePause() const;
+      void setState(const std::string &state) const;
 
     protected:
       void update();

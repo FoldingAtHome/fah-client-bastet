@@ -32,7 +32,7 @@
 #include "OS.h"
 #include "Server.h"
 #include "GPUResources.h"
-#include "Units.h"
+#include "Groups.h"
 #include "Core.h"
 #include "Cores.h"
 #include "Config.h"
@@ -108,12 +108,16 @@ namespace {
 
 
 Unit::Unit(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {}
+  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {
+  triggerNext();
+}
 
 
-Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
+Unit::Unit(App &app, const string &group, uint64_t wu, uint32_t cpus,
+           const std::set<string> &gpus) :
   Unit(app) {
   this->wu = wu;
+  setGroup(&app.getGroups()->getGroup(group));
   insert("number", wu);
   setCPUs(cpus);
   setGPUs(gpus);
@@ -121,10 +125,12 @@ Unit::Unit(App &app, uint64_t wu, uint32_t cpus, const std::set<string> &gpus) :
 }
 
 
-Unit::Unit(App &app, const JSON::ValuePtr &data) :
-  Unit(app) {
+Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
   this->data = data->get("data");
   merge(*data->get("state"));
+
+  // Get group
+  setGroup(&app.getGroups()->getGroup(getString("group", "")));
 
   // Fix old var names
   const char *vars[] = {"run-time", "pause-reason", 0};
@@ -136,6 +142,7 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) :
 
   wu = getU64("number", -1);
   id = getString("id", "");
+  LOG_INFO(3, "Loading work unit " << wu << " with ID " << id);
   if (id.empty()) setState(UNIT_DONE); // Invalid WU
 
   // Check that we still have the required core
@@ -153,8 +160,13 @@ Unit::~Unit() {
 }
 
 
-void Unit::setUnits(const SmartPointer<Units> &units) {this->units = units;}
-const Config &Unit::getConfig() const {return units->getConfig();}
+void Unit::setGroup(const SmartPointer<Group> &group) {
+  insert("group", group->getName());
+  this->group = group;
+}
+
+
+const Config &Unit::getConfig() const {return group->getConfig();}
 UnitState Unit::getState() const {return UnitState::parse(getString("state"));}
 
 
@@ -169,7 +181,7 @@ bool Unit::isWaiting() const {return wait && Time::now() < wait;}
 
 
 bool Unit::isPaused() const {
-  return getConfig().getPaused() || units->waitForIdle() ||
+  return getConfig().getPaused() || group->waitForIdle() ||
     getBoolean("paused", true) || app.shouldQuit();
 }
 
@@ -182,7 +194,7 @@ void Unit::setPause(bool pause) {
 
 const char *Unit::getPauseReason() const {
   if (getConfig().getPaused())     return "Paused by user";
-  if (units->waitForIdle())        return "Waiting for idle system";
+  if (group->waitForIdle())        return "Waiting for idle system";
   if (getBoolean("paused", true))  return "Resources not available";
   if (app.shouldQuit())            return "Shutting down";
   if (isWaiting())                 return "Waiting to retry";
@@ -422,7 +434,7 @@ void Unit::cancelRequest() {
 
 void Unit::setState(UnitState state) {
   if (hasString("state") && state == getState()) return;
-  if (units.isSet()) units->triggerUpdate();
+  if (group.isSet()) group->triggerUpdate();
   insert("state", state.toString());
   setProgress(0, 0);
 }
@@ -643,7 +655,7 @@ void Unit::run() {
   process->setWorkingDirectory("work");
   process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
                 Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
-                getConfig().getCorePriority());
+                Subprocess::PRIORITY_IDLE);
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
 
   // Redirect core output to log
@@ -761,7 +773,7 @@ void Unit::finalizeRun() {
       "Core returned " << code << " (" << (unsigned)code << ')');
 
   // Notify parent
-  units->triggerUpdate();
+  group->triggerUpdate();
 
   // WU not complete if core was interrupted
   if (code == ExitCode::INTERRUPTED) return triggerNext();
@@ -846,7 +858,7 @@ void Unit::clean() {
   TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   setState(UNIT_DONE);
-  units->unitComplete(success);
+  group->unitComplete(success);
 }
 
 
@@ -933,9 +945,9 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   sink.insert("id",      id);
 
   // User
-  sink.insert("user",    getConfig().getUsername());
-  sink.insert("team",    getConfig().getTeam());
-  sink.insert("passkey", getConfig().getPasskey());
+  sink.insert("user",    app.getConfig()->getUsername());
+  sink.insert("team",    app.getConfig()->getTeam());
+  sink.insert("passkey", app.getConfig()->getPasskey());
   string aid = app.selectString("info.account", "");
   if (!aid.empty()) sink.insert("account", aid);
 
@@ -949,8 +961,8 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   // Project
   auto gpus = getGPUs();
   sink.insertDict("project");
-  if (getConfig().hasString("cause"))
-    sink.insert("cause", getConfig().getString("cause"));
+  if (app.getConfig()->hasString("cause"))
+    sink.insert("cause", app.getConfig()->getString("cause"));
   sink.insertBoolean("beta", getConfig().getBeta(gpus));
   auto key = getConfig().getProjectKey(gpus);
   if (key) sink.insert("key", key);
@@ -994,8 +1006,9 @@ void Unit::assign() {
   id = idFromSig(signature);
   insert("id", id);
 
-  LOG_INFO(1, "Requesting WU assignment for user " << getConfig().getUsername()
-           << " team " << getConfig().getTeam());
+  LOG_INFO(1, "Requesting WU assignment for user "
+           << app.getConfig()->getUsername()
+           << " team " << app.getConfig()->getTeam());
   LOG_DEBUG(3, *data);
 
   // TODO validate peer certificate

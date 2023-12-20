@@ -280,7 +280,9 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
     case ID_USER_WEBCONTROL: openWebControl();    return 0;
-    case ID_USER_PAUSE:      OS::togglePause();   return 0;
+    case ID_USER_PAUSE:
+      OS::setState(OS::isPaused() ? "pause" : "fold");
+      return 0;
     case ID_USER_ABOUT:      showAbout(hWnd);     return 0;
     case ID_USER_EXIT:       DestroyWindow(hWnd); return 0;
     }

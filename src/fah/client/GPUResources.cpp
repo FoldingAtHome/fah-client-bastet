@@ -193,5 +193,8 @@ void GPUResources::detect() {
   }
 
   loaded = true;
-  if (changed) LOG_INFO(3, "gpus = " << *this);
+  if (changed) {
+    LOG_INFO(3, "gpus = " << *this);
+    app.triggerUpdate();
+  }
 }

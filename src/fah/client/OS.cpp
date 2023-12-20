@@ -29,7 +29,6 @@
 #include "OS.h"
 
 #include <fah/client/App.h>
-#include <fah/client/Config.h>
 
 #if defined(_WIN32)
 #include "win/WinOSImpl.h"
@@ -83,15 +82,14 @@ void OS::requestExit() const {
 }
 
 
-void OS::togglePause() const {
-  app.getEventBase().newEvent([this] () {
-    app.setPaused(!app.getPaused());
-  }, 0)->add(0);
+void OS::setState(const string &state) const {
+  app.getEventBase().newEvent(
+    [this, state] () {app.setState(state);}, 0)->add(0);
 }
 
 
 void OS::update() {
-  if (app.getConfig().getOnIdle() && isSystemIdle() != idle) {
+  if (isSystemIdle() != idle) {
     idle = !idle;
     app.triggerUpdate();
   }

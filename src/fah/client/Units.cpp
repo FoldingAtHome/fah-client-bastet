@@ -30,32 +30,35 @@
 
 #include "App.h"
 #include "Unit.h"
-#include "Config.h"
-#include "OS.h"
-#include "GPUResources.h"
 
 #include <cbang/Catch.h>
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
 
-#include <algorithm>
-#include <set>
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
 
-Units::Units(App &app, const SmartPointer<Config> &config) :
-  app(app), config(config),
-  event(app.getEventBase().newEvent(this, &Units::update, 0)) {
-  triggerUpdate();
+Units::Units(App &app) : app(app) {
+  unsigned count = 0;
+
+  app.getDB("units").foreach(
+    [this, &app, &count] (const string &id, const string &data) {
+      try {
+        add(new Unit(app, JSON::Reader::parseString(data)));
+        count++;
+      } CATCH_ERROR;
+    });
+
+  LOG_INFO(3, "Loaded " << count << " wus.");
 }
 
 
 bool Units::isActive() const {
   for (unsigned i = 0; i < size(); i++)
-    if (!getUnit(i).isPaused()) return true;
+    if (!getUnit(i)->isPaused()) return true;
 
   return false;
 }
@@ -63,218 +66,44 @@ bool Units::isActive() const {
 
 bool Units::hasFailure() const {
   for (unsigned i = 0; i < size(); i++)
-    if (getUnit(i).getRetries()) return true;
+    if (getUnit(i)->getRetries()) return true;
 
   return false;
 }
 
 
-bool Units::hasUnrunWUs() const {
+void Units::add(const SmartPointer<Unit> &unit) {append(unit);}
+
+
+int Units::getUnitIndex(const string &id) const {
   for (unsigned i = 0; i < size(); i++)
-    if (!getUnit(i).hasRun()) return true;
+    if (getUnit(i)->getID() == id) return i;
 
-  return false;
+  return -1;
 }
 
 
-bool Units::waitForIdle() const {
-  return getConfig().getOnIdle() && !app.getOS().isSystemIdle();
+SmartPointer<Unit> Units::findUnit(const string &id) {
+  int index = getUnitIndex(id);
+  return index == -1 ? 0 : getUnit(index);
 }
 
 
-void Units::add(const SmartPointer<Unit> &unit) {
-  append(unit);
-  unit->setUnits(this);
-  unit->triggerNext();
-}
-
-
-unsigned Units::getUnitIndex(const std::string &id) const {
-  for (unsigned i = 0; i < size(); i++)
-    if (getUnit(i).getID() == id) return i;
-
-  THROW("Unit " << id << " not found.");
-}
-
-
-Unit &Units::getUnit(unsigned index) const {
+SmartPointer<Unit> Units::getUnit(unsigned index) const {
   if (size() <= index) THROW("Invalid unit index " << index);
-  return get(index)->cast<Unit>();
+  return get(index).cast<Unit>();
 }
 
 
-Unit &Units::getUnit(const string &id) const {return getUnit(getUnitIndex(id));}
+SmartPointer<Unit> Units::getUnit(const string &id) const {
+  int index = getUnitIndex(id);
+  if (index < 0) THROW("Unit " << id << " not found.");
+  return getUnit(index);
+}
 
 
-SmartPointer<Unit> Units::removeUnit(unsigned index) {
-  if (size() <= index) THROW("Invalid unit index " << index);
-  auto unit = get(index).cast<Unit>();
+void Units::removeUnit(const string &id) {
+  int index = getUnitIndex(id);
+  if (index == -1) THROW("Invalid unit " << id);
   erase(index);
-  unit->setUnits(0);
-  return unit;
-}
-
-
-void Units::dump(const string &unitID) {
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = getUnit(i);
-
-    if (unitID.empty() || unit.getID() == unitID)
-      unit.dumpWU();
-  }
-}
-
-
-void Units::unitComplete(bool success) {
-  if (success) {
-    failures = 0;
-    setWait(0);
-
-  } else {
-    failures++;
-    setWait(pow(2, std::min(failures, 10U)));
-  }
-
-  triggerUpdate();
-}
-
-
-void Units::update() {
-  // Remove completed units
-  for (unsigned i = 0; i < size();)
-    if (getUnit(i).getState() == UnitState::UNIT_DONE) erase(i);
-    else i++;
-
-  // Handle graceful shutdown
-  if (app.shouldQuit()) {
-    for (unsigned i = 0; i < size(); i++)
-      if (getUnit(i).isRunning())
-        return event->add(1); // Check again later
-
-    if (shutdownCB) {
-      // Save state to DB
-      for (unsigned i = 0; i < size(); i++)
-        getUnit(i).save();
-
-      shutdownCB();
-      shutdownCB = 0;
-    }
-
-    return;
-  }
-
-  // Handle finish
-  if (config->getFinish()) {
-    bool running = false;
-
-    for (unsigned i = 0; i < size() && !running; i++)
-      running = !getUnit(i).isPaused();
-
-    if (!running) config->setPaused(true);
-  }
-
-  // No further action if paused or idle
-  if (config->getPaused() || waitForIdle())
-    return setWait(0); // Pausing clears wait timer
-
-  // Wait on failures
-  auto now = Time::now();
-  if (now < waitUntil) return event->add(waitUntil - now);
-
-  // Allocate resources
-  unsigned           remainingCPUs = config->getCPUs();
-  std::set<string>   remainingGPUs = config->getGPUs();
-  std::set<unsigned> enabledWUs;
-
-  // Allocate GPUs with minimum CPU requirements
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = getUnit(i);
-    if (UNIT_RUN < unit.getState()) continue;
-
-    auto unitGPUs = unit.getGPUs();
-    if (unitGPUs.empty()) continue;
-
-    uint32_t minCPUs = unit.getMinCPUs();
-    bool     runable = minCPUs <= remainingCPUs || minCPUs < 2;
-
-    std::set<string> gpusWithWU = remainingGPUs;
-    for (auto id: unitGPUs) runable &= gpusWithWU.erase(id) != 0;
-
-    if (runable) {
-      remainingGPUs = gpusWithWU;
-      remainingCPUs -= min(remainingCPUs, minCPUs); // Allocate minimum CPUs
-      enabledWUs.insert(i);
-    }
-  }
-
-  // Allocate extra CPUs to enabled GPU WUs
-  for (unsigned i = 0; i < size(); i++) {
-    if (!enabledWUs.count(i)) continue; // GPU WUs that were enabled above
-    auto &unit = getUnit(i);
-
-    uint32_t minCPUs = unit.getMinCPUs();
-    uint32_t maxCPUs = unit.getMaxCPUs();
-    uint32_t cpus    = min(maxCPUs, remainingCPUs + minCPUs);
-
-    unit.setCPUs(cpus);
-    // minCPUs was subtracted above or remainingCPUs is already zero
-    remainingCPUs -= min(remainingCPUs, cpus - minCPUs);
-  }
-
-  // Allocate remaining CPUs to existing CPU WUs
-  for (unsigned i = 0; i < size(); i++) {
-    auto &unit = getUnit(i);
-    if (unit.hasGPUs() || remainingCPUs < unit.getMinCPUs() ||
-        UNIT_RUN < unit.getState()) continue;
-
-    uint32_t maxCPUs = unit.getMaxCPUs();
-    uint32_t cpus    = min(maxCPUs, remainingCPUs);
-
-    unit.setCPUs(cpus);
-    remainingCPUs -= cpus;
-    enabledWUs.insert(i);
-  }
-
-  // Start and stop WUs
-  for (unsigned i = 0; i < size(); i++)
-    getUnit(i).setPause(getUnit(i).atRunState() && !enabledWUs.count(i));
-
-  // Report allocation status
-  LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
-            << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
-
-  // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
-  // have not yet been loaded.
-  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isLoaded())
-    return;
-
-  // Add new WU if we don't already have too many and there are some resources
-  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
-  if (size() < maxWUs && (remainingCPUs || remainingGPUs.size())) {
-    add(new Unit(app, app.getNextWUID(), remainingCPUs, remainingGPUs));
-    LOG_INFO(1, "Added new work unit: cpus:" << remainingCPUs << " gpus:"
-             << String::join(remainingGPUs, ","));
-    triggerUpdate();
-  }
-}
-
-
-void Units::triggerUpdate(bool updateUnits) {
-  if (!event->isPending()) event->activate();
-
-  if (updateUnits)
-    for (unsigned i = 0; i < size(); i++)
-      getUnit(i).triggerNext();
-}
-
-
-void Units::shutdown(function<void ()> cb) {
-  shutdownCB = cb;
-  triggerUpdate();
-}
-
-
-void Units::setWait(double delay) {
-  waitUntil = Time::now() + delay;
-  // TODO report wait to frontend
 }

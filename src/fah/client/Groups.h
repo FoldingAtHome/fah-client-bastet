@@ -28,56 +28,28 @@
 
 #pragma once
 
+#include "Group.h"
+
 #include <cbang/json/Observable.h>
-#include <cbang/config/Options.h>
 
 
 namespace FAH {
   namespace Client {
     class App;
 
-    class Config : public cb::JSON::ObservableDict {
+    class Groups : public cb::JSON::ObservableDict {
       App &app;
-      cb::JSON::ValuePtr defaults;
-
-      typedef cb::JSON::ObservableDict Super_T;
 
     public:
-      Config(App &app, const cb::JSON::ValuePtr &config);
+      Groups(App &app);
 
-      void load(const cb::Options &opts);
-
-      void configure(const cb::JSON::Value &config);
+      const Group &getGroup(const std::string &name) const;
+      Group &getGroup(const std::string &name);
+      void delGroup(const std::string &name);
+      void configure(const cb::JSON::Value &configs);
+      void triggerUpdate(bool updateUnits = false);
       void setState(const cb::JSON::Value &msg);
-
-      void setOnIdle(bool onIdle);
-      bool getOnIdle() const;
-
-      void setPaused(bool paused);
       bool getPaused() const;
-
-      void setFinish(bool finish);
-      bool getFinish() const;
-
-      std::string getUsername() const;
-      void setUsername(const std::string &user);
-      std::string getPasskey() const;
-      void setPasskey(const std::string &passkey);
-      uint32_t getTeam() const;
-      void setTeam(uint32_t team);
-      uint64_t getProjectKey(const std::set<std::string> &gpus) const;
-      bool getBeta(const std::set<std::string> &gpus) const;
-
-      uint32_t getCPUs() const;
-      std::set<std::string> getGPUs() const;
-      bool isGPUEnabled(const std::string &id) const;
-      void disableGPU(const std::string &id);
-
-      void setAccountData(const cb::JSON::ValuePtr &data);
-
-      // From JSON::Value
-      int insert(const std::string &key, const cb::JSON::ValuePtr &value);
-      using Super_T::insert;
     };
   }
 }
