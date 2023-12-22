@@ -82,8 +82,11 @@ void Server::init() {
     allowedOrigins.insert(origins[i]);
 
   // Web root
-  if (options["web-root"].hasValue())
-    addHandler("/.*", options["web-root"]);
+  if (options["web-root"].hasValue()) {
+    string root = options["web-root"];
+    addHandler("/.*", root);
+    addHandler("/.*", root + "/index.html");
+  }
 
   // Init
   WebServer::init();
