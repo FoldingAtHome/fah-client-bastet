@@ -34,19 +34,15 @@
 #include <cbang/log/Logger.h>
 #include <cbang/json/Reader.h>
 #include <cbang/os/SystemInfo.h>
-#include <cbang/util/Resource.h>
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 
-
-Config::Config(App &app, const JSON::ValuePtr &config) : app(app) {
+Config::Config(App &app, const JSON::ValuePtr &config,
+               const JSON::ValuePtr &defaults) : app(app), defaults(defaults) {
   // Load defaults
-  auto &r  = FAH::Client::resource0.get("config.json");
-  defaults = JSON::Reader::parseString(r.toString());
   merge(*defaults);
 
   // Load config data

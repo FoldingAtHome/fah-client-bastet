@@ -1,12 +1,8 @@
 {
-  "user":     "Anonymous",
-  "team":     0,
-  "passkey":  "",
   "on_idle":  false,
   "paused":   true,
   "finish":   false,
   "beta":     false,
-  "cause":    "any",
   "key":      0,
   "cpus":     0,
   "gpus":     {}

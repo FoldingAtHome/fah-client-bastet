@@ -410,8 +410,10 @@ void App::loadConfig() {
   LOG_INFO(1, "Machine ID = " << id);
 
   // Global config
-  auto data = db.getJSON("config", new JSON::Dict);
-  SmartPointer<Config> config = new Config(*this, data);
+  auto data     = db.getJSON("config", new JSON::Dict);
+  auto &r       = FAH::Client::resource0.get("global.json");
+  auto defaults = JSON::Reader::parseString(r.toString());
+  SmartPointer<Config> config = new Config(*this, data, defaults);
   config->load(getOptions());
   if (!data->has("cpus"))
     config->insert("cpus", getOptions()["cpus"].toInteger());

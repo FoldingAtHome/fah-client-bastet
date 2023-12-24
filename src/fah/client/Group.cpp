@@ -32,13 +32,16 @@
 #include "Config.h"
 #include "GPUResources.h"
 
+#include <cbang/util/Resource.h>
 #include <cbang/log/Logger.h>
+#include <cbang/json/Reader.h>
 
 
 using namespace std;
 using namespace cb;
 using namespace FAH::Client;
 
+namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 
 #undef CBANG_LOG_PREFIX
 #define CBANG_LOG_PREFIX (name.empty() ? "Default" : name) << ":"
@@ -47,8 +50,10 @@ using namespace FAH::Client;
 Group::Group(App &app, const string &name) :
   app(app), name(name),
   event(app.getEventBase().newEvent(this, &Group::update, 0)) {
-  auto data = app.getDB("groups").getJSON(name, new JSON::Dict);
-  config    = new Config(app, data);
+  auto data     = app.getDB("groups").getJSON(name, new JSON::Dict);
+  auto &r       = FAH::Client::resource0.get("group.json");
+  auto defaults = JSON::Reader::parseString(r.toString());
+  config        = new Config(app, data, defaults);
 
   insert("config", config);
 

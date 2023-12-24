@@ -863,9 +863,14 @@ void Unit::clean() {
 
 
 void Unit::setWait(double delay) {
-  wait = Time::now() + delay;
-  insert("delay", delay);
-  insert("wait",  Time(wait).toString());
+  double now     = Time::now();
+  double newWait = now + delay;
+
+  if (newWait != wait && (isWaiting() || now < newWait)) {
+    wait = newWait;
+    insert("delay", delay);
+    insert("wait",  Time(wait).toString());
+  }
 }
 
 

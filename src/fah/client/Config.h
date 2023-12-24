@@ -43,7 +43,8 @@ namespace FAH {
       typedef cb::JSON::ObservableDict Super_T;
 
     public:
-      Config(App &app, const cb::JSON::ValuePtr &config);
+      Config(App &app, const cb::JSON::ValuePtr &config,
+             const cb::JSON::ValuePtr &defaults);
 
       void load(const cb::Options &opts);
 
