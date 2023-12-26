@@ -235,9 +235,14 @@ SmartPointer<Units> App::getUnits() const {
 void App::configure(const JSON::Value &msg) {
   if (!validateChange(msg)) return;
 
-  auto config = msg.get("config", createDict());
-  getGroups()->configure(*config->get("groups", createDict()));
-  getConfig()->configure(*config);
+  if (config->hasDict("config")) {
+    auto config = msg.get("config");
+
+    if (config->hasDict("groups"))
+      getGroups()->configure(*config->get("groups"));
+
+    getConfig()->configure(*config);
+  }
 
   triggerUpdate();
 }
@@ -354,8 +359,6 @@ bool App::validateChange(const JSON::Value &msg) {
   string time = msg.getString("time", Time().toString());
   string key  = "change-time-" + cmd;
   auto &db    = getDB("config");
-
-  if (msg.hasString("group")) key += "-" + msg.getString("group");
 
   if (db.has(key) && Time::parse(time) <= Time::parse(db.getString(key)))
     return false; // outdated
