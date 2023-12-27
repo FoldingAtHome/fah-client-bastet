@@ -151,7 +151,9 @@ App::App() :
 
   options.pushCategory("Resource Settings");
   options.add("cpus", "Number of cpus FAH client will use.",
-              new MaxConstraint<int32_t>(getDefaultCPUs()));
+              new MaxConstraint<int32_t>(SystemInfo::instance().getCPUCount())
+    )->setDefault(getDefaultCPUs());
+
   options.popCategory();
 
   options["allow"].setDefault("127.0.0.1");
