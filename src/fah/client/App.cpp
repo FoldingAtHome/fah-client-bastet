@@ -235,7 +235,7 @@ SmartPointer<Units> App::getUnits() const {
 void App::configure(const JSON::Value &msg) {
   if (!validateChange(msg)) return;
 
-  if (config->hasDict("config")) {
+  if (msg.hasDict("config")) {
     auto config = msg.get("config");
 
     if (config->hasDict("groups"))
