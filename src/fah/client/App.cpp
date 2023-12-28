@@ -412,7 +412,7 @@ void App::loadConfig() {
   // Generate ID from key
   string id = Digest::urlBase64(key.getRSA_N().toBinString(), "sha256");
   info->insert("id", id);
-  LOG_INFO(1, "Machine ID = " << id);
+  LOG_INFO(1, "F@H ID = " << id);
 
   // Global config
   auto data     = db.getJSON("config", new JSON::Dict);
