@@ -308,7 +308,7 @@ void Account::onOpen() {
   KeyContext kctx(accountKey);
   kctx.encryptInit();
   kctx.setRSAPadding(KeyContext::PKCS1_OAEP_PADDING);
-  kctx.setRSAOAEPMD("SHA-256");
+  kctx.setRSAOAEPMD("SHA256");
   string encryptedKey = Base64().encode(kctx.encrypt(sessionKey));
 
   // Login payload
