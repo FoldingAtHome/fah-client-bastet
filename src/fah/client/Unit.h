@@ -184,6 +184,7 @@ namespace FAH {
       void dumpResponse(const cb::JSON::ValuePtr &data);
       void dump();
       void response(cb::Event::Request &req);
+      void logCredit(const cb::JSON::ValuePtr &data);
     };
   }
 }

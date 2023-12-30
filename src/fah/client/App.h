@@ -43,14 +43,9 @@
 
 #include <cbang/net/IPAddress.h>
 #include <cbang/json/Observable.h>
+#include <cbang/event/Event.h>
 
 #include <map>
-
-
-namespace cb {
-  namespace Event {class Event;}
-  namespace JSON  {class Sink;}
-}
 
 
 namespace FAH {
@@ -94,6 +89,8 @@ namespace FAH {
       std::list<cb::SmartPointer<Remote>> remotes;
 
       unsigned nextAS = 0;
+
+      cb::Event::EventPtr saveConfigEvent;
 
     public:
       App();
@@ -160,10 +157,13 @@ namespace FAH {
       void run() override;
       void requestExit() override;
 
+    protected:
       // From cb::JSON::Value
       void notify(const std::list<cb::JSON::ValuePtr> &change) override;
 
       void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
+
+      void saveConfig();
     };
   }
 }

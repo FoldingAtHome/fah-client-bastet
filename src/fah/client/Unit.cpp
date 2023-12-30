@@ -1097,13 +1097,7 @@ void Unit::uploadResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Credited");
   setState(UNIT_CLEAN);
   success = true;
-
-  // Log credit record
-  try {
-    string dir = Time().toString("credits/%Y/%m/");
-    SystemUtilities::ensureDirectory(dir);
-    data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
-  } CATCH_ERROR;
+  logCredit(data);
 }
 
 
@@ -1142,12 +1136,7 @@ void Unit::dumpResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Dumped");
   setState(UNIT_CLEAN);
   success = true;
-
-  // Log dump record
-  try {
-    SystemUtilities::ensureDirectory("credits");
-    data->write(*SystemUtilities::oopen("credits/" + getID() + ".json"));
-  } CATCH_ERROR;
+  logCredit(data);
 }
 
 
@@ -1222,4 +1211,13 @@ void Unit::response(Event::Request &req) {
   } CATCH_ERROR;
 
   retry();
+}
+
+
+void Unit::logCredit(const JSON::ValuePtr &data) {
+  try {
+    string dir = Time().toString("credits/%Y/%m/");
+    SystemUtilities::ensureDirectory(dir);
+    data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
+  } CATCH_ERROR;
 }

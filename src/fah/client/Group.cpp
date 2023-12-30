@@ -50,10 +50,17 @@ namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 Group::Group(App &app, const string &name) :
   app(app), name(name),
   event(app.getEventBase().newEvent(this, &Group::update, 0)) {
-  auto data     = app.getDB("groups").getJSON(name, new JSON::Dict);
   auto &r       = FAH::Client::resource0.get("group.json");
   auto defaults = JSON::Reader::parseString(r.toString());
-  config        = new Config(app, data, defaults);
+  config        = new Config(app, defaults);
+  auto &db      = app.getDB("groups");
+
+  if (name.empty()) {
+    config->load(app.getOptions());
+    config->insert("cpus", app.getOptions()["cpus"].toInteger());
+  }
+
+  if (db.has(name)) config->load(*db.getJSON(name));
 
   insert("config", config);
 
@@ -127,7 +134,7 @@ void Group::remove() {app.getDB("groups").unset(name);}
 
 void Group::notify(const list<JSON::ValuePtr> &change) {
   // Automatically save changes to config
-  bool isConfig = !change.empty() && change.front()->getString() == "config";
+  bool isConfig = 2 < change.size() && change.front()->getString() == "config";
 
   if (isConfig) {
     save();

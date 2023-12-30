@@ -43,29 +43,21 @@ namespace FAH {
       typedef cb::JSON::ObservableDict Super_T;
 
     public:
-      Config(App &app, const cb::JSON::ValuePtr &config,
-             const cb::JSON::ValuePtr &defaults);
+      Config(App &app, const cb::JSON::ValuePtr &defaults);
 
+      void load(const cb::JSON::Value &config);
       void load(const cb::Options &opts);
 
       void configure(const cb::JSON::Value &config);
       void setState(const cb::JSON::Value &msg);
 
-      void setOnIdle(bool onIdle);
       bool getOnIdle() const;
-
       void setPaused(bool paused);
       bool getPaused() const;
-
-      void setFinish(bool finish);
       bool getFinish() const;
-
       std::string getUsername() const;
-      void setUsername(const std::string &user);
       std::string getPasskey() const;
-      void setPasskey(const std::string &passkey);
       uint32_t getTeam() const;
-      void setTeam(uint32_t team);
       uint64_t getProjectKey(const std::set<std::string> &gpus) const;
       bool getBeta(const std::set<std::string> &gpus) const;
 
@@ -73,8 +65,6 @@ namespace FAH {
       std::set<std::string> getGPUs() const;
       bool isGPUEnabled(const std::string &id) const;
       void disableGPU(const std::string &id);
-
-      void setAccountData(const cb::JSON::ValuePtr &data);
 
       // From JSON::Value
       int insert(const std::string &key, const cb::JSON::ValuePtr &value);

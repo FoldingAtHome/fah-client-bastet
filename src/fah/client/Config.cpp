@@ -40,15 +40,14 @@ using namespace cb;
 using namespace std;
 
 
-Config::Config(App &app, const JSON::ValuePtr &config,
-               const JSON::ValuePtr &defaults) : app(app), defaults(defaults) {
-  // Load defaults
-  merge(*defaults);
+Config::Config(App &app, const JSON::ValuePtr &defaults) :
+  app(app), defaults(defaults) {merge(*defaults);}
 
-  // Load config data
-  for (unsigned i = 0; i < config->size(); i++) {
-    string key = config->keyAt(i);
-    if (defaults->has(key)) insert(key, config->get(i));
+
+void Config::load(const JSON::Value &config) {
+  for (unsigned i = 0; i < config.size(); i++) {
+    string key = config.keyAt(i);
+    if (defaults->has(key)) insert(key, config.get(i));
   }
 }
 
@@ -79,15 +78,13 @@ void Config::configure(const JSON::Value &config) {
 void Config::setState(const JSON::Value &msg) {
   string state = msg.getString("state");
 
-  if (state == "pause")  return setPaused(true);
-  if (state == "fold")   return setPaused(false);
-  if (state == "finish") return setFinish(true);
-
-  LOG_WARNING("Unsupported config state '" << state << "'");
+  if      (state == "pause")  setPaused(true);
+  else if (state == "fold")   setPaused(false);
+  else if (state == "finish") insertBoolean("finish", true);
+  else LOG_WARNING("Unsupported config state '" << state << "'");
 }
 
 
-void Config::setOnIdle(bool onIdle) {insertBoolean("on_idle", onIdle);}
 bool Config::getOnIdle() const {return getBoolean("on_idle");}
 
 
@@ -98,7 +95,6 @@ void Config::setPaused(bool paused) {
 
 
 bool Config::getPaused() const {return getBoolean("paused");}
-void Config::setFinish(bool finish) {insertBoolean("finish", finish);}
 bool Config::getFinish() const {return getBoolean("finish");}
 
 
@@ -108,11 +104,8 @@ string Config::getUsername() const {
 }
 
 
-void Config::setUsername(const string &user) {insert("user", user);}
 string Config::getPasskey() const {return getString("passkey", "");}
-void Config::setPasskey(const string &passkey) {insert("passkey", passkey);}
 uint32_t Config::getTeam() const {return getU32("team", 0);}
-void Config::setTeam(uint32_t team) {insert("team", team);}
 
 
 uint64_t Config::getProjectKey(const std::set<string> &gpus) const {
@@ -156,14 +149,6 @@ bool Config::isGPUEnabled(const string &id) const {
 void Config::disableGPU(const string &id) {
   auto &gpus = *get("gpus");
   if (gpus.has(id)) gpus.erase(id);
-}
-
-
-void Config::setAccountData(const JSON::ValuePtr &data) {
-  setUsername(data->getString("user", "Anonymous"));
-  setPasskey(data->getString("passkey", ""));
-  setTeam(data->getU32("team", 0));
-  insert("cause", data->getString("cause", "any"));
 }
 
 

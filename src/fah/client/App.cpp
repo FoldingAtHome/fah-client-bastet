@@ -96,7 +96,8 @@ App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, 10),
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
-  cores(new Cores(*this)) {
+  cores(new Cores(*this)),
+  saveConfigEvent(base.newEvent(this, &App::saveConfig, 0)) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -415,13 +416,13 @@ void App::loadConfig() {
   LOG_INFO(1, "F@H ID = " << id);
 
   // Global config
-  auto data     = db.getJSON("config", new JSON::Dict);
   auto &r       = FAH::Client::resource0.get("global.json");
   auto defaults = JSON::Reader::parseString(r.toString());
-  SmartPointer<Config> config = new Config(*this, data, defaults);
+  SmartPointer<Config> config = new Config(*this, defaults);
+
   config->load(getOptions());
-  if (!data->has("cpus"))
-    config->insert("cpus", getOptions()["cpus"].toInteger());
+  if (db.has("config")) config->load(*db.getJSON("config"));
+
   insert("config", config);
 }
 
@@ -484,7 +485,11 @@ void App::requestExit() {
 
 
 void App::notify(const list<JSON::ValuePtr> &change) {
-  if (remotes.empty()) return; // Avoid many calls during init
+  if (remotes.empty() || shouldQuit()) return; // Avoid many calls during init
+
+  // Automatically save changes to config
+  bool isConfig = 2 < change.size() && change.front()->getString() == "config";
+  if (isConfig) saveConfigEvent->activate();
 
   auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
   LOG_DEBUG(5, __func__ << ' ' << *changes);
@@ -495,3 +500,4 @@ void App::notify(const list<JSON::ValuePtr> &change) {
 
 
 void App::signalEvent(Event::Event &, int, unsigned) {requestExit();}
+void App::saveConfig() {getDB("config").set("config", getConfig()->toString());}

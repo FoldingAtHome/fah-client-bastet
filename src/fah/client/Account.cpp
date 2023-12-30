@@ -147,7 +147,7 @@ void Account::requestInfo() {
 
       } else { // Account is valid, connect to node
         setData(req.getInputJSON());
-        app.getConfig()->setAccountData(data);
+        app.getConfig()->configure(*data);
         app.getDB("config").set("account", data->toString());
         connect();
         updateBackoff.reset();
