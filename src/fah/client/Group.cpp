@@ -98,13 +98,7 @@ bool Group::hasUnrunWUs() const {
 }
 
 
-void Group::triggerUpdate(bool updateUnits) {
-  if (!event->isPending()) event->activate();
-
-  if (updateUnits)
-    for (auto unit: units())
-      unit->triggerNext();
-}
+void Group::triggerUpdate() {if (!event->isPending()) event->activate();}
 
 
 void Group::shutdown(function<void ()> cb) {
@@ -144,6 +138,10 @@ void Group::notify(const list<JSON::ValuePtr> &change) {
 
 
 void Group::update() {
+  // Trigger unit updates
+  for (auto unit: units())
+    unit->triggerNext();
+
   // Remove completed units
   std::set<string> completed;
   for (auto unit: units())

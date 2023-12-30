@@ -722,7 +722,7 @@ bool Unit::readViewerFrame() {
       LOG_WARNING("Visualization frame " << viewerFrame
                   << " unchanged, skipping");
 
-    else {
+    else if (!frame->empty()) {
       frames.push_back(frame);
       insert("frames", (uint32_t)frames.size());
     }

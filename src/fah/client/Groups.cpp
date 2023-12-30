@@ -107,9 +107,9 @@ void Groups::configure(const JSON::Value &configs) {
 }
 
 
-void Groups::triggerUpdate(bool updateUnits) {
+void Groups::triggerUpdate() {
   for (auto &name: keys())
-    getGroup(name).triggerUpdate(updateUnits);
+    getGroup(name).triggerUpdate();
 }
 
 

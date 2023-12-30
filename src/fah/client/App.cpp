@@ -266,7 +266,7 @@ void App::remove(Remote &remote) {
 }
 
 
-void App::triggerUpdate() {getGroups()->triggerUpdate(true);}
+void App::triggerUpdate() {getGroups()->triggerUpdate();}
 bool App::isActive()   const {return getUnits()->isActive();}
 bool App::hasFailure() const {return getUnits()->hasFailure();}
 

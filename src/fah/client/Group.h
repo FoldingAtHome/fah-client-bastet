@@ -105,7 +105,7 @@ namespace FAH {
       bool waitForIdle() const;
       bool isActive() const;
       bool hasUnrunWUs() const;
-      void triggerUpdate(bool updateUnits = false);
+      void triggerUpdate();
       void shutdown(std::function<void ()> cb);
       void unitComplete(bool success);
 

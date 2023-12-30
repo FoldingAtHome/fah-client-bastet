@@ -47,7 +47,7 @@ namespace FAH {
       Group &getGroup(const std::string &name);
       void delGroup(const std::string &name);
       void configure(const cb::JSON::Value &configs);
-      void triggerUpdate(bool updateUnits = false);
+      void triggerUpdate();
       void setState(const cb::JSON::Value &msg);
       bool getPaused() const;
     };
