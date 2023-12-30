@@ -276,10 +276,9 @@ void Account::onBroadcast(const JSON::ValuePtr &msg) {
 
   // Process command
   string cmd = payload->getString("cmd");
-  auto &group = app.getGroups()->getGroup(payload->getString("group", ""));
 
-  if (cmd == "state")  return group.getConfig().setState(*payload);
-  if (cmd == "config") return group.getConfig().configure(*payload);
+  if (cmd == "state")  return app.setState(*payload);
+  if (cmd == "config") return app.configure(*payload);
   if (cmd == "reset")  return reset();
 
   LOG_WARNING("Unsupported broadcast message '" << cmd << "'");
