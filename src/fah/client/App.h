@@ -163,7 +163,7 @@ namespace FAH {
 
       void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
 
-      void saveConfig();
+      void saveGlobalConfig();
     };
   }
 }

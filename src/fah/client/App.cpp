@@ -97,7 +97,7 @@ App::App() :
   dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
   cores(new Cores(*this)),
-  saveConfigEvent(base.newEvent(this, &App::saveConfig, 0)) {
+  saveConfigEvent(base.newEvent(this, &App::saveGlobalConfig, 0)) {
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -500,4 +500,8 @@ void App::notify(const list<JSON::ValuePtr> &change) {
 
 
 void App::signalEvent(Event::Event &, int, unsigned) {requestExit();}
-void App::saveConfig() {getDB("config").set("config", getConfig()->toString());}
+
+
+void App::saveGlobalConfig() {
+  getDB("config").set("config", getConfig()->toString());
+}
