@@ -1,1 +1,0 @@
-cp -a . $RPM_BUILD_ROOT
