@@ -94,7 +94,7 @@ Here is an example file:
 </config>
 ```
 
-If manually running the client somewhere other than ``/var/lib/fah-client/``, 
+If manually running the client somewhere other than ``/var/lib/fah-client/``,
 ``config.xml`` should be in the current working directory.
 
 Note that the ``config.xml`` configuration file will be overridden if a user
@@ -103,3 +103,10 @@ sets the configuration via the frontend.
 In Linux, the ``fah-client`` service can be stopped and started using service
 control commands.  In Windows, a system tray icon will appear when the client
 is running.  This can be used to stop the client.
+
+## Bleeding Edge Builds
+
+The latest bleeding edge builds can be downloaded from
+https://master.foldingathome.org/builds/fah-client/  These builds are not
+official release and may not even be function.
+They should be used for testing the latest pre-alpha code.
