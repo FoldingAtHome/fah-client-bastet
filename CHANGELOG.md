@@ -2,7 +2,15 @@ Folding@home Client Changelog
 =============================
 
 ## v8.3.0
- - Return of resource groups.
+ - Return of resource groups
+ - Separate fold/pause buttons in Windows sys-tray
+ - Fixed saving of local account config
+ - Log dump record to correct directory
+ - Fixed SSL error, cannot find SHA-256.
+ - Fixed node broadcast messages.
+ - 'Paused by user' -> 'Paused'
+ - Provide full OS version in info
+ - Set default 'cpus' closes #180
 
 ## v8.2.4
  - Organize credit logs by year/month. #59 (Kevin Bernhagen)
