@@ -279,12 +279,11 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
-    case ID_USER_WEBCONTROL: openWebControl();    return 0;
-    case ID_USER_PAUSE:
-      OS::setState(OS::isPaused() ? "fold" : "pause");
-      return 0;
-    case ID_USER_ABOUT:      showAbout(hWnd);     return 0;
-    case ID_USER_EXIT:       DestroyWindow(hWnd); return 0;
+    case ID_USER_WEBCONTROL: openWebControl();      return 0;
+    case ID_USER_FOLD:       OS::setState("fold");  return 0;
+    case ID_USER_PAUSE:      OS::setState("pause"); return 0;
+    case ID_USER_ABOUT:      showAbout(hWnd);       return 0;
+    case ID_USER_EXIT:       DestroyWindow(hWnd);   return 0;
     }
     break;
   }
@@ -362,10 +361,11 @@ void WinOSImpl::popup(HWND hWnd) {
 
   AppendMenu(hMenu, 0, ID_USER_WEBCONTROL, "&Web Control");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  AppendMenu(hMenu, OS::isPaused() ? MF_CHECKED : 0, ID_USER_PAUSE, "Pause");
+  AppendMenu(hMenu, 0, ID_USER_FOLD,       "&Fold");
+  AppendMenu(hMenu, 0, ID_USER_PAUSE,      "&Pause");
   AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
-  AppendMenu(hMenu, 0, ID_USER_ABOUT, "&About");
-  AppendMenu(hMenu, 0, ID_USER_EXIT, "&Quit");
+  AppendMenu(hMenu, 0, ID_USER_ABOUT,      "&About");
+  AppendMenu(hMenu, 0, ID_USER_EXIT,       "&Quit");
 
   // Get mouse position
   POINT point;

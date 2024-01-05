@@ -135,6 +135,9 @@ void Account::sendEncrypted(const JSON::Value &_msg, const string &sid) {
 }
 
 
+void Account::retryUpdate() {updateEvent->add((unsigned)updateBackoff.next());}
+
+
 void Account::requestInfo() {
   Event::Client::RequestPtr pr;
 
@@ -143,7 +146,7 @@ void Account::requestInfo() {
       if (req.logResponseErrors()) {
         // If the account does not exist, forget about it
         if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-        else updateEvent->add((unsigned)updateBackoff.next());
+        else retryUpdate();
 
       } else { // Account is valid, connect to node
         setData(req.getInputJSON());
@@ -173,7 +176,7 @@ void Account::connect() {
 
   } CATCH_ERROR;
 
-  updateEvent->add((unsigned)updateBackoff.next());
+  retryUpdate();
 }
 
 
@@ -182,8 +185,7 @@ void Account::link() {
 
   auto cb = [this, pr] (Event::Request &req) mutable {
     if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-    else if (req.logResponseErrors())
-      updateEvent->add((unsigned)updateBackoff.next()); // Retry
+    else if (req.logResponseErrors()) retryUpdate();
 
     else {
       LOG_INFO(1, "Account linked");

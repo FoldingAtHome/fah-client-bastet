@@ -75,6 +75,8 @@ namespace FAH {
       void sendEncrypted(const cb::JSON::Value &msg, const std::string &sid);
 
     protected:
+      void retryUpdate();
+
       void requestInfo();
       void connect();
       void link();
