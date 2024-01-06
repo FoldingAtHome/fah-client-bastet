@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.1
+ - Updated copyrights.
+
 ## v8.3.0
  - Return of resource groups
  - Separate fold/pause buttons in Windows sys-tray

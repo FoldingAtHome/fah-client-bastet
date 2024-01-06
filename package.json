@@ -1,6 +1,6 @@
 {
   "name": "fah-client",
-  "version": "8.3.0",
+  "version": "8.3.1",
   "bin": {
     "fah-client": "./fah-client"
   },
@@ -9,5 +9,5 @@
   "url": "https://alpha.foldingathome.org/",
   "description": "Folding@home client software which downloads and runs Folding@home simulation work units.\n\nFinished work units are returned to the Folding@home servers for points.\n\nFold on your own or in a team.  Compete with folders around the world to earn the most points while contributing to science.\n\nMonitor and control the client via your browser.",
   "license": "GPL-3.0-or-later",
-  "copyright": "2023 foldingathome.org"
+  "copyright": "2023-2024, foldingathome.org"
 }
