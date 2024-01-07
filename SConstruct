@@ -169,7 +169,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         vendor             = env['PACKAGE_ORG'],
         url                = env['PACKAGE_HOMEPAGE'],
         license            = 'LICENSE',
-        bug_url            = 'https://github.com/FoldingAtHome/fah-client',
+        bug_url            = 'https://github.com/FoldingAtHome/fah-client-bastet',
         summary            = 'Folding@home Client',
         description        = description,
         short_description  = short_description,
