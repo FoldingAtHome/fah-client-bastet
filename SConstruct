@@ -78,15 +78,6 @@ Alias('dist', tar)
 AlwaysBuild(tar)
 Clean(tar, ['dist.txt'])
 
-description = \
-'''Folding@home performs research on human diseases using the computing
-resources of volunteers.
-'''
-
-short_description = package_info.get('description', 'Folding@home client')
-
-description += short_description
-
 if 'package' in COMMAND_LINE_TARGETS:
     import shutil
 
@@ -171,8 +162,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         license            = 'LICENSE',
         bug_url            = 'https://github.com/FoldingAtHome/fah-client-bastet',
         summary            = 'Folding@home Client',
-        description        = description,
-        short_description  = short_description,
+        description        = package_info.get('description'),
         icons              = ['images/fahlogo.png'],
 
         documents          = docs,
