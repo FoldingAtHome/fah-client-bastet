@@ -310,7 +310,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
     ("Folding@home Client\n\r"
      "Version " << version << "\n\r"
      "\n\r"
-     "Copyright (c) 2001-2023 foldingathome.org\n\r"
+     "Copyright (c) 2001-2024 foldingathome.org\n\r"
      "\n\r"
      "Folding@home uses your excess computing power to help scientists at "
      "Universities around the world to better understand and find cures "
