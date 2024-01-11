@@ -96,11 +96,16 @@ void OS::update() {
     app.triggerUpdate();
   }
 
-  auto &pm  = PowerManagement::instance();
-  paused    = app.getPaused();
-  active    = app.isActive();
-  failure   = app.hasFailure();
-  onBattery = pm.onBattery();
+  paused  = app.getPaused();
+  active  = app.isActive();
+  failure = app.hasFailure();
+
+  auto &pm = PowerManagement::instance();
+  bool onBattery = pm.onBattery();
+  if (this->onBattery != onBattery) {
+    this->onBattery = onBattery;
+    app.triggerUpdate();
+  }
 
   // Keep system awake if not on battery
   if (!onBattery && app.keepAwake()) lastKeepAwake = Time::now();
