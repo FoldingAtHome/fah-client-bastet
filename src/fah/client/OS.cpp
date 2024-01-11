@@ -76,7 +76,6 @@ const char *OS::getCPU() const {
 }
 
 
-bool OS::isOnBattery() const {return PowerManagement::instance().onBattery();}
 void OS::dispatch() {app.getEventBase().dispatch();}
 
 
@@ -97,12 +96,13 @@ void OS::update() {
     app.triggerUpdate();
   }
 
-  paused  = app.getPaused();
-  active  = app.isActive();
-  failure = app.hasFailure();
+  auto &pm  = PowerManagement::instance();
+  paused    = app.getPaused();
+  active    = app.isActive();
+  failure   = app.hasFailure();
+  onBattery = pm.onBattery();
 
   // Keep system awake if not on battery
-  auto &pwrMan = PowerManagement::instance();
-  if (!pwrMan.onBattery() && app.keepAwake()) lastKeepAwake = Time::now();
-  pwrMan.allowSystemSleep(30 < Time::now() - lastKeepAwake);
+  if (!onBattery && app.keepAwake()) lastKeepAwake = Time::now();
+  pm.allowSystemSleep(30 < Time::now() - lastKeepAwake);
 }

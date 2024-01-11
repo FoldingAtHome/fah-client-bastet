@@ -46,6 +46,7 @@ namespace FAH {
       std::atomic<bool> paused;
       std::atomic<bool> active;
       std::atomic<bool> failure;
+      std::atomic<bool> onBattery;
 
     protected:
       cb::SmartPointer<cb::Event::Event> event;
@@ -59,12 +60,12 @@ namespace FAH {
       virtual const char *getName() const = 0;
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
-      virtual bool isOnBattery() const;
       virtual void dispatch();
 
-      bool isPaused()   const {return paused;}
-      bool isActive()   const {return active;}
-      bool hasFailure() const {return failure;}
+      bool isPaused()    const {return paused;}
+      bool isActive()    const {return active;}
+      bool hasFailure()  const {return failure;}
+      bool isOnBattery() const {return onBattery;}
       void requestExit() const;
       void setState(const std::string &state) const;
 
