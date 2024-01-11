@@ -82,6 +82,14 @@ bool Group::waitForIdle() const {
 }
 
 
+bool Group::waitOnBattery() const {
+  return !config->getOnBattery() && app.getOS().isOnBattery();
+}
+
+
+bool Group::keepAwake() const {return config->getKeepAwake() && isActive();}
+
+
 bool Group::isActive() const {
   for (auto unit: units())
     if (!unit->isPaused()) return true;

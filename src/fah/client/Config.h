@@ -52,6 +52,8 @@ namespace FAH {
       void setState(const cb::JSON::Value &msg);
 
       bool getOnIdle() const;
+      bool getOnBattery() const;
+      bool getKeepAwake() const;
       void setPaused(bool paused);
       bool getPaused() const;
       bool getFinish() const;

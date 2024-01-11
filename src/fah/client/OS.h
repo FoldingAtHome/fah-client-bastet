@@ -41,6 +41,7 @@ namespace FAH {
       App &app;
 
       bool idle = false;
+      uint64_t lastKeepAwake = 0;
 
       std::atomic<bool> paused;
       std::atomic<bool> active;
@@ -58,6 +59,7 @@ namespace FAH {
       virtual const char *getName() const = 0;
       virtual const char *getCPU() const;
       virtual bool isSystemIdle() const = 0;
+      virtual bool isOnBattery() const;
       virtual void dispatch();
 
       bool isPaused()   const {return paused;}

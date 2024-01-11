@@ -286,6 +286,7 @@ void App::setState(const string &state) {
 
 
 bool App::getPaused() const {return getGroups()->getPaused();}
+bool App::keepAwake() const {return getGroups()->keepAwake();}
 
 
 void App::validate(const Certificate &cert,

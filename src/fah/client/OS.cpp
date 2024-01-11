@@ -39,6 +39,8 @@
 #endif
 
 #include <cbang/Info.h>
+#include <cbang/os/PowerManagement.h>
+#include <cbang/log/Logger.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -74,6 +76,7 @@ const char *OS::getCPU() const {
 }
 
 
+bool OS::isOnBattery() const {return PowerManagement::instance().onBattery();}
 void OS::dispatch() {app.getEventBase().dispatch();}
 
 
@@ -97,4 +100,9 @@ void OS::update() {
   paused  = app.getPaused();
   active  = app.isActive();
   failure = app.hasFailure();
+
+  // Keep system awake if not on battery
+  auto &pwrMan = PowerManagement::instance();
+  if (!pwrMan.onBattery() && app.keepAwake()) lastKeepAwake = Time::now();
+  pwrMan.allowSystemSleep(30 < Time::now() - lastKeepAwake);
 }

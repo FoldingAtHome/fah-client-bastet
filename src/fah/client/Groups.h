@@ -50,6 +50,7 @@ namespace FAH {
       void triggerUpdate();
       void setState(const cb::JSON::Value &msg);
       bool getPaused() const;
+      bool keepAwake() const;
     };
   }
 }

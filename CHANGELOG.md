@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.2
+ - Added folding on battery option
+ - Added keep awake option
+
 ## v8.3.1
  - Updated copyrights.
 

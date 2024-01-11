@@ -85,7 +85,9 @@ void Config::setState(const JSON::Value &msg) {
 }
 
 
-bool Config::getOnIdle() const {return getBoolean("on_idle");}
+bool Config::getOnIdle()    const {return getBoolean("on_idle");}
+bool Config::getOnBattery() const {return getBoolean("on_battery");}
+bool Config::getKeepAwake() const {return getBoolean("keep_awake");}
 
 
 void Config::setPaused(bool paused) {

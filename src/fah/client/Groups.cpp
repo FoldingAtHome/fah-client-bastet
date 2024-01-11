@@ -130,3 +130,12 @@ bool Groups::getPaused() const {
 
   return true;
 }
+
+
+bool Groups::keepAwake() const {
+  for (auto &name: keys())
+    if (getGroup(name).keepAwake())
+      return true;
+
+  return false;
+}

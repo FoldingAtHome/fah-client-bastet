@@ -195,6 +195,7 @@ void Unit::setPause(bool pause) {
 const char *Unit::getPauseReason() const {
   if (getConfig().getPaused())    return "Paused";
   if (group->waitForIdle())       return "Waiting for idle system";
+  if (group->waitOnBattery())     return "Pausing on battery";
   if (getBoolean("paused", true)) return "Resources not available";
   if (app.shouldQuit())           return "Shutting down";
   if (isWaiting())                return "Waiting to retry";

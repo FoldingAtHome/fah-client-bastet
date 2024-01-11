@@ -44,8 +44,8 @@ namespace FAH {
       cb::SmartPointer<Config> config;
 
       cb::Event::EventPtr event;
-      uint32_t failures  = 0;
-      uint64_t waitUntil = 0;
+      uint32_t failures   = 0;
+      uint64_t waitUntil  = 0;
 
       std::function<void ()> shutdownCB;
 
@@ -103,6 +103,8 @@ namespace FAH {
       void setState(const cb::JSON::Value &msg);
 
       bool waitForIdle() const;
+      bool waitOnBattery() const;
+      bool keepAwake() const;
       bool isActive() const;
       bool hasUnrunWUs() const;
       void triggerUpdate();

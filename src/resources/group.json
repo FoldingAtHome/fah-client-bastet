@@ -1,9 +1,11 @@
 {
-  "on_idle": false,
-  "paused":  true,
-  "finish":  false,
-  "beta":    false,
-  "key":     0,
-  "cpus":    0,
-  "gpus":    {}
+  "on_idle":    false,
+  "on_battery": true,
+  "keep_awake": true,
+  "paused":     true,
+  "finish":     false,
+  "beta":       false,
+  "key":        0,
+  "cpus":       0,
+  "gpus":       {}
 }

@@ -128,6 +128,7 @@ namespace FAH {
       void setState(const cb::JSON::Value &msg);
       void setState(const std::string &state);
       bool getPaused() const;
+      bool keepAwake() const;
 
       const cb::KeyPair &getKey() const {return key;}
       void validate(const cb::Certificate &cert,
