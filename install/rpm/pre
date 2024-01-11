@@ -2,7 +2,7 @@
 if [ $1 -eq 1 ]; then
   # old v7 init script is broken and does not stop when told so
   if [ -e /etc/init.d/FAHClient ]; then
-    systemctl kill FAHClient || true
+    systemctl kill FAHClient 2>/dev/null || true
   fi
 
   # create group if it does not exist
