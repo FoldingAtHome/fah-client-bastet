@@ -36,7 +36,6 @@
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
 #include <cbang/os/PowerManagement.h>
-#include <cbang/os/MacOSUtilities.h>
 
 #include <IOKit/IOMessage.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -55,52 +54,54 @@ using namespace std;
 
 
 static const CFTimeInterval kCFTimeIntervalMax =
-  std::numeric_limits<CFTimeInterval>::max();
+  numeric_limits<CFTimeInterval>::max();
 
 enum {
   kDisplayPowerUnknown = -1,
-  kDisplayPowerOff = 0,
-  kDisplayPowerDimmed = 3,
-  kDisplayPowerOn = 4
+  kDisplayPowerOff     = 0,
+  kDisplayPowerDimmed  = 3,
+  kDisplayPowerOn      = 4
 };
 
 
 namespace {
 #pragma mark c callbacks
-
   void consoleUserCB(SCDynamicStoreRef s, CFArrayRef keys, void *info) {
     OSXOSImpl::instance().consoleUserChanged(s, keys, info);
   }
 
-  void displayPowerCB(void *ctx, io_service_t service,
-                      natural_t mtype, void *marg) {
+
+  void displayPowerCB(
+    void *ctx, io_service_t service, natural_t mtype, void *marg) {
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
   }
+
 
   void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
     OSXOSImpl::instance().updateTimerFired(timer, info);
   }
+
 
   void heartbeatTimerCB(CFRunLoopTimerRef timer, void *info) {
     LOG_DEBUG(5, "heartbeat on thread "  << pthread_self() <<
               (pthread_main_np() ? " main" : ""));
   }
 
+
   void noteQuitCB(CFNotificationCenterRef center, void *observer,
                   CFNotificationName name, const void *object,
                   CFDictionaryRef info) {
-    std::string n = CFStringGetCStringPtr(name, kCFStringEncodingUTF8);
-    LOG_INFO(3, "Received notification " << n);
+    LOG_INFO(3, "Received notification "
+             << CFStringGetCStringPtr(name, kCFStringEncodingUTF8));
     OSXOSImpl::instance().requestExit();
   }
-
 }
 
 
 OSXOSImpl *OSXOSImpl::singleton = 0;
 
 
-OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser(CFSTR("unknown")) {
+OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser("unknown") {
   if (singleton) THROW("There can be only one OSXOSImpl");
   singleton = this;
   initialize();
@@ -109,10 +110,7 @@ OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser(CFSTR("unknown")) {
 
 OSXOSImpl::~OSXOSImpl() {
   // Stop any update timer
-  if (updateTimer) {
-    CFRunLoopTimerInvalidate(updateTimer);
-    CFRelease(updateTimer);
-  }
+  if (updateTimer) CFRunLoopTimerInvalidate(updateTimer);
 
   // Deregister for display power changes
   if (displayWrangler) IOObjectRelease(displayWrangler);
@@ -122,21 +120,11 @@ OSXOSImpl::~OSXOSImpl() {
                           kCFRunLoopDefaultMode);
 
   if (displayNotePort) IONotificationPortDestroy(displayNotePort);
-
   if (displayNotifier) IOObjectRelease(displayNotifier);
 
   // Deregister for console user changes
-  if (consoleUserRLS) {
-    CFRunLoopSourceInvalidate(consoleUserRLS);
-    CFRelease(consoleUserRLS);
-  }
-
-  if (consoleUserDS) {
-    SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
-    CFRelease(consoleUserDS);
-  }
-
-  if (consoleUser) CFRelease(consoleUser);
+  if (consoleUserRLS) CFRunLoopSourceInvalidate(consoleUserRLS);
+  if (consoleUserDS) SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
 
   CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
   CFNotificationCenterRemoveEveryObserver(nc, this);
@@ -174,16 +162,10 @@ void OSXOSImpl::addHeartbeatTimerToRunLoop(CFRunLoopRef loop) {
   // note this may fail silently
   if (!loop) return;
 
-  CFRunLoopTimerRef timer =
+  MacOSRef<CFRunLoopTimerRef> timer =
     CFRunLoopTimerCreate(0, 0, 3600, 0, 0, heartbeatTimerCB, 0);
-  if (timer) {
-    CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
-    CFRelease(timer);
-  }
+  if (timer) CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
 }
-
-
-const char *OSXOSImpl::getName() const {return "macosx";}
 
 
 void OSXOSImpl::dispatch() {
@@ -224,8 +206,10 @@ void OSXOSImpl::finishInit() {
 void OSXOSImpl::updateSystemIdle() {
   bool shouldBeIdle = displayPower == kDisplayPowerOff || loginwindowIsActive ||
     screensaverIsActive || screenIsLocked;
+
   if (shouldBeIdle == systemIsIdle) return;
   systemIsIdle = shouldBeIdle;
+
   event->activate();
 }
 
@@ -266,6 +250,7 @@ void OSXOSImpl::delayedUpdateSystemIdle(int delay) {
   } else if (delay < currentDelay) {
     // Use sooner of current fire date and candidateTime
     CFAbsoluteTime currentTime = CFRunLoopTimerGetNextFireDate(updateTimer);
+
     if (candidateTime < currentTime) {
       CFRunLoopTimerSetNextFireDate(updateTimer, candidateTime);
       currentDelay = delay;
@@ -274,7 +259,7 @@ void OSXOSImpl::delayedUpdateSystemIdle(int delay) {
 }
 
 
-void OSXOSImpl::displayDidDim() {displayPower = kDisplayPowerDimmed;}
+void OSXOSImpl::displayDidDim()   {displayPower = kDisplayPowerDimmed;}
 void OSXOSImpl::displayDidUndim() {displayPower = kDisplayPowerOn;}
 
 
@@ -321,7 +306,7 @@ void OSXOSImpl::displayPowerChanged(void *context, io_service_t service,
 
 int OSXOSImpl::getCurrentDisplayPower() {
   // will only return values kDisplayPowerUnknown thru kDisplayPowerOn
-  int state = kDisplayPowerUnknown;
+  int state    = kDisplayPowerUnknown;
   int maxstate = 4;
 
   if (!displayWrangler)
@@ -329,9 +314,9 @@ int OSXOSImpl::getCurrentDisplayPower() {
       (kIOMasterPortDefault, IOServiceNameMatching("IODisplayWrangler"));
 
   if (displayWrangler) {
-    CFMutableDictionaryRef props = 0;
-
-    auto kr = IORegistryEntryCreateCFProperties(displayWrangler, &props, 0, 0);
+    MacOSRef<CFMutableDictionaryRef> props;
+    auto kr = IORegistryEntryCreateCFProperties(
+      displayWrangler, &props.get(), 0, 0);
 
     if (kr == KERN_SUCCESS) {
       auto dict = (CFMutableDictionaryRef)CFDictionaryGetValue
@@ -357,7 +342,6 @@ int OSXOSImpl::getCurrentDisplayPower() {
       }
     }
 
-    if (props) CFRelease(props);
     IOObjectRelease(displayWrangler);
     displayWrangler = 0;
   }
@@ -424,17 +408,14 @@ bool OSXOSImpl::registerForDisplayPowerNotifications() {
 }
 
 
-void OSXOSImpl::consoleUserChanged(SCDynamicStoreRef store,
-                                   CFArrayRef changedKeys, void *info) {
-  if (consoleUser) CFRelease(consoleUser);
-  consoleUser = SCDynamicStoreCopyConsoleUser(consoleUserDS, 0, 0);
+void OSXOSImpl::consoleUserChanged(
+  SCDynamicStoreRef store, CFArrayRef changedKeys, void *info) {
+  consoleUser = MacOSString(SCDynamicStoreCopyConsoleUser(consoleUserDS, 0, 0));
 
-  LOG_DEBUG(4, __func__ << "() " << MacOSUtilities::toString(consoleUser));
+  LOG_DEBUG(4, __func__ << "() " << (string)consoleUser);
 
   bool wasActive = loginwindowIsActive;
-  loginwindowIsActive = !consoleUser || !CFStringGetLength(consoleUser) ||
-    CFEqual(consoleUser, CFSTR("loginwindow"));
-
+  loginwindowIsActive = consoleUser.empty() || consoleUser == "loginwindow";
   bool changed = wasActive != loginwindowIsActive;
 
   if (changed || !store) {
@@ -450,9 +431,9 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
   consoleUserDS = SCDynamicStoreCreate
     (0, CFSTR("FAHClient Console User Watcher"), consoleUserCB, &context);
 
-  CFStringRef consoleUserKey = SCDynamicStoreKeyCreateConsoleUser(0);
-  CFStringRef values[] = {consoleUserKey};
-  CFArrayRef keys =
+  MacOSString consoleUserKey = SCDynamicStoreKeyCreateConsoleUser(0);
+  CFStringRef values[] = {(CFStringRef)consoleUserKey};
+  MacOSRef<CFArrayRef> keys =
     CFArrayCreate(0, (const void **)values, 1, &kCFTypeArrayCallBacks);
 
   bool ok = consoleUserKey && keys && consoleUserDS;
@@ -467,16 +448,11 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
   if (!ok) {
     if (consoleUserDS) {
       SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
-      CFRelease(consoleUserDS);
       consoleUserDS = 0;
     }
 
-    if (consoleUser) CFRelease(consoleUser);
-    consoleUser = CFSTR("unknown");
+    consoleUser = "unknown";
   }
-
-  if (consoleUserKey) CFRelease(consoleUserKey);
-  if (keys) CFRelease(keys);
 
   // Initial consoleUser value will be set in finishInit
   return ok;
@@ -488,24 +464,16 @@ bool OSXOSImpl::registerForDarwinNotifications() {
 
   if (!nc) return false;
 
-  std::string user = "nobody";
+  string user = "nobody";
   struct passwd *pwent = getpwuid(getuid());
   if (pwent && pwent->pw_name) user = pwent->pw_name;
 
-  std::string key = "org.foldingathome.fahclient." + user + ".stop";
-  CFStringRef name =
-    CFStringCreateWithCString(0, key.c_str(), kCFStringEncodingUTF8);
+  MacOSString name(string("org.foldingathome.fahclient." + user + ".stop"));
+  CFNotificationCenterAddObserver(
+    nc, (void *)this, &noteQuitCB, name, 0,
+    CFNotificationSuspensionBehaviorCoalesce);
 
-  if (name) {
-    CFNotificationCenterAddObserver(
-      nc, (void *)this, &noteQuitCB, name, 0,
-      CFNotificationSuspensionBehaviorCoalesce);
-    CFRelease(name);
-
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 

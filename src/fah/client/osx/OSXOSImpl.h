@@ -31,6 +31,7 @@
 #include <fah/client/OS.h>
 
 #include <cbang/os/Thread.h>
+#include <cbang/os/MacOSUtilities.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
@@ -46,25 +47,25 @@ namespace FAH {
       static OSXOSImpl *singleton;
 
       std::atomic<bool> systemIsIdle = false;
-      bool screensaverIsActive = false;
-      bool screenIsLocked = false;
-      bool loginwindowIsActive = false;
+      bool screensaverIsActive       = false;
+      bool screenIsLocked            = false;
+      bool loginwindowIsActive       = false;
 
       io_service_t displayWrangler = 0;
-      IONotificationPortRef displayNotePort = 0;
-      CFRunLoopSourceRef displayNoteSource = 0;
-      io_object_t displayNotifier = 0;
+      io_object_t  displayNotifier = 0;
+      cb::MacOSRef<IONotificationPortRef> displayNotePort;
+      cb::MacOSRef<CFRunLoopSourceRef> displayNoteSource;
 
-      SCDynamicStoreRef consoleUserDS = 0;
-      CFRunLoopSourceRef consoleUserRLS = 0;
-      CFStringRef consoleUser = 0;
+      cb::MacOSRef<SCDynamicStoreRef> consoleUserDS;
+      cb::MacOSRef<CFRunLoopSourceRef> consoleUserRLS;
+      std::string consoleUser;
 
-      CFRunLoopTimerRef updateTimer = 0;
+      cb::MacOSRef<CFRunLoopTimerRef> updateTimer;
 
-      int idleDelay = 5;
-      int currentDelay = 0;
+      int idleDelay              = 5;
+      int currentDelay           = 0;
       int idleOnLoginwindowDelay = 30;
-      int displayPower = 0;
+      int displayPower           = 0;
 
     public:
       OSXOSImpl(App &app);
@@ -73,7 +74,7 @@ namespace FAH {
       static OSXOSImpl &instance();
 
       // From OS
-      const char *getName() const;
+      const char *getName() const {return "macosx";}
       bool isSystemIdle() const {return systemIsIdle;}
       void dispatch();
 
