@@ -31,7 +31,7 @@
 #include <fah/client/OS.h>
 
 #include <cbang/os/Thread.h>
-#include <cbang/os/MacOSUtilities.h>
+#include <cbang/os/osx/MacOSString.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SystemConfiguration.h>
