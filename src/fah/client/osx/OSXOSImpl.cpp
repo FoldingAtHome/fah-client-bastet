@@ -119,12 +119,8 @@ OSXOSImpl::~OSXOSImpl() {
     CFRunLoopRemoveSource(CFRunLoopGetMain(), displayNoteSource,
                           kCFRunLoopDefaultMode);
 
-  if (displayNotePort) IONotificationPortDestroy(displayNotePort);
-  if (displayNotifier) IOObjectRelease(displayNotifier);
-
-  // Deregister for console user changes
-  if (consoleUserRLS) CFRunLoopSourceInvalidate(consoleUserRLS);
-  if (consoleUserDS) SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
+  deregisterForDisplayPowerNotifications();
+  deregisterForConsoleUserNotifications();
 
   CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
   CFNotificationCenterRemoveEveryObserver(nc, this);
@@ -295,11 +291,8 @@ void OSXOSImpl::displayPowerChanged(void *context, io_service_t service,
     else displayDidWake();
     break;
 
-  case kIOMessageCanDevicePowerOff:
-    break;
-
-  default:
-    LOG_DEBUG(3, __func__ << " unknown mtype: " << mtype);
+  case kIOMessageCanDevicePowerOff: break;
+  default: LOG_DEBUG(3, __func__ << " unknown mtype: " << mtype);
   }
 }
 
@@ -347,27 +340,39 @@ int OSXOSImpl::getCurrentDisplayPower() {
   }
 
   if (maxstate != 4) {
-    if (maxstate < 1) state = kDisplayPowerUnknown;
-
+    if (maxstate < 1)                 state = kDisplayPowerUnknown;
     else if (maxstate == 1) {
-      if (state == maxstate) state = kDisplayPowerOn;
-      else if (0 <= state) state = kDisplayPowerOff;
+      if (state == maxstate)          state = kDisplayPowerOn;
+      else if (0 <= state)            state = kDisplayPowerOff;
 
     } else {
-      if (state == maxstate) state = kDisplayPowerOn;
+      if (state == maxstate)          state = kDisplayPowerOn;
       else if (state == maxstate - 1) state = kDisplayPowerDimmed;
-      else if (0 <= state) state = kDisplayPowerOff;
+      else if (0 <= state)            state = kDisplayPowerOff;
     }
   }
 
-  if (state < 0 || maxstate < state) state = kDisplayPowerUnknown;
+  if (state < 0 || maxstate < state)  state = kDisplayPowerUnknown;
 
   return state;
 }
 
 
+void OSXOSImpl::deregisterForDisplayPowerNotifications() {
+  if (displayNotePort) {
+    IONotificationPortDestroy(displayNotePort);
+    displayNotePort = 0;
+  }
+
+  if (displayNotifier) {
+    IOObjectRelease(displayNotifier);
+    displayNotifier = 0;
+  }
+}
+
+
 bool OSXOSImpl::registerForDisplayPowerNotifications() {
-  displayPower = kDisplayPowerOn; // usually true when client starts
+  displayPower    = kDisplayPowerOn; // usually true when client starts
   displayWrangler = IOServiceGetMatchingService
     (kIOMasterPortDefault, IOServiceNameMatching("IODisplayWrangler"));
 
@@ -383,25 +388,12 @@ bool OSXOSImpl::registerForDisplayPowerNotifications() {
     ok = kr == KERN_SUCCESS;
   }
 
-  if (ok) {
-    displayNoteSource = IONotificationPortGetRunLoopSource(displayNotePort);
-    ok = displayNoteSource;
-  }
-
+  if (ok) ok = displayNoteSource =
+            IONotificationPortGetRunLoopSource(displayNotePort);
   if (ok) CFRunLoopAddSource
             (CFRunLoopGetMain(), displayNoteSource, kCFRunLoopDefaultMode);
 
-  if (!ok) {
-    if (displayNotePort) {
-      IONotificationPortDestroy(displayNotePort);
-      displayNotePort = 0;
-    }
-
-    if (displayNotifier) {
-      IOObjectRelease(displayNotifier);
-      displayNotifier = 0;
-    }
-  }
+  if (!ok) deregisterForDisplayPowerNotifications();
 
   // keep displayWrangler for getCurrentDisplayPower in finishInit
   return ok;
@@ -425,6 +417,21 @@ void OSXOSImpl::consoleUserChanged(
 }
 
 
+void OSXOSImpl::deregisterForConsoleUserNotifications() {
+  if (consoleUserDS) {
+    SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
+    consoleUserDS = 0;
+  }
+
+  if (consoleUserRLS) {
+    CFRunLoopSourceInvalidate(consoleUserRLS);
+    consoleUserRLS = 0;
+  }
+
+  consoleUser = "unknown";
+}
+
+
 bool OSXOSImpl::registerForConsoleUserNotifications() {
   SCDynamicStoreContext context = {0, 0, 0, 0, 0};
 
@@ -445,14 +452,7 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
   if (ok) CFRunLoopAddSource
             (CFRunLoopGetMain(), consoleUserRLS, kCFRunLoopDefaultMode);
 
-  if (!ok) {
-    if (consoleUserDS) {
-      SCDynamicStoreSetNotificationKeys(consoleUserDS, 0, 0);
-      consoleUserDS = 0;
-    }
-
-    consoleUser = "unknown";
-  }
+  if (!ok) deregisterForConsoleUserNotifications();
 
   // Initial consoleUser value will be set in finishInit
   return ok;
@@ -461,14 +461,13 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
 
 bool OSXOSImpl::registerForDarwinNotifications() {
   CFNotificationCenterRef nc = CFNotificationCenterGetDarwinNotifyCenter();
-
   if (!nc) return false;
 
   string user = "nobody";
   struct passwd *pwent = getpwuid(getuid());
   if (pwent && pwent->pw_name) user = pwent->pw_name;
 
-  MacOSString name(string("org.foldingathome.fahclient." + user + ".stop"));
+  MacOSString name("org.foldingathome.fahclient." + user + ".stop");
   CFNotificationCenterAddObserver(
     nc, (void *)this, &noteQuitCB, name, 0,
     CFNotificationSuspensionBehaviorCoalesce);

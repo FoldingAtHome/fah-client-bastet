@@ -53,14 +53,13 @@ namespace FAH {
 
       io_service_t displayWrangler = 0;
       io_object_t  displayNotifier = 0;
-      cb::MacOSRef<IONotificationPortRef> displayNotePort;
-      cb::MacOSRef<CFRunLoopSourceRef> displayNoteSource;
+      IONotificationPortRef displayNotePort;
+      CFRunLoopSourceRef    displayNoteSource;
 
-      cb::MacOSRef<SCDynamicStoreRef> consoleUserDS;
+      cb::MacOSRef<CFRunLoopTimerRef>  updateTimer;
+      cb::MacOSRef<SCDynamicStoreRef>  consoleUserDS;
       cb::MacOSRef<CFRunLoopSourceRef> consoleUserRLS;
       std::string consoleUser;
-
-      cb::MacOSRef<CFRunLoopTimerRef> updateTimer;
 
       int idleDelay              = 5;
       int currentDelay           = 0;
@@ -92,8 +91,10 @@ namespace FAH {
     protected:
       void initialize();
       void addHeartbeatTimerToRunLoop(CFRunLoopRef loop);
+      void deregisterForConsoleUserNotifications();
       bool registerForConsoleUserNotifications();
       bool registerForDarwinNotifications();
+      void deregisterForDisplayPowerNotifications();
       bool registerForDisplayPowerNotifications();
       bool registerForLaunchEvents();
       void updateSystemIdle();
