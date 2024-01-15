@@ -53,8 +53,8 @@ namespace FAH {
 
       io_service_t displayWrangler = 0;
       io_object_t  displayNotifier = 0;
-      IONotificationPortRef displayNotePort;
-      CFRunLoopSourceRef    displayNoteSource;
+      IONotificationPortRef displayNotePort   = 0;
+      CFRunLoopSourceRef    displayNoteSource = 0;
 
       cb::MacOSRef<CFRunLoopTimerRef>  updateTimer;
       cb::MacOSRef<SCDynamicStoreRef>  consoleUserDS;

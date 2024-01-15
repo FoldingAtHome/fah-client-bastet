@@ -4,6 +4,7 @@ Folding@home Client Changelog
 ## v8.3.2
  - Added folding on battery option
  - Added keep awake option
+ - Show correct count for systems with more than 64 logical CPUs on Windows.
 
 ## v8.3.1
  - Updated copyrights.

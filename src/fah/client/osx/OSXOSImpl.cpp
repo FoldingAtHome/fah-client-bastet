@@ -116,8 +116,8 @@ OSXOSImpl::~OSXOSImpl() {
   if (displayWrangler) IOObjectRelease(displayWrangler);
 
   if (displayNoteSource)
-    CFRunLoopRemoveSource(CFRunLoopGetMain(), displayNoteSource,
-                          kCFRunLoopDefaultMode);
+    CFRunLoopRemoveSource(
+      CFRunLoopGetMain(), displayNoteSource, kCFRunLoopDefaultMode);
 
   deregisterForDisplayPowerNotifications();
   deregisterForConsoleUserNotifications();
@@ -158,8 +158,8 @@ void OSXOSImpl::addHeartbeatTimerToRunLoop(CFRunLoopRef loop) {
   // note this may fail silently
   if (!loop) return;
 
-  MacOSRef<CFRunLoopTimerRef> timer =
-    CFRunLoopTimerCreate(0, 0, 3600, 0, 0, heartbeatTimerCB, 0);
+  MacOSRef<CFRunLoopTimerRef> timer(
+    CFRunLoopTimerCreate(0, 0, 3600, 0, 0, heartbeatTimerCB, 0));
   if (timer) CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
 }
 
@@ -168,6 +168,7 @@ void OSXOSImpl::dispatch() {
   if (!pthread_main_np())
     THROW("OSXOSImpl::dispatch() must be called on main thread");
   LOG_DEBUG(5, "OSXOSImpl::dispatch()");
+
   Thread::start();
   CFRunLoopRun();
   OS::requestExit();
@@ -438,10 +439,10 @@ bool OSXOSImpl::registerForConsoleUserNotifications() {
   consoleUserDS = SCDynamicStoreCreate
     (0, CFSTR("FAHClient Console User Watcher"), consoleUserCB, &context);
 
-  MacOSString consoleUserKey = SCDynamicStoreKeyCreateConsoleUser(0);
+  MacOSString consoleUserKey(SCDynamicStoreKeyCreateConsoleUser(0));
   CFStringRef values[] = {(CFStringRef)consoleUserKey};
-  MacOSRef<CFArrayRef> keys =
-    CFArrayCreate(0, (const void **)values, 1, &kCFTypeArrayCallBacks);
+  MacOSRef<CFArrayRef> keys(
+    CFArrayCreate(0, (const void **)values, 1, &kCFTypeArrayCallBacks));
 
   bool ok = consoleUserKey && keys && consoleUserDS;
   CFArrayRef patterns = 0;
