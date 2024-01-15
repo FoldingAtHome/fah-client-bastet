@@ -203,6 +203,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_conflicts      = 'FAHClient, fahclient',
         rpm_obsoletes      = 'FAHClient, fahclient',
         rpm_build_requires = 'systemd-rpm-macros',
+        rpm_requires       = 'polkit, polkit-pkla-compat',
         rpm_pre_requires   = 'systemd, shadow-utils',
         rpm_post_requires  = 'systemd, coreutils',
         rpm_preun_requires = 'systemd',
