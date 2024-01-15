@@ -180,6 +180,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
+        misc               = [['build/install/lin/fah-client.pkla',
+                               'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla']],
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',

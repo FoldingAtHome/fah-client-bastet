@@ -1,0 +1,4 @@
+[Allow fah-client to inhibit sleep]
+Identity=unix-user:fah-client
+Action=org.freedesktop.login1.inhibit-block-sleep
+ResultAny=yes
