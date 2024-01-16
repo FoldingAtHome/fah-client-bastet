@@ -203,7 +203,13 @@ void WinOSImpl::init() {
 }
 
 
-const char *WinOSImpl::getName() const {return "win32";}
+const char *WinOSImpl::getName() const {
+#ifdef _WIN64
+  return "win64";
+#else
+  return "win32";
+#endif
+}
 
 
 const char *WinOSImpl::getCPU() const {
