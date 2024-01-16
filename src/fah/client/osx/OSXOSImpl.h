@@ -56,14 +56,10 @@ namespace FAH {
       IONotificationPortRef displayNotePort   = 0;
       CFRunLoopSourceRef    displayNoteSource = 0;
 
-      cb::MacOSRef<CFRunLoopTimerRef>  updateTimer;
       cb::MacOSRef<SCDynamicStoreRef>  consoleUserDS;
       cb::MacOSRef<CFRunLoopSourceRef> consoleUserRLS;
       std::string consoleUser;
 
-      int idleDelay              = 5;
-      int currentDelay           = 0;
-      int idleOnLoginwindowDelay = 30;
       int displayPower           = 0;
 
     public:
@@ -86,7 +82,6 @@ namespace FAH {
       void displayPowerChanged
       (void *context, io_service_t service, natural_t mtype, void *marg);
       void finishInit();
-      void updateTimerFired(CFRunLoopTimerRef timer, void *info);
 
     protected:
       void initialize();
