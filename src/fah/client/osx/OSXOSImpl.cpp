@@ -35,7 +35,6 @@
 #include <cbang/log/Logger.h>
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
-#include <cbang/os/PowerManagement.h>
 
 #include <IOKit/IOMessage.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -52,9 +51,6 @@ using namespace FAH::Client;
 using namespace cb;
 using namespace std;
 
-
-static const CFTimeInterval kCFTimeIntervalMax =
-  numeric_limits<CFTimeInterval>::max();
 
 enum {
   kDisplayPowerUnknown = -1,
@@ -74,11 +70,6 @@ namespace {
   void displayPowerCB(
     void *ctx, io_service_t service, natural_t mtype, void *marg) {
     OSXOSImpl::instance().displayPowerChanged(ctx, service, mtype, marg);
-  }
-
-
-  void updateTimerCB(CFRunLoopTimerRef timer, void *info) {
-    OSXOSImpl::instance().updateTimerFired(timer, info);
   }
 
 
@@ -109,10 +100,6 @@ OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser("unknown") {
 
 
 OSXOSImpl::~OSXOSImpl() {
-  // Stop any update timer
-  if (updateTimer) CFRunLoopTimerInvalidate(updateTimer);
-
-  // Deregister for display power changes
   if (displayWrangler) IOObjectRelease(displayWrangler);
 
   if (displayNoteSource)
@@ -211,48 +198,17 @@ void OSXOSImpl::updateSystemIdle() {
 }
 
 
-void OSXOSImpl::updateTimerFired(CFRunLoopTimerRef timer, void *info) {
-  currentDelay = 0;
-  updateSystemIdle();
-}
-
-
 void OSXOSImpl::delayedUpdateSystemIdle(int delay) {
-  if (delay < 0) delay = idleDelay;
-  if (delay < 1) delay = 1;
-
-  CFAbsoluteTime candidateTime = CFAbsoluteTimeGetCurrent() + delay;
-
-  if (!updateTimer) {
-    updateTimer = CFRunLoopTimerCreate
-      (kCFAllocatorDefault, candidateTime, kCFTimeIntervalMax, 0, 0,
-       updateTimerCB, 0);
-
-    if (!updateTimer) {
-      LOG_ERROR("Unable to create update timer");
-      currentDelay = 0;
-
-      // Create failed. Do immediate update
-      updateSystemIdle();
-      return;
-    }
-
-    CFRunLoopAddTimer(CFRunLoopGetMain(), updateTimer, kCFRunLoopDefaultMode);
-    currentDelay = delay;
-
-  } else if (!currentDelay) {
-    CFRunLoopTimerSetNextFireDate(updateTimer, candidateTime);
-    currentDelay = delay;
-
-  } else if (delay < currentDelay) {
-    // Use sooner of current fire date and candidateTime
-    CFAbsoluteTime currentTime = CFRunLoopTimerGetNextFireDate(updateTimer);
-
-    if (candidateTime < currentTime) {
-      CFRunLoopTimerSetNextFireDate(updateTimer, candidateTime);
-      currentDelay = delay;
-    }
-  }
+  // default delay 5 sec, min 2 sec
+  int64_t delta;
+  if (delay < 0)
+    delta = 5 * NSEC_PER_SEC;
+  else if (delay < 3)
+    delta = 2 * NSEC_PER_SEC;
+  else
+    delta = delay * NSEC_PER_SEC;
+  dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, delta);
+  dispatch_after(when, dispatch_get_main_queue(), ^{updateSystemIdle();});
 }
 
 
@@ -412,7 +368,7 @@ void OSXOSImpl::consoleUserChanged(
   bool changed = wasActive != loginwindowIsActive;
 
   if (changed || !store) {
-    if (loginwindowIsActive) delayedUpdateSystemIdle(idleOnLoginwindowDelay);
+    if (loginwindowIsActive) delayedUpdateSystemIdle(20);
     else updateSystemIdle(); // no delay when switching away from loginwindow
   }
 }
