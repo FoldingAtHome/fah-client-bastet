@@ -93,7 +93,7 @@ void Remote::readLogToNextLine() {
   do {
     log->clear();
     log->getline(buffer, size);
-  } while (log->rdstate() & ios::failbit && log->gcount());
+  } while (log->fail() && log->gcount());
 }
 
 
@@ -108,13 +108,11 @@ void Remote::sendLog() {
       string filename = app.getOptions()["log"];
       log = SystemUtilities::open(filename, ios::in);
 
-      // Check offset bounds
+      // Move to offset
       streamsize len = SystemUtilities::getFileSize(filename);
-      if (len < logOffset)  logOffset = len;
-      if (logOffset < -len) logOffset = -len;
+      if (len < logOffset)  logOffset = 0;
+      if (logOffset) log->seekg(logOffset, ios::beg);
 
-      log->seekg(logOffset, logOffset < 0 ? ios::end : ios::beg);
-      readLogToNextLine();
       sendLog();
     } CATCH_ERROR;
 
@@ -122,21 +120,16 @@ void Remote::sendLog() {
   }
 
   try {
-    bool done = false;
+    bool done    = false;
+    bool restart = logOffset == 0;
     SmartPointer<JSON::List> lines = new JSON::List;
 
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 256 && !done; i++) {
       const unsigned size = 1024;
       char buffer[size];
 
       log->getline(buffer, size);
       streamsize count = log->gcount();
-      auto state = log->rdstate();
-
-      if (state & ios::eofbit) {
-        log->clear();
-        done = true;
-      }
 
       if (count) {
         if (buffer[count - 1] == '\r') buffer[count - 1] = 0;
@@ -144,19 +137,16 @@ void Remote::sendLog() {
       }
 
       // Handle incomplete long lines
-      if ((state & ios::failbit) && count)
-        readLogToNextLine();
+      if (!log->eof() && log->fail() && count) readLogToNextLine();
+
+      done = log->bad() || log->eof();
+      log->clear();
 
       logOffset = log->tellg();
 
-      if (state & ios::badbit) {
-        done = true;
-        log.release();
-      }
-
       if (done) {
+        log.release();
         logEvent->add(1);
-        break;
       }
     }
 
@@ -165,7 +155,7 @@ void Remote::sendLog() {
     if (!lines->empty()) {
       SmartPointer<JSON::List> changes = new JSON::List;
       changes->append("log");
-      changes->append(-2);
+      if (!restart) changes->append(-2);
       changes->append(lines);
       sendChanges(changes);
     }
@@ -211,7 +201,6 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
   } else if (cmd == "log") {
     followLog = msg->getBoolean("enable", false);
-    logOffset = msg->getS64("offset", -(1 << 17));
     sendLog();
 
   } else {
