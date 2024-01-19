@@ -177,10 +177,6 @@ void Group::update() {
     return;
   }
 
-  // Handle finish
-  if (config->getFinish() && !isActive())
-    config->setPaused(true);
-
   // No further action if paused or idle
   if (config->getPaused() || waitForIdle())
     return setWait(0); // Pausing clears wait timer
@@ -254,6 +250,9 @@ void Group::update() {
   LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
             << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
 
+  // Handle finish
+  if (config->getFinish() && !wuCount) return config->setPaused(true);
+
   // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
   // have not yet been loaded.
   if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isLoaded())
@@ -274,5 +273,5 @@ void Group::update() {
 
 void Group::setWait(double delay) {
   waitUntil = Time::now() + delay;
-  // TODO report wait to frontend
+  insert("wait", Time(waitUntil).toString());
 }
