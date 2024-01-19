@@ -70,7 +70,7 @@ namespace FAH {
       void init();
 
       // From OS
-      const char *getName() const;
+      const char *getName() const {return "win32";}
       const char *getCPU() const;
       bool isSystemIdle() const {return inAwayMode || displayOff;}
       void dispatch();

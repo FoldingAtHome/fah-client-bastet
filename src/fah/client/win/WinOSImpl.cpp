@@ -203,9 +203,6 @@ void WinOSImpl::init() {
 }
 
 
-const char *WinOSImpl::getName() const {return "win32";}
-
-
 const char *WinOSImpl::getCPU() const {
   SYSTEM_INFO info;
   GetNativeSystemInfo(&info);
