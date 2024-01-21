@@ -5,7 +5,7 @@
 \margl1440\margr1440\vieww11200\viewh9600\viewkind0
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\fs28 \cf0 The Folding@home web control app is not compatible with Safari.\
+\f0\fs28 \cf0 The Folding@home Web Control app is not compatible with Safari.\
 \
 This install will fail if you only seem to have Safari.\
 If so, please first install a compatible web browser.\
@@ -17,6 +17,6 @@ The four below are known to work:\
 {\field{\*\fldinst{HYPERLINK "https://www.microsoft.com/edge/"}}{\fldrslt https://www.microsoft.com/edge/}}\
 {\field{\*\fldinst{HYPERLINK "https://brave.com/"}}{\fldrslt https://brave.com}}\
 \
-If you choose Brave browser, you will probably need to use "Shields Down" for the Folding@home web control app:\
+If you choose Brave browser, you will probably need to use "Shields Down" for the Folding@home Web Control app:\
 \
 {\field{\*\fldinst{HYPERLINK "%(PACKAGE_URL)s"}}{\fldrslt %(PACKAGE_URL)s}}}
