@@ -190,7 +190,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         deb_directory      = 'build/install/debian',
         deb_section        = 'science',
-        deb_depends        = 'libc6, ca-certificates',
+        deb_depends        = 'ca-certificates',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
         deb_pre_depends    = 'adduser',
