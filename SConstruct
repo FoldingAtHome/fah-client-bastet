@@ -221,9 +221,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         pkg_license        = 'LICENSE.txt',
         pkg_conclusion     = 'Conclusion.rtf',
         pkg_background     = 'fah-opacity-50.png',
-        pkg_customize      = 'always',
+        pkg_customize      = 'ask',
         pkg_target         = pkg_target,
-        pkg_arch           = env.get('package_arch', 'x86_64'),
         pkg_components     = pkg_components,
     )
 

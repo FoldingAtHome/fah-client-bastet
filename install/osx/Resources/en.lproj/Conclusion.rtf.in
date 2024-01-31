@@ -8,7 +8,9 @@
 \f0\fs28 \cf0 \
 Folding@home has been successfully installed.\
 \
-In a moment, the web control page will open.\
+To configure and control the client, use the Web Control app:\
 \
-If your web browser is Safari, it will not be able to connect to the client. Please use a browser other than Safari for configuring the client.\
+{\field{\*\fldinst{HYPERLINK "%(PACKAGE_URL)s"}}{\fldrslt\fs36 %(PACKAGE_URL)s}}\
+\
+If your web browser is Safari, it will not be able to connect directly to the local client. Please use a browser other than Safari for Web Control.
 }
