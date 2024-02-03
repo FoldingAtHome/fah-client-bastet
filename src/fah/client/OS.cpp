@@ -110,4 +110,7 @@ void OS::update() {
   // Keep system awake if not on battery
   if (!onBattery && app.keepAwake()) lastKeepAwake = Time::now();
   pm.allowSystemSleep(30 < Time::now() - lastKeepAwake);
+
+  // Update application info
+  app.get("info")->insertBoolean("on_battery", onBattery);
 }

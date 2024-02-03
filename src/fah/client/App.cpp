@@ -387,19 +387,27 @@ void App::upgradeDB() {
 
 void App::loadConfig() {
   // Info
+  auto &sysInfo = SystemInfo::instance();
+
   insertDict("info");
-  auto info = get("info");
-  info->insert("version",    getVersion().toString());
-  info->insert("os",         os->getName());
-  info->insert("os_version", SystemInfo::instance().getOSVersion().toString());
-  info->insert("cpu",        os->getCPU());
-  info->insert("cpu_brand",  CPUInfo::create()->getBrand());
-  info->insert("cpus",       SystemInfo::instance().getCPUCount());
-  info->insert("gpus",       gpus);
-  info->insert("mach_name",  account->getMachName());
+  auto d = get("info");
+  d->insert("version",     getVersion().toString());
+  d->insert("os",          os->getName());
+  d->insert("os_version",  sysInfo.getOSVersion().toString());
+  d->insert("cpu",         os->getCPU());
+  d->insert("cpu_brand",   CPUInfo::create()->getBrand());
+  d->insert("cpus",        sysInfo.getCPUCount());
+  d->insert("gpus",        gpus);
+  d->insert("mach_name",   account->getMachName());
   try {
-    info->insert("hostname", SystemInfo::instance().getHostname());
+    d->insert("hostname",  sysInfo.getHostname());
   } CATCH_WARNING;
+
+  Info &info = Info::instance();
+  d->insert("mode",        info.get(getName(), "Mode"));
+  d->insert("revision",    info.get(getName(), "Revision"));
+  d->insertBoolean("has_battery", info.get("System",  "Has Battery") == "true");
+  d->insertBoolean("on_battery",  info.get("System",  "On Battery")  == "true");
 
   auto &db = getDB("config");
 
@@ -413,7 +421,7 @@ void App::loadConfig() {
 
   // Generate ID from key
   string id = Digest::urlBase64(key.getRSA_N().toBinString(), "sha256");
-  info->insert("id", id);
+  d->insert("id", id);
   LOG_INFO(1, "F@H ID = " << id);
 
   // Global config
