@@ -28,10 +28,12 @@ F1="/Applications/FAHClient.url"
 F2="/Applications/Folding@home/Web Control.url"
 F3="/Library/Application Support/FAHClient/GPUs.txt"
 F4="/Applications/Folding@home/Uninstall Folding@home.pkg"
+F5="/Applications/Folding@home/fahclient.url"
 [ -f "$F1" ] && rm -f "$F1" || true
 [ -f "$F2" ] && rm -f "$F2" || true
 [ -f "$F3" ] && rm -f "$F3" || true
 [ -f "$F4" ] && rm -f "$F4" || true
+[ -f "$F5" ] && rm -f "$F5" || true
 A1="/Applications/Folding@home/FAHControl.app"
 A2="/Applications/Folding@home/FAHViewer.app"
 [ -d "$A1" ] && rm -rf "$A1" || true
