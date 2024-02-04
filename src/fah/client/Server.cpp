@@ -113,7 +113,7 @@ bool Server::corsCB(Event::Request &req) {
 
 
 bool Server::redirectWebControl(Event::Request &req) {
-  req.redirect(Info::instance().get(app.getName(), "URL"));
+  req.redirect(app.getURL());
   return true;
 }
 
@@ -124,8 +124,7 @@ bool Server::redirectPing(Event::Request &req) {
 
   if (uri.has("callback")) {
     string callback = uri.get("callback");
-    string redirect = Info::instance().get(app.getName(), "URL");
-    string payload  = callback + "({\"redirect\":\"" + redirect + "\"})";
+    string payload  = callback + "({\"redirect\":\"" + app.getURL() + "\"})";
     req.setContentType("application/json");
     req.reply(payload);
     return true;

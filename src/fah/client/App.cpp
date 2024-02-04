@@ -251,6 +251,7 @@ void App::configure(const JSON::Value &msg) {
 }
 
 
+string App::getURL() const {return Info::instance().get(getName(), "URL");}
 string App::getPubKey() const {return Base64().encode(key.publicToSPKI());}
 
 

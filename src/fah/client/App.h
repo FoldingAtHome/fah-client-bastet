@@ -117,6 +117,7 @@ namespace FAH {
       void configure(const cb::JSON::Value &msg);
 
       std::string getID() const {return selectString("info.id");}
+      std::string getURL() const;
       std::string getPubKey() const;
 
       void add(const cb::SmartPointer<Remote> &remote);
