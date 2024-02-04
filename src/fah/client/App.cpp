@@ -393,6 +393,7 @@ void App::loadConfig() {
   insertDict("info");
   auto d = get("info");
   d->insert("version",     getVersion().toString());
+  d->insert("url",         getURL());
   d->insert("os",          os->getName());
   d->insert("os_version",  sysInfo.getOSVersion().toString());
   d->insert("cpu",         os->getCPU());
@@ -405,8 +406,8 @@ void App::loadConfig() {
   } CATCH_WARNING;
 
   Info &info = Info::instance();
-  d->insert("mode",        info.get(getName(), "Mode"));
-  d->insert("revision",    info.get(getName(), "Revision"));
+  d->insert("mode",               info.get(getName(), "Mode"));
+  d->insert("revision",           info.get(getName(), "Revision"));
   d->insertBoolean("has_battery", info.get("System",  "Has Battery") == "true");
   d->insertBoolean("on_battery",  info.get("System",  "On Battery")  == "true");
 
