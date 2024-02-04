@@ -30,6 +30,7 @@
 #include "App.h"
 #include "WebsocketRemote.h"
 
+#include <cbang/Info.h>
 #include <cbang/log/Logger.h>
 
 using namespace FAH::Client;
@@ -44,32 +45,8 @@ Server::Server(App &app) :
   setEventPriority(3);
 
   addMember(this, &Server::corsCB);
-}
-
-
-bool Server::corsCB(Event::Request &req) {
-  if (req.inHas("Origin")) {
-    string origin = req.inGet("Origin");
-
-    if (allowedOrigins.find(origin) == allowedOrigins.end())
-      THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
-
-    req.outSet("Access-Control-Allow-Origin", origin);
-    req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
-    req.outSet("Access-Control-Allow-Credentials", "true");
-    req.outSet("Access-Control-Allow-Headers",
-               "DNT,User-Agent,X-Requested-With,"
-               "If-Modified-Since,Cache-Control,Content-Type,Range,"
-               "Set-Cookie,Authorization");
-    req.outSet("Vary", "Origin");
-  }
-
-  if (req.getMethod() == HTTP_OPTIONS) {
-    req.reply();
-    return true;
-  }
-
-  return false;
+  addMember(HTTP_GET, "/", this, &Server::redirectWebControl);
+  addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
 }
 
 
@@ -106,4 +83,53 @@ Server::createRequest(Event::RequestMethod method, const URI &uri,
   }
 
   return Event::WebServer::createRequest(method, uri, version);
+}
+
+
+bool Server::corsCB(Event::Request &req) {
+  if (req.inHas("Origin")) {
+    string origin = req.inGet("Origin");
+
+    if (allowedOrigins.find(origin) == allowedOrigins.end())
+      THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
+
+    req.outSet("Access-Control-Allow-Origin", origin);
+    req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
+    req.outSet("Access-Control-Allow-Credentials", "true");
+    req.outSet("Access-Control-Allow-Headers",
+               "DNT,User-Agent,X-Requested-With,"
+               "If-Modified-Since,Cache-Control,Content-Type,Range,"
+               "Set-Cookie,Authorization");
+    req.outSet("Vary", "Origin");
+  }
+
+  if (req.getMethod() == HTTP_OPTIONS) {
+    req.reply();
+    return true;
+  }
+
+  return false;
+}
+
+
+bool Server::redirectWebControl(Event::Request &req) {
+  req.redirect(Info::instance().get(app.getName(), "URL"));
+  return true;
+}
+
+
+bool Server::redirectPing(Event::Request &req) {
+  // v7 Web Control makes this jsonp request
+  auto &uri = req.getURI();
+
+  if (uri.has("callback")) {
+    string callback = uri.get("callback");
+    string redirect = Info::instance().get(app.getName(), "URL");
+    string payload  = callback + "({\"redirect\":\"" + redirect + "\"})";
+    req.setContentType("application/json");
+    req.reply(payload);
+    return true;
+  }
+
+  return false;
 }

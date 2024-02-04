@@ -50,13 +50,16 @@ namespace FAH {
     public:
       Server(App &app);
 
-      bool corsCB(cb::Event::Request &req);
-
       // From cb::Event::WebServer
       void init();
       cb::SmartPointer<cb::Event::Request> createRequest
       (cb::Event::RequestMethod method, const cb::URI &uri,
        const cb::Version &version);
+
+    protected:
+      bool corsCB(cb::Event::Request &req);
+      bool redirectWebControl(cb::Event::Request &req);
+      bool redirectPing(cb::Event::Request &req);
     };
   }
 }
