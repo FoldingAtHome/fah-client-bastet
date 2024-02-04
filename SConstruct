@@ -110,12 +110,19 @@ if 'package' in COMMAND_LINE_TARGETS:
     pkg_target = None
     pkg_components = []
     if env['PLATFORM'] == 'darwin':
+        def seticon(info):
+            """Add icon to web control url file resourse fork"""
+            # brew install fileicon
+            # Packager functions do not preserve rsrc fork, so use callback
+            env.RunCommand(['fileicon', 'set',
+                info['root'] + '/Applications/Folding@home/Folding@home.url',
+                'images/fahlogo.icns'])
         # Specify components for the osx distribution pkg
         client_home = '.'
         client_root = client_home + '/build/pkg/root'
         pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
                      ['build/install/osx/fahclient.url',
-                      'Applications/Folding@home/fahclient.url', 0o644],
+                      'Applications/Folding@home/Folding@home.url', 0o644],
                      ['build/install/osx/uninstall.url',
                       'Applications/Folding@home/uninstall.url', 0o644],
                      ['build/install/osx/launchd.plist',
@@ -144,6 +151,7 @@ if 'package' in COMMAND_LINE_TARGETS:
                     'edu.stanford.folding.fahcontrol',
                     ],
                 'pkg_files'   : pkg_files,
+                'pre_sign_callback' : seticon,
             },
         ]
         # min pkg target macos 10.13
