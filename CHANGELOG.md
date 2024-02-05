@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.3
+ - Fixed start failure on Windows #210
+
 ## v8.3.2
  - Added folding on battery option
  - Added keep awake option
