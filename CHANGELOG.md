@@ -6,6 +6,9 @@ Folding@home Client Changelog
  - Added keep awake option
  - Show correct count for systems with more than 64 logical CPUs on Windows.
  - Fix remote monitoring of log after log rotation.
+ - Redirect old v7 Web Control
+ - MacOS installer updates (kbernhagen)
+ - Debian installer updates (mmello)
 
 ## v8.3.1
  - Updated copyrights.
