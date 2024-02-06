@@ -1,6 +1,6 @@
-# initial install
+# Initial install
 if [ $1 -eq 1 ]; then
-  # migrate v7 configuration
+  # Migrate v7 configuration
   if [ ! -f /etc/fah-client/config.xml ]; then
     if [ -f /etc/fahclient/config.xml ]; then
       cp --remove-destination /etc/fahclient/config.xml /etc/fah-client/
@@ -16,8 +16,9 @@ if [ $1 -eq 1 ]; then
 fi
 
 %%systemd_post fah-client.service
-# the above macro uses systemctl preset, based on distribution policy to enable units
-# only enable/start on initial install
+# The above macro uses systemctl preset, based on distribution policy to
+# enable units
+# Only enable/start on initial install
 if [ $1 -eq 1 ]; then
   systemctl -q enable fah-client.service || true
   systemctl start fah-client.service || true

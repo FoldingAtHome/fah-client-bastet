@@ -1,7 +1,8 @@
 %systemd_preun fah-client.service
 
-## purge-like behaviour
-## package uninstall
+## Purge-like behaviour - parent directories are owned by the package, only
+## remove their contents
+## Package uninstall
 #if [ $1 -eq 0 ]; then
 #  rm -rf /etc/fah-client/*
 #  rm -rf /var/lib/fah-client/*
