@@ -5,7 +5,7 @@ CLIENT_HOME=/var/lib/$NAME
 
 case "$1" in
   install)
-    # old v7 init script is broken and does not stop when told so
+    # Old v7 init script is broken and does not stop when told so
     if [ -e /etc/init.d/FAHClient ]; then
       systemctl kill FAHClient 2>/dev/null || true
     fi
@@ -16,12 +16,13 @@ case "$1" in
     # Create user if it does not exist
     if ! getent passwd $NAME >/dev/null; then
       useradd --system --gid $NAME --shell /usr/sbin/nologin \
-        --home-dir $CLIENT_HOME --no-create-home --groups video,render $NAME || true
+        --home-dir $CLIENT_HOME --no-create-home \
+        --groups video,render $NAME || true
     fi
     ;;
 
   upgrade)
-    # remove broken symlink installed by previous v8 packages
+    # Remove broken symlink installed by previous v8 packages
     if dpkg --compare-versions "$2" lt 8.2.1; then
       systemctl -q disable $NAME || true
     fi
