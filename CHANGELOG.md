@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.4
+ - Beta release
+
 ## v8.3.3
  - Fixed start failure on Windows #210
 
