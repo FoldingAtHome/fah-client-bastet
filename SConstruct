@@ -79,25 +79,8 @@ AlwaysBuild(tar)
 Clean(tar, ['dist.txt'])
 
 if 'package' in COMMAND_LINE_TARGETS:
-    import shutil
-
-    # Resolve <filename>.in files
-    for root, subdirs, files in os.walk('install'):
-        target = 'build/' + root
-        os.makedirs(target, exist_ok = True)
-
-        for name in files:
-            src = root   + '/' + name
-            dst = target + '/' + name
-
-            if src.endswith('.in'):
-                with open(src, 'r') as inF:
-                    with open(dst[:-3], 'w') as outF:
-                        outF.write(inF.read() % env)
-
-                shutil.copymode(src, dst[:-3])
-
-            else: shutil.copy2(src, dst)
+    # Resolve variables in ``.in`` files and directories
+    env.ReplaceVariablesInFiles('install', 'build')
 
     # Code sign key password
     path = os.environ.get('CODE_SIGN_KEY_PASS_FILE')
