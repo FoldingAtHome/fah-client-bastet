@@ -133,7 +133,7 @@ std::set<string> Config::getGPUs() const {
   auto &allGPUs = app.getGPUs();
   for (unsigned i = 0; i < allGPUs.size(); i++) {
     auto &gpu = *allGPUs.get(i).cast<GPUResource>();
-    if (gpu.getBoolean("supported") && isGPUEnabled(gpu.getID()))
+    if (gpu.getBoolean("supported", false) && isGPUEnabled(gpu.getID()))
       gpus.insert(gpu.getID());
   }
 
