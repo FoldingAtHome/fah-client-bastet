@@ -1,6 +1,12 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.5
+ - Fix AMD GPU detection. #137
+ - Add Lithuania macOS installer translation (muziqaz)
+ - Fix for Windows battery status detection. #139
+ - Fix for pause on battery.
+
 ## v8.3.4
  - Beta release
 

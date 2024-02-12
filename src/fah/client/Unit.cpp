@@ -176,14 +176,9 @@ bool Unit::atRunState() const {
 }
 
 
-bool Unit::hasRun() const {return getRunTime() || UNIT_RUN <= getState();}
+bool Unit::hasRun()    const {return getRunTime() || UNIT_RUN <= getState();}
 bool Unit::isWaiting() const {return wait && Time::now() < wait;}
-
-
-bool Unit::isPaused() const {
-  return getConfig().getPaused() || group->waitForIdle() ||
-    getBoolean("paused", true) || app.shouldQuit();
-}
+bool Unit::isPaused()  const {return getPauseReason();}
 
 
 void Unit::setPause(bool pause) {
@@ -198,8 +193,7 @@ const char *Unit::getPauseReason() const {
   if (group->waitOnBattery())     return "Pausing on battery";
   if (getBoolean("paused", true)) return "Resources not available";
   if (app.shouldQuit())           return "Shutting down";
-  if (isWaiting())                return "Waiting to retry";
-  return "Not paused";
+  return 0;
 }
 
 
