@@ -80,7 +80,10 @@ Clean(tar, ['dist.txt'])
 
 if 'package' in COMMAND_LINE_TARGETS:
     # Resolve variables in ``.in`` files and directories
-    env.ReplaceVariablesInFiles('install', 'build')
+    if   env['PLATFORM'] == 'win32':  paths = ['win']
+    elif env['PLATFORM'] == 'darwin': paths = ['osx']
+    else: paths = ['lin', 'debian', 'rpm']
+    for p in paths: env.ReplaceVariablesInFiles('install/' + p, 'build/install')
 
     # Code sign key password
     path = os.environ.get('CODE_SIGN_KEY_PASS_FILE')
@@ -151,7 +154,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         vendor             = env['PACKAGE_ORG'],
         url                = env['PACKAGE_HOMEPAGE'],
         license            = 'LICENSE',
-        bug_url            = 'https://github.com/FoldingAtHome/fah-client-bastet',
+        bug_url            =
+          'https://github.com/FoldingAtHome/fah-client-bastet',
         summary            = 'Folding@home Client',
         description        = package_info.get('description'),
         icons              = ['images/fahlogo.png'],
@@ -161,8 +165,9 @@ if 'package' in COMMAND_LINE_TARGETS:
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
-        misc               = [['build/install/lin/fah-client.pkla',
-                               'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla']],
+        misc               = [
+            ['build/install/lin/fah-client.pkla',
+             'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla']],
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
