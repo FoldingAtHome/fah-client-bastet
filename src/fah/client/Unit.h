@@ -104,6 +104,7 @@ namespace FAH {
       const Config &getConfig() const;
 
       const std::string &getID() const {return id;}
+      const std::string &getClientID() const;
       cb::JSON::ValuePtr getTopology() const {return topology;}
       const std::vector<cb::JSON::ValuePtr> &getFrames() const {return frames;}
       unsigned getRetries() const {return retries;}

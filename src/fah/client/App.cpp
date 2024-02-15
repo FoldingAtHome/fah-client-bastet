@@ -412,9 +412,22 @@ void App::loadConfig() {
   d->insertBoolean("on_battery",  info.get("System",  "On Battery")  == "true");
 
   auto &db = getDB("config");
+  bool genKey = !db.has("key");
+
+  // Check machine ID
+  try {
+    string machineID = SystemInfo::instance().getMachineID();
+
+    if (!db.has("machine-id")) db.set("machine-id", machineID);
+    else if (db.getString("machine-id") != machineID) {
+      LOG_ERROR("Machine ID changed, generating new client ID");
+      genKey = true;
+      db.set("machine-id", machineID);
+    }
+  } CATCH_ERROR;
 
   // Generate key
-  if (!db.has("key")) {
+  if (genKey) {
     key.generateRSA(4096, 65537, new KeyGenPacifier("Generating RSA key"));
     db.set("key", key.privateToPEMString());
   }

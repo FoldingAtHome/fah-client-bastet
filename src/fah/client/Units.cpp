@@ -34,6 +34,7 @@
 #include <cbang/Catch.h>
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
+#include <cbang/net/Base64.h>
 
 
 using namespace FAH::Client;
@@ -41,7 +42,7 @@ using namespace cb;
 using namespace std;
 
 
-Units::Units(App &app) {
+Units::Units(App &app) : app(app) {
   unsigned count = 0;
 
   app.getDB("units").foreach(
@@ -72,7 +73,15 @@ bool Units::hasFailure() const {
 }
 
 
-void Units::add(const SmartPointer<Unit> &unit) {append(unit);}
+void Units::add(const SmartPointer<Unit> &unit) {
+  string id = Base64().encode(URLBase64().decode(app.getID()));
+
+  if (unit->getClientID() != id)
+    THROW("WU with client ID " << unit->getClientID()
+          << " does not belong client " << id);
+
+  append(unit);
+}
 
 
 int Units::getUnitIndex(const string &id) const {
