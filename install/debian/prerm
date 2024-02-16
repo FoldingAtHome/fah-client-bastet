@@ -5,6 +5,5 @@ NAME=fah-client
 case "$1" in
   remove)
     systemctl stop $NAME || true
-    systemctl -q disable $NAME || true
     ;;
 esac

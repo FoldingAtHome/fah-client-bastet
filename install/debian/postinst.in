@@ -38,6 +38,9 @@ fi
 
 systemctl daemon-reload || true
 
+# Add/update state file, required for purge action in postrm
+deb-systemd-helper update-state $NAME.service || true
+
 # Only enable/start on initial install
 if [ -z "$2" ]; then
   systemctl -q enable $NAME || true
@@ -49,7 +52,7 @@ else
     systemctl -q enable $NAME || true
   fi
 
-  systemctl try-restart $NAME || true
+  systemctl restart $NAME || true
 fi
 
 echo
