@@ -34,9 +34,7 @@
 namespace FAH {
   namespace Client {
     class Units : public cb::JSON::ObservableList {
-      App &app;
-
-   public:
+    public:
       Units(App &app);
 
       bool isActive()    const;

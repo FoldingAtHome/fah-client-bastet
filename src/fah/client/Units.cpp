@@ -42,14 +42,18 @@ using namespace cb;
 using namespace std;
 
 
-Units::Units(App &app) : app(app) {
-  unsigned count = 0;
+Units::Units(App &app) {
+  string clientID = Base64().encode(URLBase64().decode(app.getID()));
+  unsigned count  = 0;
 
   app.getDB("units").foreach(
-    [this, &app, &count] (const string &id, const string &data) {
+    [this, &app, &clientID, &count] (const string &id, const string &data) {
       try {
-        add(new Unit(app, JSON::Reader::parseString(data)));
-        count++;
+        auto unit = SmartPtr(new Unit(app, JSON::Reader::parseString(data)));
+
+        if (unit->getClientID() == clientID) {add(unit); count++;}
+        else LOG_ERROR("WU with client ID " << unit->getClientID()
+                       << " does not belong client " << clientID);
       } CATCH_ERROR;
     });
 
@@ -73,15 +77,7 @@ bool Units::hasFailure() const {
 }
 
 
-void Units::add(const SmartPointer<Unit> &unit) {
-  string id = Base64().encode(URLBase64().decode(app.getID()));
-
-  if (unit->getClientID() != id)
-    THROW("WU with client ID " << unit->getClientID()
-          << " does not belong client " << id);
-
-  append(unit);
-}
+void Units::add(const SmartPointer<Unit> &unit) {append(unit);}
 
 
 int Units::getUnitIndex(const string &id) const {
