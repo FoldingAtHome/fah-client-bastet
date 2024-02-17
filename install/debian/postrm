@@ -8,6 +8,9 @@ case "$1" in
     ;;
 
   purge)
+    # Disable service
+    deb-systemd-helper purge $NAME.service || true
+
     # Remove all files
     rm -rf /etc/$NAME /var/lib/$NAME /var/log/$NAME
 
