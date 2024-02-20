@@ -145,6 +145,15 @@ if 'package' in COMMAND_LINE_TARGETS:
         ver = tuple([int(x) for x in pkg_target.split('.')])
         if ver < (10,13): pkg_target = '10.13'
 
+    elif env['PLATFORM'] == 'posix':
+        if env.GetPackageType() == 'deb':
+            polkit_src = 'build/install/lin/fah-client.pkla'
+            polkit_dst = \
+                'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla'
+        else:
+            polkit_src = 'build/install/lin/fah-client.rules'
+            polkit_dst = 'usr/share/polkit-1/rules.d/fah-client.rules'
+
     # Package
     pkg = env.Packager(
         package_info.get('name'),
@@ -165,9 +174,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
-        misc               = [
-            ['build/install/lin/fah-client.pkla',
-             'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla']],
+        misc               = [[polkit_src, polkit_dst]],
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
@@ -191,8 +198,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_conflicts      = 'FAHClient, fahclient',
         rpm_obsoletes      = 'FAHClient, fahclient',
         rpm_build_requires = 'systemd-rpm-macros',
-        rpm_requires       = 'polkit, polkit-pkla-compat',
-        rpm_pre_requires   = 'systemd, shadow-utils',
+        rpm_requires       = 'polkit',
+        rpm_pre_requires   = 'systemd, (shadow-utils or shadow)',
         rpm_post_requires  = 'systemd, coreutils',
         rpm_preun_requires = 'systemd',
         rpm_postun_requires= 'systemd',

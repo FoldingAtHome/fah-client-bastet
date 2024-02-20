@@ -1,0 +1,6 @@
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.login1.inhibit-block-sleep" &&
+        subject.user == "fah-client") {
+            return polkit.Result.YES;
+    }
+});
