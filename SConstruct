@@ -87,8 +87,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     # Code sign key password
     path = os.environ.get('CODE_SIGN_KEY_PASS_FILE')
-    if path is not None:
-        code_sign_key_pass = open(path, 'r').read().strip()
+    if path is not None: code_sign_key_pass = open(path, 'r').read().strip()
     else: code_sign_key_pass = None
 
     if 'SIGNTOOL' in os.environ: env['SIGNTOOL'] = os.environ['SIGNTOOL']
@@ -103,47 +102,40 @@ if 'package' in COMMAND_LINE_TARGETS:
             env.RunCommand(['fileicon', 'set',
                 info['root'] + '/Applications/Folding@home/Folding@home.url',
                 'images/fahlogo.icns'])
+
         # Specify components for the osx distribution pkg
-        client_home = '.'
-        client_root = client_home + '/build/pkg/root'
-        pkg_files = [[str(client[0]), 'usr/local/bin/', 0o755],
-                     ['build/install/osx/fahclient.url',
-                      'Applications/Folding@home/Folding@home.url', 0o644],
-                     ['build/install/osx/uninstall.url',
-                      'Applications/Folding@home/uninstall.url', 0o644],
-                     ['build/install/osx/launchd.plist',
-                      'Library/LaunchDaemons/' +
-                      'org.foldingathome.fahclient.plist', 0o644]]
-        pkg_components = [
-            {
-                # name is component pkg file name and name shown in installer
-                'name'        : 'FAHClient',
-                'pkg_id'      : 'org.foldingathome.fahclient.pkg',
-                'description' : 'FAH_CLIENT_DESC', # Localizable.strings key
-                # abs path or relative to PWD
-                # client repo directory
-                'home'        : client_home,
-                # relative to home
-                'pkg_scripts' : 'build/install/osx/scripts',
-                # abs path or relative to PWD
-                # default build/pkg/root, as per cbang config pkg module
-                'root'        : client_root,
-                # relative to root
-                'sign_tools'  : ['usr/local/bin/fah-client'],
-                'must_close_apps': [
-                    'org.foldingathome.fahviewer',
-                    'org.foldingathome.fahcontrol',
-                    'edu.stanford.folding.fahviewer',
-                    'edu.stanford.folding.fahcontrol',
-                    ],
-                'pkg_files'   : pkg_files,
-                'pre_sign_callback' : seticon,
-            },
-        ]
+        pkg_components = [dict(
+            # name is component pkg file name and name shown in installer
+            name =        'FAHClient',
+            pkg_id =      'org.foldingathome.fahclient.pkg',
+            description = 'FAH_CLIENT_DESC', # Localizable.strings key
+            home =        '.', # abs path or relative to PWD
+            pkg_scripts = 'build/install/osx/scripts', # relative to home
+            root =        './build/pkg/root', # abs path or relative to PWD
+            sign_tools =  ['usr/local/bin/fah-client'], # relative to root
+            must_close_apps = [
+                'org.foldingathome.fahviewer',
+                'org.foldingathome.fahcontrol',
+                'edu.stanford.folding.fahviewer',
+                'edu.stanford.folding.fahcontrol',
+            ],
+            pkg_files = [
+                [str(client[0]), 'usr/local/bin/', 0o755],
+                ['build/install/osx/fahclient.url',
+                 'Applications/Folding@home/Folding@home.url', 0o644],
+                ['build/install/osx/uninstall.url',
+                 'Applications/Folding@home/uninstall.url', 0o644],
+                ['build/install/osx/launchd.plist',
+                 'Library/LaunchDaemons/' +
+                 'org.foldingathome.fahclient.plist', 0o644]
+            ],
+            pre_sign_callback = seticon,
+        )]
+
         # min pkg target macos 10.13
         pkg_target = env.get('osx_min_ver', '10.13')
         ver = tuple([int(x) for x in pkg_target.split('.')])
-        if ver < (10,13): pkg_target = '10.13'
+        if ver < (10, 13): pkg_target = '10.13'
 
     # Package
     pkg = env.Packager(
