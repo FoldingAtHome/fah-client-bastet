@@ -41,7 +41,6 @@
 #include <cbang/openssl/Certificate.h>
 #include <cbang/openssl/CertificateChain.h>
 
-#include <cbang/net/IPAddress.h>
 #include <cbang/json/Observable.h>
 #include <cbang/event/Event.h>
 

@@ -345,12 +345,8 @@ string Unit::getDirectory() const {
 
 
 URI Unit::getWSURL(const string &path) const {
-  string host    = data->selectString("assignment.data.ws");
-  uint32_t port  = data->selectU32("assignment.data.port", 443);
-  string scheme  = (port == 443 || port == 8084) ? "https" : "http";
-  IPAddress addr(host, port);
-
-  return URI(scheme, addr, "/api" + path);
+  string host = data->selectString("assignment.data.ws");
+  return URI("https", host, 0, "/api" + path);
 }
 
 
@@ -1019,7 +1015,7 @@ void Unit::assign() {
   LOG_DEBUG(3, *data);
 
   // TODO validate peer certificate
-  URI uri("https", app.getNextAS(), "/api/assign");
+  URI uri("https", app.getNextAS(), 0, "/api/assign");
 
   pr = app.getClient()
     .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
@@ -1117,8 +1113,8 @@ void Unit::upload() {
   if (cs == -1) uri = getWSURL("/results");
   else {
     auto const &csList = data->selectList("wu.data.cs");
-    IPAddress addr = csList.getString(cs);
-    uri = URI(addr.hasHost() ? "https" : "http", addr, "/api/results");
+    string host = csList.getString(cs);
+    uri = URI("https", host, 0, "/api/results");
   }
 
   pr = app.getClient()
