@@ -92,6 +92,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     if 'SIGNTOOL' in os.environ: env['SIGNTOOL'] = os.environ['SIGNTOOL']
 
+    misc = []
     pkg_target = None
     pkg_components = []
     if env['PLATFORM'] == 'darwin':
@@ -139,12 +140,15 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     elif env['PLATFORM'] == 'posix':
         if env.GetPackageType() == 'deb':
-            polkit_src = 'build/install/lin/fah-client.pkla'
-            polkit_dst = \
+            polkit = [
+                'build/install/lin/fah-client.pkla',
                 'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla'
+            ]
         else:
-            polkit_src = 'build/install/lin/fah-client.rules'
-            polkit_dst = 'usr/share/polkit-1/rules.d/fah-client.rules'
+            polkit = ['build/install/lin/fah-client.rules',
+                      'usr/share/polkit-1/rules.d/fah-client.rules']
+
+        misc.append(polkit)
 
     # Package
     pkg = env.Packager(
@@ -166,7 +170,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
-        misc               = [[polkit_src, polkit_dst]],
+        misc               = misc,
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
