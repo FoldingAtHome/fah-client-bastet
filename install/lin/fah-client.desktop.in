@@ -1,8 +1,7 @@
 [Desktop Entry]
-Encoding=UTF-8
-Type=Link
+Type=Application
 Name=Folding@home Client
-URL=%(PACKAGE_URL)s
-Categories=Education;Science;Biology;;
-Comment=Folding@home Client
-Icon=fahlogo.png
+Comment=Web Control
+Exec=xdg-open %(PACKAGE_URL)s
+Categories=Science;Biology;
+Icon=fahlogo
