@@ -36,6 +36,7 @@
 #include <cbang/Info.h>
 #include <cbang/os/SysError.h>
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/os/DynamicLibrary.h>
 #include <cbang/log/Logger.h>
 #include <cbang/openssl/Digest.h>
 #include <cbang/event/Base.h>
@@ -189,8 +190,9 @@ void WinOSImpl::init() {
 
   // Register for PM away mode events
   typedef HPOWERNOTIFY (WINAPI *func_t)(HANDLE, LPCGUID, DWORD);
-  func_t func = (func_t)GetProcAddress(GetModuleHandle(TEXT("user32.dll")),
-                                       "RegisterPowerSettingNotification");
+  auto func = (func)DynamicLibrary("user32.dll")
+    .getSymbol("RegisterPowerSettingNotification");
+
   if (func) {
     func(hWnd, &guid_system_awaymode, DEVICE_NOTIFY_WINDOW_HANDLE);
     func(hWnd, &guid_monitor_power_on, DEVICE_NOTIFY_WINDOW_HANDLE);
