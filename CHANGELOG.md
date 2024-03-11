@@ -1,9 +1,12 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.7
+ - Better DNS error handling and support for IPv6 name servers
+
 ## v8.3.6
  - Generate new client ID if machine ID has changed. #216
- - Rewrite of domain name lookup code.
+ - Rewrite of domain name lookup code. #223
 
 ## v8.3.5
  - Fix AMD GPU detection. #137
