@@ -36,11 +36,15 @@
 #include <cbang/Info.h>
 #include <cbang/os/SysError.h>
 #include <cbang/os/SystemUtilities.h>
-#include <cbang/os/DynamicLibrary.h>
 #include <cbang/log/Logger.h>
 #include <cbang/openssl/Digest.h>
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#pragma comment(lib, "user32.lib")
 
 using namespace FAH::Client;
 using namespace cb;
@@ -189,14 +193,10 @@ void WinOSImpl::init() {
     THROW("Failed to register systray icon: " << SysError());
 
   // Register for PM away mode events
-  typedef HPOWERNOTIFY (WINAPI *func_t)(HANDLE, LPCGUID, DWORD);
-  auto func = (func)DynamicLibrary("user32.dll")
-    .getSymbol("RegisterPowerSettingNotification");
-
-  if (func) {
-    func(hWnd, &guid_system_awaymode, DEVICE_NOTIFY_WINDOW_HANDLE);
-    func(hWnd, &guid_monitor_power_on, DEVICE_NOTIFY_WINDOW_HANDLE);
-  }
+  RegisterPowerSettingNotification(
+    hWnd, &guid_system_awaymode, DEVICE_NOTIFY_WINDOW_HANDLE);
+  RegisterPowerSettingNotification(
+    hWnd, &guid_monitor_power_on, DEVICE_NOTIFY_WINDOW_HANDLE);
 
   // Create icon update timer
   SetTimer(hWnd, ID_UPDATE_TIMER, 1000, 0);
