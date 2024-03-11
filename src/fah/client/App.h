@@ -31,8 +31,9 @@
 #include <cbang/Application.h>
 
 #include <cbang/event/Base.h>
-#include <cbang/event/DNSBase.h>
 #include <cbang/event/Client.h>
+
+#include <cbang/dns/Base.h>
 
 #include <cbang/db/Database.h>
 #include <cbang/db/NameValueTable.h>
@@ -67,7 +68,7 @@ namespace FAH {
       public cb::JSON::ObservableDict {
 
       cb::Event::Base    base;
-      cb::Event::DNSBase dns;
+      cb::DNS::Base      dns;
       cb::Event::Client  client;
       cb::KeyPair        key;
 
@@ -97,7 +98,7 @@ namespace FAH {
       static bool _hasFeature(int feature);
 
       cb::Event::Base    &getEventBase() {return base;}
-      cb::Event::DNSBase &getEventDNS()  {return dns;}
+      cb::DNS::Base      &getEventDNS()  {return dns;}
       cb::Event::Client  &getClient()    {return client;}
       cb::KeyPair        &getKey()       {return key;}
 
