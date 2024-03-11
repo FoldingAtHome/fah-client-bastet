@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.3.6
  - Generate new client ID if machine ID has changed. #216
+ - Rewrite of domain name lookup code.
 
 ## v8.3.5
  - Fix AMD GPU detection. #137
