@@ -42,7 +42,7 @@ namespace FAH {
       WebsocketRemote(App &app, const cb::URI &uri, const cb::Version &version);
 
       // From Remote
-      std::string getName() const {return getClientIP().toString();}
+      std::string getName() const {return getClientAddr().toString(false);}
       void send(const cb::JSON::ValuePtr &msg);
       void close();
 
