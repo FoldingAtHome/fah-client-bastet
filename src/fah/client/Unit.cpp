@@ -1143,7 +1143,7 @@ void Unit::dump() {
 
   LOG_INFO(1, "Sending dump report");
   setResults("dumped", "");
-  LOG_DEBUG(3, *data);
+  LOG_DEBUG(5, *data);
 
   pr = app.getClient()
     .call(getWSURL("/results"), Event::RequestMethod::HTTP_POST, this,

@@ -126,7 +126,7 @@ void Account::sendEncrypted(const JSON::Value &_msg, const string &sid) {
   msg.insert("client",  app.getID());
   msg.insert("session", sid);
 
-  LOG_DEBUG(3, "Sending: " << msg.toString() << " with payload="
+  LOG_DEBUG(5, "Sending: " << msg.toString() << " with payload="
             << payload.size());
 
   msg.insert("iv",      URLBase64().encode(iv));
