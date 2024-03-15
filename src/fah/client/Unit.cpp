@@ -49,7 +49,7 @@
 #include <cbang/os/CPURegsX86.h>
 
 #include <cbang/event/Event.h>
-#include <cbang/event/HTTPConnOut.h>
+#include <cbang/http/ConnOut.h>
 
 #include <cbang/time/Time.h>
 #include <cbang/time/TimeInterval.h>
@@ -1018,7 +1018,7 @@ void Unit::assign() {
   URI uri("https", app.getNextAS(), 0, "/api/assign");
 
   pr = app.getClient()
-    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+    .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
   auto writer = pr->getJSONWriter();
   writer->beginDict();
@@ -1081,7 +1081,7 @@ void Unit::download() {
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   pr = app.getClient()
-    .call(getWSURL("/assign"), Event::RequestMethod::HTTP_POST, this,
+    .call(getWSURL("/assign"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
   data->write(*pr->getJSONWriter());
@@ -1118,7 +1118,7 @@ void Unit::upload() {
   }
 
   pr = app.getClient()
-    .call(uri, Event::RequestMethod::HTTP_POST, this, &Unit::response);
+    .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
   auto writer = pr->getJSONWriter();
   data->write(*writer);
@@ -1146,7 +1146,7 @@ void Unit::dump() {
   LOG_DEBUG(5, *data);
 
   pr = app.getClient()
-    .call(getWSURL("/results"), Event::RequestMethod::HTTP_POST, this,
+    .call(getWSURL("/results"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
   auto writer = pr->getJSONWriter();
@@ -1157,7 +1157,7 @@ void Unit::dump() {
 }
 
 
-void Unit::response(Event::Request &req) {
+void Unit::response(HTTP::Request &req) {
   pr.release(); // Deref request object
 
   try {

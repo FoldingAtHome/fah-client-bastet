@@ -42,6 +42,7 @@
 #include <cbang/util/Random.h>
 #include <cbang/util/Press.h>
 #include <cbang/os/SystemInfo.h>
+#include <cbang/http/Conn.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -105,7 +106,7 @@ void Account::reset() {
   if (db.has("account")) db.unset("account");
 
   // Close websocket
-  close(Event::WebsockStatus::WS_STATUS_NORMAL);
+  close(WS::Status::WS_STATUS_NORMAL);
 }
 
 
@@ -139,9 +140,9 @@ void Account::retryUpdate() {updateEvent->add((unsigned)updateBackoff.next());}
 
 
 void Account::requestInfo() {
-  Event::Client::RequestPtr pr;
+  HTTP::Client::RequestPtr pr;
 
-  auto cb = [this, pr] (Event::Request &req) mutable {
+  auto cb = [this, pr] (HTTP::Request &req) mutable {
     try {
       if (req.logResponseErrors()) {
         // If the account does not exist, forget about it
@@ -162,7 +163,7 @@ void Account::requestInfo() {
 
   string id = app.getID();
   URI uri(app.getOptions()["api-server"].toString() + "/machine/" + id);
-  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_GET, cb);
+  pr = app.getClient().call(uri, HTTP::Method::HTTP_GET, cb);
   pr->send();
 }
 
@@ -181,9 +182,9 @@ void Account::connect() {
 
 
 void Account::link() {
-  Event::Client::RequestPtr pr;
+  HTTP::Client::RequestPtr pr;
 
-  auto cb = [this, pr] (Event::Request &req) mutable {
+  auto cb = [this, pr] (HTTP::Request &req) mutable {
     if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
     else if (req.logResponseErrors()) retryUpdate();
 
@@ -199,7 +200,7 @@ void Account::link() {
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());
-  pr = app.getClient().call(uri, Event::RequestMethod::HTTP_PUT, cb);
+  pr = app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb);
 
   JSON::Dict data;
   data.insert("name",  machName);
@@ -341,7 +342,7 @@ void Account::onMessage(const JSON::ValuePtr &msg) {
 }
 
 
-void Account::onClose(Event::WebsockStatus status, const string &msg) {
+void Account::onClose(WS::Status status, const string &msg) {
   LOG_INFO(1, "Account websocket closed: " << status << " msg=" << msg);
   updateEvent->add(5);
 
@@ -355,5 +356,5 @@ void Account::onClose(Event::WebsockStatus status, const string &msg) {
 
 void Account::send(const JSON::Value &msg) {
   LOG_DEBUG(5, "Sending: " << msg);
-  Event::JSONWebsocket::send(msg);
+  WS::JSONWebsocket::send(msg);
 }

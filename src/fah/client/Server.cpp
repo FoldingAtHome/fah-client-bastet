@@ -39,7 +39,7 @@ using namespace std;
 
 
 Server::Server(App &app) :
-  Event::WebServer(app.getOptions(), app.getEventBase()), app(app) {
+  HTTP::WebServer(app.getOptions(), app.getEventBase()), app(app) {
   app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
 
   setEventPriority(3);
@@ -70,23 +70,24 @@ void Server::init() {
 }
 
 
-SmartPointer<Event::Request>
-Server::createRequest(Event::RequestMethod method, const URI &uri,
-                      const Version &version) {
+SmartPointer<HTTP::Request>
+Server::createRequest(
+  const SmartPointer<HTTP::Conn> &connection, HTTP::Method method,
+  const URI &uri, const Version &version) {
   if (method == HTTP_GET &&
       String::startsWith(uri.getPath(), "/api/websocket")) {
     string name = uri.getPath().substr(14);
 
-    auto client = SmartPtr(new WebsocketRemote(app, uri, version));
+    auto client = SmartPtr(new WebsocketRemote(app, connection, uri, version));
     app.add(client);
     return client;
   }
 
-  return Event::WebServer::createRequest(method, uri, version);
+  return HTTP::WebServer::createRequest(connection, method, uri, version);
 }
 
 
-bool Server::corsCB(Event::Request &req) {
+bool Server::corsCB(HTTP::Request &req) {
   if (req.inHas("Origin")) {
     string origin = req.inGet("Origin");
 
@@ -112,13 +113,13 @@ bool Server::corsCB(Event::Request &req) {
 }
 
 
-bool Server::redirectWebControl(Event::Request &req) {
+bool Server::redirectWebControl(HTTP::Request &req) {
   req.redirect(app.getURL());
   return true;
 }
 
 
-bool Server::redirectPing(Event::Request &req) {
+bool Server::redirectPing(HTTP::Request &req) {
   // v7 Web Control makes this jsonp request
   auto &uri = req.getURI();
 

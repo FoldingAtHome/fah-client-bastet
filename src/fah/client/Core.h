@@ -33,8 +33,8 @@
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Certificate.h>
 
-#include <cbang/event/Request.h>
-#include <cbang/event/Enum.h>
+#include <cbang/http/Request.h>
+#include <cbang/http/Enum.h>
 #include <cbang/event/Scheduler.h>
 
 #include <functional>
@@ -46,7 +46,7 @@ namespace FAH {
 
     class Core :
       public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::Event::Enum {
+      public cb::HTTP::Enum {
       App &app;
       cb::JSON::ValuePtr data;
       CoreState state = CORE_INIT;
@@ -80,7 +80,7 @@ namespace FAH {
       void load();
       void downloadResponse(const std::string &pkg);
       void download(const std::string &url);
-      void response(cb::Event::Request &req);
+      void response(cb::HTTP::Request &req);
     };
   }
 }

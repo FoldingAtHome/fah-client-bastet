@@ -32,7 +32,7 @@
 
 #include <cbang/gpu/GPUIndex.h>
 #include <cbang/event/Scheduler.h>
-#include <cbang/event/Request.h>
+#include <cbang/http/Request.h>
 
 
 namespace FAH {
@@ -56,7 +56,7 @@ namespace FAH {
 
     protected:
       void load(const cb::JSON::Value &gpus);
-      void response(cb::Event::Request &req);
+      void response(cb::HTTP::Request &req);
       void update();
       void detect();
     };

@@ -31,7 +31,7 @@
 #include <cbang/Application.h>
 
 #include <cbang/event/Base.h>
-#include <cbang/event/Client.h>
+#include <cbang/http/Client.h>
 
 #include <cbang/dns/Base.h>
 
@@ -69,7 +69,7 @@ namespace FAH {
 
       cb::Event::Base    base;
       cb::DNS::Base      dns;
-      cb::Event::Client  client;
+      cb::HTTP::Client  client;
       cb::KeyPair        key;
 
       cb::Certificate caCert;
@@ -99,7 +99,7 @@ namespace FAH {
 
       cb::Event::Base    &getEventBase() {return base;}
       cb::DNS::Base      &getEventDNS()  {return dns;}
-      cb::Event::Client  &getClient()    {return client;}
+      cb::HTTP::Client  &getClient()    {return client;}
       cb::KeyPair        &getKey()       {return key;}
 
       cb::DB::NameValueTable &getDB(const std::string name);

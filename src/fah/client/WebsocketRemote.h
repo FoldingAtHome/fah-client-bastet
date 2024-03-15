@@ -30,31 +30,33 @@
 
 #include "Remote.h"
 
-#include <cbang/event/JSONWebsocket.h>
+#include <cbang/ws/JSONWebsocket.h>
 
 
 namespace FAH {
   namespace Client {
-    class WebsocketRemote : public Remote, public cb::Event::JSONWebsocket {
+    class WebsocketRemote : public Remote, public cb::WS::JSONWebsocket {
       cb::SmartPointer<cb::Event::Event> pingEvent;
 
     public:
-      WebsocketRemote(App &app, const cb::URI &uri, const cb::Version &version);
+      WebsocketRemote(
+        App &app, const cb::SmartPointer<cb::HTTP::Conn> &connection,
+        const cb::URI &uri, const cb::Version &version);
 
       // From Remote
       std::string getName() const {return getClientAddr().toString(false);}
       void send(const cb::JSON::ValuePtr &msg);
       void close();
 
-      // From cb::Event::JSONWebsocket
-      using cb::Event::JSONWebsocket::send;
+      // From cb::WS::JSONWebsocket
+      using cb::WS::JSONWebsocket::send;
       void onMessage(const cb::JSON::ValuePtr &msg) {Remote::onMessage(msg);}
 
-      // From cb::Event::Websocket
+      // From cb::WS::Websocket
       void onOpen();
-      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
+      void onClose(cb::WS::Status status, const std::string &msg);
 
-      // From cb::Event::Request
+      // From cb::HTTP::Request
       void onComplete();
 
     protected:

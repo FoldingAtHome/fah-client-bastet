@@ -29,7 +29,7 @@
 #pragma once
 
 #include <cbang/event/Event.h>
-#include <cbang/event/JSONWebsocket.h>
+#include <cbang/ws/JSONWebsocket.h>
 #include <cbang/util/Backoff.h>
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Cipher.h>
@@ -41,7 +41,7 @@ namespace FAH {
     class App;
     class NodeRemote;
 
-    class Account : public cb::Event::JSONWebsocket {
+    class Account : public cb::WS::JSONWebsocket {
       App &app;
 
       std::string token;
@@ -86,12 +86,12 @@ namespace FAH {
       void onBroadcast   (const cb::JSON::ValuePtr &msg);
       void onSessionClose(const cb::JSON::ValuePtr &msg);
 
-      // From cb::Event::Websocket
+      // From cb::WS::Websocket
       void onOpen();
       void onMessage(const cb::JSON::ValuePtr &msg);
-      void onClose(cb::Event::WebsockStatus status, const std::string &msg);
+      void onClose(cb::WS::Status status, const std::string &msg);
 
-      // From cb::Event::JSONWebsocket
+      // From cb::WS::JSONWebsocket
       void send(const cb::JSON::Value &msg);
     };
   }

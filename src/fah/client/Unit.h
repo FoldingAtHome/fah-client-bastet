@@ -33,9 +33,9 @@
 #include <cbang/json/Observable.h>
 
 #include <cbang/event/Event.h>
-#include <cbang/event/Enum.h>
-#include <cbang/event/Client.h>
-#include <cbang/event/Request.h>
+#include <cbang/http/Enum.h>
+#include <cbang/http/Client.h>
+#include <cbang/http/Request.h>
 
 #include <cbang/os/Subprocess.h>
 #include <cbang/os/Thread.h>
@@ -52,14 +52,13 @@ namespace FAH {
     class Config;
 
     class Unit :
-      public cb::JSON::ObservableDict,
-      public cb::Event::Enum,
+      public cb::JSON::ObservableDict, public cb::HTTP::Enum,
       public UnitState::Enum {
       App &app;
       cb::SmartPointer<Group> group;
 
       cb::Event::EventPtr           event;
-      cb::Event::Client::RequestPtr pr;
+      cb::HTTP::Client::RequestPtr pr;
 
       uint64_t    wu;
       std::string id;
@@ -184,7 +183,7 @@ namespace FAH {
       void upload();
       void dumpResponse(const cb::JSON::ValuePtr &data);
       void dump();
-      void response(cb::Event::Request &req);
+      void response(cb::HTTP::Request &req);
       void logCredit(const cb::JSON::ValuePtr &data);
     };
   }

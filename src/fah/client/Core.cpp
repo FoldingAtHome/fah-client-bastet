@@ -34,7 +34,7 @@
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/event/Event.h>
-#include <cbang/event/HTTPConnOut.h>
+#include <cbang/http/ConnOut.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/openssl/KeyPair.h>
 #include <cbang/openssl/Digest.h>
@@ -208,7 +208,7 @@ void Core::download(const string &url) {
 }
 
 
-void Core::response(Event::Request &req) {
+void Core::response(HTTP::Request &req) {
   try {
     if (req.getConnectionError()) THROW("No response");
     if (!req.isOk()) THROW(req.getResponseCode() << ": " << req.getInput());

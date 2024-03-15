@@ -29,7 +29,7 @@
 #include "WebsocketRemote.h"
 #include "App.h"
 
-#include <cbang/event/HTTPConn.h>
+#include <cbang/http/Conn.h>
 
 using namespace std;
 using namespace cb;
@@ -37,13 +37,14 @@ using namespace FAH::Client;
 
 
 WebsocketRemote::WebsocketRemote(
-  App &app, const URI &uri, const Version &version) :
-  Remote(app), Event::JSONWebsocket(uri, version) {}
+  App &app, const SmartPointer<HTTP::Conn> &connection,
+  const URI &uri, const Version &version) :
+  Remote(app), WS::JSONWebsocket(connection, uri, version) {}
 
 
 void WebsocketRemote::send(const cb::JSON::ValuePtr &msg) {
   pingEvent->add(15);
-  if (isActive()) Event::JSONWebsocket::send(*msg);
+  if (isActive()) WS::JSONWebsocket::send(*msg);
 }
 
 
@@ -57,8 +58,8 @@ void WebsocketRemote::onOpen() {
 }
 
 
-void WebsocketRemote::onClose(Event::WebsockStatus status, const string &msg) {
-  cb::Event::JSONWebsocket::onClose(status, msg);
+void WebsocketRemote::onClose(WS::Status status, const string &msg) {
+  cb::WS::JSONWebsocket::onClose(status, msg);
   if (hasConnection()) getConnection()->close();
 }
 
