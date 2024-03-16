@@ -40,7 +40,7 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/openssl/KeyContext.h>
 #include <cbang/util/Random.h>
-#include <cbang/util/Press.h>
+#include <cbang/comp/Press.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/http/Conn.h>
 

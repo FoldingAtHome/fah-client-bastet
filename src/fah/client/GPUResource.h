@@ -29,8 +29,8 @@
 #pragma once
 
 #include <cbang/json/Observable.h>
-#include <cbang/gpu/ComputeDevice.h>
-#include <cbang/pci/PCIInfo.h>
+#include <cbang/hw/ComputeDevice.h>
+#include <cbang/hw/PCIInfo.h>
 
 
 namespace FAH {

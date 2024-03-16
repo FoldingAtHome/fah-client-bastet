@@ -39,8 +39,8 @@
 #include <cbang/json/Reader.h>
 #include <cbang/time/Time.h>
 #include <cbang/log/Logger.h>
-#include <cbang/gpu/OpenCLLibrary.h>
-#include <cbang/gpu/CUDALibrary.h>
+#include <cbang/hw/OpenCLLibrary.h>
+#include <cbang/hw/CUDALibrary.h>
 
 using namespace FAH::Client;
 using namespace cb;

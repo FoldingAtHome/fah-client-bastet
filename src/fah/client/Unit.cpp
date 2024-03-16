@@ -45,8 +45,8 @@
 
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
-#include <cbang/os/CPUInfo.h>
-#include <cbang/os/CPURegsX86.h>
+#include <cbang/hw/CPUInfo.h>
+#include <cbang/hw/CPURegsX86.h>
 
 #include <cbang/event/Event.h>
 #include <cbang/http/ConnOut.h>
@@ -59,7 +59,7 @@
 
 #include <cbang/net/Base64.h>
 #include <cbang/openssl/Digest.h>
-#include <cbang/gpu/GPUVendor.h>
+#include <cbang/hw/GPUVendor.h>
 #include <cbang/json/Reader.h>
 #include <cbang/json/Builder.h>
 #include <cbang/json/BufferWriter.h>

@@ -38,8 +38,8 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/openssl/KeyPair.h>
 #include <cbang/openssl/Digest.h>
-#include <cbang/tar/Tar.h>
-#include <cbang/iostream/CompressionFilter.h>
+#include <cbang/comp/Tar.h>
+#include <cbang/comp/CompressionFilter.h>
 #include <cbang/boost/IOStreams.h>
 
 using namespace FAH::Client;

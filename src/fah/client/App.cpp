@@ -52,7 +52,7 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/os/SignalManager.h> // For SIGHUP on Windows
-#include <cbang/os/CPUInfo.h>
+#include <cbang/hw/CPUInfo.h>
 
 #include <cbang/openssl/SSL.h>
 #include <cbang/openssl/SSLContext.h>

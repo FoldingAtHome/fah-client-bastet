@@ -30,7 +30,7 @@
 
 #include <fah/client/OS.h>
 
-#include <cbang/os/Thread.h>
+#include <cbang/thread/Thread.h>
 #include <cbang/util/Version.h>
 #include <atomic>
 

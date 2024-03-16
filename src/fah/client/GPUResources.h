@@ -30,7 +30,7 @@
 
 #include "GPUResource.h"
 
-#include <cbang/gpu/GPUIndex.h>
+#include <cbang/hw/GPUIndex.h>
 #include <cbang/event/Scheduler.h>
 #include <cbang/http/Request.h>
 

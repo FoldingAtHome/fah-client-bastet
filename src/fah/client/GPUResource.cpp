@@ -30,7 +30,7 @@
 
 #include <cbang/String.h>
 #include <cbang/json/JSON.h>
-#include <cbang/gpu/GPUVendor.h>
+#include <cbang/hw/GPUVendor.h>
 
 using namespace FAH::Client;
 using namespace cb;

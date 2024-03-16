@@ -38,7 +38,7 @@
 #include <cbang/http/Request.h>
 
 #include <cbang/os/Subprocess.h>
-#include <cbang/os/Thread.h>
+#include <cbang/thread/Thread.h>
 
 #include <cbang/net/URI.h>
 
