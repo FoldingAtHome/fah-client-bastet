@@ -49,7 +49,7 @@ Units::Units(App &app) {
   app.getDB("units").foreach(
     [this, &app, &clientID, &count] (const string &id, const string &data) {
       try {
-        auto unit = SmartPtr(new Unit(app, JSON::Reader::parseString(data)));
+        auto unit = SmartPtr(new Unit(app, JSON::Reader::parse(data)));
 
         if (unit->getClientID() == clientID) {add(unit); count++;}
         else LOG_ERROR("WU with client ID " << unit->getClientID()

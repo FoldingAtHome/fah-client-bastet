@@ -89,7 +89,7 @@ void Account::init() {
   auto &db = app.getDB("config");
 
   if (db.has("account"))
-    setData(JSON::Reader::parseString(db.getString("account")));
+    setData(JSON::Reader::parse(db.getString("account")));
 }
 
 
@@ -246,7 +246,7 @@ void Account::onEncrypted(const JSON::ValuePtr &_msg) {
   if (4e6 < ivs.size()) THROW("Too many IVs");
 
   Cipher cipher("aes-256-cbc", false, sessionKey.data(), iv.data());
-  JSON::ValuePtr msg = JSON::Reader::parseString(cipher.crypt(payload));
+  JSON::ValuePtr msg = JSON::Reader::parse(cipher.crypt(payload));
 
   LOG_DEBUG(5, *msg);
 

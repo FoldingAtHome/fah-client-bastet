@@ -51,7 +51,7 @@ Group::Group(App &app, const string &name) :
   app(app), name(name),
   event(app.getEventBase().newEvent(this, &Group::update, 0)) {
   auto &r       = FAH::Client::resource0.get("group.json");
-  auto defaults = JSON::Reader::parseString(r.toString());
+  auto defaults = JSON::Reader::parse(r);
   config        = new Config(app, defaults);
   auto &db      = app.getDB("groups");
 

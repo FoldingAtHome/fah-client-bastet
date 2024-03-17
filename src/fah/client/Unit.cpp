@@ -703,7 +703,7 @@ void Unit::readViewerTop() {
   string filename = getDirectory() + "/viewerTop.json";
 
   if (existsAndOlderThan(filename, 10)) {
-    topology = JSON::Reader(filename).parse();
+    topology = JSON::Reader::parseFile(filename);
     frames.clear();
   }
 }
@@ -714,7 +714,7 @@ bool Unit::readViewerFrame() {
     getDirectory() + String::printf("/viewerFrame%d.json", viewerFrame);
 
   if (existsAndOlderThan(filename, 10)) {
-    auto frame = JSON::Reader(filename).parse();
+    auto frame = JSON::Reader::parseFile(filename);
 
     if (!frames.empty() && *frames.back() == *frame)
       LOG_WARNING("Visualization frame " << viewerFrame
@@ -1062,7 +1062,7 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
     SystemUtilities::ensureDirectory(getDirectory());
 
     auto f = SystemUtilities::oopen(getDirectory() + "/wudata_01.dat");
-    f->write(wuData.c_str(), wuData.length());
+    f->write(wuData.data(), wuData.length());
   }
 
   setState(UNIT_CORE);

@@ -115,7 +115,7 @@ void GPUResources::update() {
     bool fail = true;
 
     try {
-      load(*JSON::Reader::parse(filename));
+      load(*JSON::Reader::parseFile(filename));
       fail = false;
     } CATCH_ERROR;
 
