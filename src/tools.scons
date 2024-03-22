@@ -1,0 +1,19 @@
+Import('*')
+
+tools_scons = Glob('all-*.scons')
+
+if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+  tools_scons += Glob('win-*.scons')
+elif env['PLATFORM'] == 'darwin':
+  tools_scons += Glob('osx-*.scons')
+else:
+  tools_scons += Glob('lin-*.scons')
+
+Export('env')
+
+tools = []
+for tscons in tools_scons:
+  tool = SConscript(tscons, variant_dir = '#/build', duplicate = 0)
+  if tool: tools += tool
+
+Return('tools')
