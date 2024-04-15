@@ -9,9 +9,10 @@ except Exception as e:
 
 env.CBLoadTools('compiler cbang dist build_info packager resources osx')
 
-# Override mostly_static to default True
+# Options
 env.CBAddVariables(
-    BoolVariable('mostly_static', 'Link most libraries statically', 1))
+    BoolVariable('wrap_glibc', 'Wrap some glibc functions for backwards '
+                 'compatibility with older Linux OSes', 0))
 
 conf = env.CBConfigure()
 
@@ -45,9 +46,11 @@ if not env.GetOption('clean'):
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
 
     if env['PLATFORM'] == 'posix':
-        flags = ['-Wl,--wrap=' + x
-                 for x in 'glob logf log expf exp powf pow fcntl64'.split()]
-        env.AppendUnique(LINKFLAGS = flags)
+        if env['wrap_glibc']:
+            funcs = 'glob logf log expf exp powf pow fcntl64'
+            flags = ['-Wl,--wrap=' + x for x in funcs.split()]
+            env.AppendUnique(LINKFLAGS = flags)
+
         env.Append(PREFER_DYNAMIC = 'bz2 z m'.split())
 
 conf.Finish()

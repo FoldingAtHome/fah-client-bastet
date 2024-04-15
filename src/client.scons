@@ -10,7 +10,8 @@ subdirs = ['']
 src = ['client.cpp']
 for dir in subdirs:
     src += Glob('fah/client/' + dir + '/*.cpp')
-    src += Glob('fah/client/' + dir + '/*.c')
+
+if env['wrap_glibc']: src.append('fah/client/glibc.c')
 
 
 # Resources

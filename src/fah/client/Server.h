@@ -41,8 +41,7 @@ namespace FAH {
     class App;
     class Remote;
 
-    class Server :
-      public cb::HTTP::WebServer {
+    class Server : public cb::HTTP::WebServer {
       App &app;
 
       std::set<std::string> allowedOrigins;
