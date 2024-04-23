@@ -33,8 +33,6 @@
 #include <cbang/event/Base.h>
 #include <cbang/http/Client.h>
 
-#include <cbang/dns/Base.h>
-
 #include <cbang/db/Database.h>
 #include <cbang/db/NameValueTable.h>
 
@@ -67,10 +65,9 @@ namespace FAH {
       public cb::Event::Enum,
       public cb::JSON::ObservableDict {
 
-      cb::Event::Base    base;
-      cb::DNS::Base      dns;
-      cb::HTTP::Client  client;
-      cb::KeyPair        key;
+      cb::Event::Base  base;
+      cb::HTTP::Client client;
+      cb::KeyPair      key;
 
       cb::Certificate caCert;
 
@@ -97,18 +94,17 @@ namespace FAH {
 
       static bool _hasFeature(int feature);
 
-      cb::Event::Base    &getEventBase() {return base;}
-      cb::DNS::Base      &getEventDNS()  {return dns;}
-      cb::HTTP::Client  &getClient()    {return client;}
-      cb::KeyPair        &getKey()       {return key;}
+      cb::Event::Base  &getEventBase() {return base;}
+      cb::HTTP::Client &getClient()    {return client;}
+      cb::KeyPair      &getKey()       {return key;}
 
       cb::DB::NameValueTable &getDB(const std::string name);
 
-      Server             &getServer()    {return *server;}
-      Account            &getAccount()   {return *account;}
-      GPUResources       &getGPUs()      {return *gpus;}
-      Cores              &getCores()     {return *cores;}
-      OS                 &getOS()        {return *os;}
+      Server           &getServer()    {return *server;}
+      Account          &getAccount()   {return *account;}
+      GPUResources     &getGPUs()      {return *gpus;}
+      Cores            &getCores()     {return *cores;}
+      OS               &getOS()        {return *os;}
 
       cb::SmartPointer<Groups> getGroups() const;
       cb::SmartPointer<Config> getConfig() const;

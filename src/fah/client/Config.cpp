@@ -59,9 +59,9 @@ void Config::load(const Options &opts) {
 
     if (opts.has(key) && !opts[key].isDefault() && opts[key].isSet())
       switch (opts[key].getType()) {
-      case Option::INTEGER_TYPE: insert(_key, opts[key].toInteger()); break;
-      case Option::DOUBLE_TYPE:  insert(_key, opts[key].toDouble());  break;
-      case Option::BOOLEAN_TYPE: insert(_key, opts[key].toBoolean()); break;
+      case Option::TYPE_INTEGER: insert(_key, opts[key].toInteger()); break;
+      case Option::TYPE_DOUBLE:  insert(_key, opts[key].toDouble());  break;
+      case Option::TYPE_BOOLEAN: insert(_key, opts[key].toBoolean()); break;
       default:                   insert(_key, opts[key]);             break;
       }
   }
@@ -161,7 +161,8 @@ int Config::insert(const string &key, const JSON::ValuePtr &value) {
   }
 
   if (defaults->get(key)->getType() != value->getType()) {
-    LOG_WARNING("Ignoring config key '" << key << "' with wrong type");
+    LOG_WARNING("Ignoring config key '" << key << "' with wrong type "
+                << value->getType());
     return -1;
   }
 

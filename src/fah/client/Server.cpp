@@ -39,13 +39,14 @@ using namespace std;
 
 
 Server::Server(App &app) :
-  HTTP::WebServer(app.getOptions(), app.getEventBase()), app(app) {
+  HTTP::Server(app.getEventBase()), app(app) {
+  addOptions(app.getOptions());
   app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
 
-  setEventPriority(3);
+  setPortPriority(3);
 
   addMember(this, &Server::corsCB);
-  addMember(HTTP_GET, "/", this, &Server::redirectWebControl);
+  addMember(HTTP_GET, "/",     this, &Server::redirectWebControl);
   addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
 }
 
@@ -66,12 +67,11 @@ void Server::init() {
   }
 
   // Init
-  WebServer::init();
+  HTTP::Server::init(options);
 }
 
 
-SmartPointer<HTTP::Request>
-Server::createRequest(
+SmartPointer<HTTP::Request> Server::createRequest(
   const SmartPointer<HTTP::Conn> &connection, HTTP::Method method,
   const URI &uri, const Version &version) {
   if (method == HTTP_GET &&
@@ -83,7 +83,7 @@ Server::createRequest(
     return client;
   }
 
-  return HTTP::WebServer::createRequest(connection, method, uri, version);
+  return HTTP::Server::createRequest(connection, method, uri, version);
 }
 
 

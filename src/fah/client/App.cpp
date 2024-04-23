@@ -93,8 +93,8 @@ namespace {
 
 
 App::App() :
-  Application("Folding@home Client", App::_hasFeature), base(true, 10),
-  dns(base), client(base, dns, new SSLContext), server(new Server(*this)),
+  Application("Folding@home Client", App::_hasFeature), base(true, true, 10),
+  client(base, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
   cores(new Cores(*this)),
   saveConfigEvent(base.newEvent(this, &App::saveGlobalConfig, 0)) {

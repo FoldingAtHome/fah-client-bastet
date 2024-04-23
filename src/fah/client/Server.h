@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include <cbang/http/WebServer.h>
+#include <cbang/http/Server.h>
 #include <cbang/json/Value.h>
 #include <cbang/openssl/SSLContext.h>
 
@@ -41,7 +41,7 @@ namespace FAH {
     class App;
     class Remote;
 
-    class Server : public cb::HTTP::WebServer {
+    class Server : public cb::HTTP::Server {
       App &app;
 
       std::set<std::string> allowedOrigins;
@@ -49,12 +49,14 @@ namespace FAH {
     public:
       Server(App &app);
 
-      // From cb::HTTP::WebServer
       void init();
+
+      // From cb::HTTP::Server
+      using cb::HTTP::Server::init;
       cb::SmartPointer<cb::HTTP::Request> createRequest(
         const cb::SmartPointer<cb::HTTP::Conn> &connection,
         cb::HTTP::Method method, const cb::URI &uri,
-        const cb::Version &version);
+        const cb::Version &version) override;
 
     protected:
       bool corsCB(cb::HTTP::Request &req);
