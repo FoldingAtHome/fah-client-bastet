@@ -87,12 +87,12 @@ namespace FAH {
       void onSessionClose(const cb::JSON::ValuePtr &msg);
 
       // From cb::WS::Websocket
-      void onOpen();
-      void onMessage(const cb::JSON::ValuePtr &msg);
-      void onClose(cb::WS::Status status, const std::string &msg);
+      void onOpen() override;
+      void onMessage(const cb::JSON::ValuePtr &msg) override;
+      void onClose(cb::WS::Status status, const std::string &msg) override;
 
       // From cb::WS::JSONWebsocket
-      void send(const cb::JSON::Value &msg);
+      void send(const cb::JSON::Value &msg) override;
     };
   }
 }

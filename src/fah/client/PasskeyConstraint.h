@@ -35,8 +35,7 @@ namespace FAH {
   class PasskeyConstraint : public cb::Constraint {
   public:
     // From cb::Constraint
-    void validate(const std::string &value) const;
-    std::string getHelp() const;
+    void validate(const std::string &value) const override;
+    std::string getHelp() const override;
   };
 }
-

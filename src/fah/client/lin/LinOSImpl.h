@@ -38,9 +38,9 @@ namespace FAH {
       LinOSImpl(App &app) : OS(app) {}
 
       // From OS
-      const char *getName() const;
-      const char *getCPU() const;
-      bool isSystemIdle() const;
+      const char *getName() const override;
+      const char *getCPU() const override;
+      bool isSystemIdle() const override;
     };
   }
 }

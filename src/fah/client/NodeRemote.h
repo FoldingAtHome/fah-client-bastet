@@ -45,9 +45,9 @@ namespace FAH {
       const std::string &getSessionID() const {return sid;}
 
       // From Remote
-      std::string getName() const;
-      void send(const cb::JSON::ValuePtr &msg);
-      void close();
+      std::string getName() const override;
+      void send(const cb::JSON::ValuePtr &msg) override;
+      void close() override;
     };
   }
 }

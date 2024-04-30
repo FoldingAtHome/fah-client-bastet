@@ -115,7 +115,7 @@ namespace FAH {
       void remove();
 
       // From cb::JSON::Value
-      void notify(const std::list<cb::JSON::ValuePtr> &change);
+      void notify(const std::list<cb::JSON::ValuePtr> &change) override;
 
     protected:
       void update();

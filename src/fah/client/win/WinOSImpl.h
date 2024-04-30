@@ -70,13 +70,13 @@ namespace FAH {
       void init();
 
       // From OS
-      const char *getName() const {return "win32";}
-      const char *getCPU() const;
-      bool isSystemIdle() const {return inAwayMode || displayOff;}
-      void dispatch();
+      const char *getName() const override {return "win32";}
+      const char *getCPU() const override;
+      bool isSystemIdle() const override {return inAwayMode || displayOff;}
+      void dispatch() override;
 
       // From cb::Thread
-      void run();
+      void run() override;
 
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

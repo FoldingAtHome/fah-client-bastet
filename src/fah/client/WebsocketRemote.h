@@ -44,20 +44,22 @@ namespace FAH {
         const cb::URI &uri, const cb::Version &version);
 
       // From Remote
-      std::string getName() const {return getClientAddr().toString(false);}
-      void send(const cb::JSON::ValuePtr &msg);
-      void close();
+      std::string getName() const override
+        {return getClientAddr().toString(false);}
+      void send(const cb::JSON::ValuePtr &msg) override;
+      void close() override;
 
       // From cb::WS::JSONWebsocket
       using cb::WS::JSONWebsocket::send;
-      void onMessage(const cb::JSON::ValuePtr &msg) {Remote::onMessage(msg);}
+      void onMessage(const cb::JSON::ValuePtr &msg) override
+        {Remote::onMessage(msg);}
 
       // From cb::WS::Websocket
-      void onOpen();
-      void onClose(cb::WS::Status status, const std::string &msg);
+      void onOpen() override;
+      void onClose(cb::WS::Status status, const std::string &msg) override;
 
       // From cb::HTTP::Request
-      void onComplete();
+      void onComplete() override;
 
     protected:
       void sendPing();

@@ -69,12 +69,12 @@ namespace FAH {
       static OSXOSImpl &instance();
 
       // From OS
-      const char *getName() const {return "macosx";}
-      bool isSystemIdle() const {return systemIsIdle;}
-      void dispatch();
+      const char *getName() const override {return "macosx";}
+      bool isSystemIdle() const override {return systemIsIdle;}
+      void dispatch() override;
 
       // From cb::Thread
-      void run();
+      void run() override;
 
       // Callbacks
       void consoleUserChanged
