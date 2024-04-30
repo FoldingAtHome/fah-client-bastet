@@ -59,8 +59,7 @@ Account::Account(App &app) : app(app) {
     "machine-name", machName, "Name used to identify this machine.");
   options.popCategory();
 
-  updateEvent = app.getEventBase().newEvent(
-    this, &Account::update, EVENT_NO_SELF_REF);
+  updateEvent = app.getEventBase().newEvent(this, &Account::update);
   updateEvent->activate();
 }
 

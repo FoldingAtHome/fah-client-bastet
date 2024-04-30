@@ -38,6 +38,15 @@ namespace FAH {
     class App;
 
     class OS {
+    public:
+      typedef enum {
+        STATE_NULL,
+        STATE_FOLD,
+        STATE_PAUSE,
+        STATE_FINISH,
+      } state_t;
+
+    private:
       App &app;
 
       bool idle = false;
@@ -47,13 +56,14 @@ namespace FAH {
       std::atomic<bool> active;
       std::atomic<bool> failure;
       std::atomic<bool> onBattery;
+      std::atomic<state_t> state;
 
     protected:
       cb::SmartPointer<cb::Event::Event> event;
 
     public:
       OS(App &app);
-      virtual ~OS() {}
+      virtual ~OS();
 
       static cb::SmartPointer<OS> create(App &app);
 
@@ -66,8 +76,8 @@ namespace FAH {
       bool isActive()    const {return active;}
       bool hasFailure()  const {return failure;}
       bool isOnBattery() const {return onBattery;}
-      void requestExit() const;
-      void setState(const std::string &state) const;
+      void requestExit();
+      void setState(state_t state);
 
     protected:
       void update();

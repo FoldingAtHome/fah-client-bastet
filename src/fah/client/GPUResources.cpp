@@ -74,16 +74,18 @@ namespace {
 
 
 GPUResources::GPUResources(App &app) :
-  Event::Scheduler<GPUResources>(app.getEventBase()), app(app),
-  lastGPUsFail(0) {
-  schedule(&GPUResources::update);
+  app(app), event(app.getEventBase().newEvent(this, &GPUResources::update, 0)) {
+  event->add(0);
 }
+
+
+GPUResources::~GPUResources() {}
 
 
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
   TRY_CATCH_ERROR(detect());
-  schedule(&GPUResources::update, updateFreq);
+  event->add(updateFreq);
 }
 
 
@@ -103,7 +105,7 @@ void GPUResources::response(HTTP::Request &req) {
   unsigned secs = lastGPUsFail ? 2 * (Time::now() - lastGPUsFail) : 5;
   lastGPUsFail = Time::now();
   if (Time::SEC_PER_DAY < secs) secs = Time::SEC_PER_DAY;
-  schedule(&GPUResources::update, secs);
+  event->add(secs);
 }
 
 

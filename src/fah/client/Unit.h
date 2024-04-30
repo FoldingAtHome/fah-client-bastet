@@ -57,7 +57,7 @@ namespace FAH {
       App &app;
       cb::SmartPointer<Group> group;
 
-      cb::Event::EventPtr           event;
+      cb::Event::EventPtr          event;
       cb::HTTP::Client::RequestPtr pr;
 
       uint64_t    wu;

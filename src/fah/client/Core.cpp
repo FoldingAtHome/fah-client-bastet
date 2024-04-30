@@ -48,9 +48,14 @@ using namespace std;
 
 
 Core::Core(App &app, const JSON::ValuePtr &data) :
-  Event::Scheduler<Core>(app.getEventBase()), app(app), data(data) {
-  schedule(&Core::next);
+  app(app), data(data),
+  nextEvent(app.getEventBase().newEvent(this, &Core::next, 0)),
+  readyEvent(app.getEventBase().newEvent(this, &Core::ready, 0)) {
+  nextEvent->add(0);
 }
+
+
+Core::~Core() {}
 
 
 string   Core::getURL()  const {return data->getString("url");}
@@ -99,13 +104,13 @@ void Core::load() {
         THROW("Core " << path << " not found on disk");
 
       LOG_INFO(1, "Loaded " << path);
-      schedule(&Core::ready);
+      readyEvent->add(0);
       return;
     }
   } CATCH_ERROR;
 
   state = CORE_CERT;
-  schedule(&Core::next);
+  nextEvent->add(0);
 }
 
 
@@ -185,7 +190,7 @@ void Core::downloadResponse(const string &pkg) {
   data->insert("path", filename);
   app.getDB("cores").set(getURL(), *data);
 
-  schedule(&Core::ready);
+  readyEvent->add(0);
 }
 
 
@@ -229,7 +234,7 @@ void Core::response(HTTP::Request &req) {
     default: THROW("Unexpected core state: " << state);
     }
 
-    schedule(&Core::next);
+    nextEvent->add(0);
     return;
   } CATCH_ERROR;
 

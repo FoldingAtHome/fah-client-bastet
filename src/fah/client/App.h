@@ -31,6 +31,7 @@
 #include <cbang/Application.h>
 
 #include <cbang/event/Base.h>
+#include <cbang/event/Event.h>
 #include <cbang/http/Client.h>
 
 #include <cbang/db/Database.h>
@@ -87,10 +88,11 @@ namespace FAH {
 
       unsigned nextAS = 0;
 
-      cb::Event::EventPtr saveConfigEvent;
+      std::map<std::string, cb::Event::EventPtr> events;
 
     public:
       App();
+      ~App();
 
       static bool _hasFeature(int feature);
 

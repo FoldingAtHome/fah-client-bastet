@@ -41,10 +41,12 @@
 #include <cbang/Catch.h>
 #include <cbang/Info.h>
 #include <cbang/event/Event.h>
+#include <cbang/http/Conn.h>
 #include <cbang/log/Logger.h>
 #include <cbang/time/Time.h>
 #include <cbang/json/Sink.h>
 #include <cbang/util/Resource.h>
+#include <cbang/hw/CPUInfo.h>
 
 #include <cbang/net/URI.h>
 #include <cbang/net/Base64.h>
@@ -52,7 +54,6 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/os/SignalManager.h> // For SIGHUP on Windows
-#include <cbang/hw/CPUInfo.h>
 
 #include <cbang/openssl/SSL.h>
 #include <cbang/openssl/SSLContext.h>
@@ -96,8 +97,9 @@ App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, true, 10),
   client(base, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
-  cores(new Cores(*this)),
-  saveConfigEvent(base.newEvent(this, &App::saveGlobalConfig, 0)) {
+  cores(new Cores(*this)) {
+
+  events["save-config"] = base.newEvent(this, &App::saveGlobalConfig, 0);
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -170,8 +172,8 @@ App::App() :
   options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  base.newSignal(SIGINT,  this, &App::signalEvent)->add();
-  base.newSignal(SIGTERM, this, &App::signalEvent)->add();
+  (events["sigint"]  = base.newSignal(SIGINT,  this, &App::signalEvent))->add();
+  (events["sigterm"] = base.newSignal(SIGTERM, this, &App::signalEvent))->add();
 
   // Network timeout
   client.setReadTimeout(60);
@@ -195,6 +197,9 @@ App::App() :
 
   // TODO get CRL from F@H periodically
 }
+
+
+App::~App() {}
 
 
 bool App::_hasFeature(int feature) {
@@ -513,7 +518,7 @@ void App::notify(const list<JSON::ValuePtr> &change) {
 
   // Automatically save changes to config
   bool isConfig = 2 < change.size() && change.front()->getString() == "config";
-  if (isConfig) saveConfigEvent->activate();
+  if (isConfig) events["save-config"]->activate();
 
   auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
   LOG_DEBUG(5, __func__ << ' ' << *changes);

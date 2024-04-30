@@ -48,10 +48,13 @@ using namespace std;
 
 
 OS::OS(App &app) :
-  app(app), paused(false), active(false), failure(false),
-  event(app.getEventBase().newEvent(this, &OS::update)) {
+  app(app), paused(false), active(false), failure(false), onBattery(false),
+  state(STATE_NULL), event(app.getEventBase().newEvent(this, &OS::update)) {
   event->add(2);
 }
+
+
+OS::~OS() {}
 
 
 SmartPointer<OS> OS::create(App &app) {
@@ -77,20 +80,18 @@ const char *OS::getCPU() const {
 
 
 void OS::dispatch() {app.getEventBase().dispatch();}
-
-
-void OS::requestExit() const {
-  app.getEventBase().newEvent(&app, &App::requestExit, 0)->add(0);
-}
-
-
-void OS::setState(const string &state) const {
-  app.getEventBase().newEvent(
-    [this, state] () {app.setState(state);}, 0)->add(0);
-}
+void OS::requestExit() {app.requestExit();}
+void OS::setState(state_t state) {this->state = state; event->activate();}
 
 
 void OS::update() {
+  switch (state.exchange(STATE_NULL)) {
+  case STATE_NULL:                           break;
+  case STATE_FOLD:   app.setState("fold");   break;
+  case STATE_PAUSE:  app.setState("pause");  break;
+  case STATE_FINISH: app.setState("finish"); break;
+  }
+
   if (isSystemIdle() != idle) {
     idle = !idle;
     app.triggerUpdate();

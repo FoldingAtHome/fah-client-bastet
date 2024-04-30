@@ -33,7 +33,6 @@
 #include <cbang/Exception.h>
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
-#include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
 
 #include <IOKit/IOMessage.h>

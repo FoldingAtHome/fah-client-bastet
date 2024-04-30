@@ -38,8 +38,6 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/log/Logger.h>
 #include <cbang/openssl/Digest.h>
-#include <cbang/event/Base.h>
-#include <cbang/event/Event.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -278,11 +276,11 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_COMMAND: {
     switch (LOWORD(wParam)) {
-    case ID_USER_WEBCONTROL: openWebControl();      return 0;
-    case ID_USER_FOLD:       OS::setState("fold");  return 0;
-    case ID_USER_PAUSE:      OS::setState("pause"); return 0;
-    case ID_USER_ABOUT:      showAbout(hWnd);       return 0;
-    case ID_USER_EXIT:       DestroyWindow(hWnd);   return 0;
+    case ID_USER_WEBCONTROL: openWebControl();          return 0;
+    case ID_USER_FOLD:       OS::setState(STATE_FOLD);  return 0;
+    case ID_USER_PAUSE:      OS::setState(STATE_PAUSE); return 0;
+    case ID_USER_ABOUT:      showAbout(hWnd);           return 0;
+    case ID_USER_EXIT:       DestroyWindow(hWnd);       return 0;
     }
     break;
   }

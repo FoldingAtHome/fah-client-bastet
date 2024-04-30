@@ -35,7 +35,7 @@
 
 #include <cbang/http/Request.h>
 #include <cbang/http/Enum.h>
-#include <cbang/event/Scheduler.h>
+#include <cbang/event/Event.h>
 
 #include <functional>
 
@@ -44,15 +44,16 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class Core :
-      public cb::Event::Scheduler<Core>, public CoreState::Enum,
-      public cb::HTTP::Enum {
+    class Core : public CoreState::Enum, public cb::HTTP::Enum {
       App &app;
       cb::JSON::ValuePtr data;
       CoreState state = CORE_INIT;
 
       std::string cert;
       std::string sig;
+
+      cb::Event::EventPtr nextEvent;
+      cb::Event::EventPtr readyEvent;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;
@@ -62,6 +63,7 @@ namespace FAH {
 
     public:
       Core(App &app, const cb::JSON::ValuePtr &data);
+      ~Core();
 
       CoreState getState()  const {return state;}
       bool      isReady()   const {return state == CORE_READY;}

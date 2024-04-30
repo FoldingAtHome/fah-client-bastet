@@ -156,7 +156,6 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 Unit::~Unit() {
   cancelRequest();
   if (logCopier.isSet()) logCopier->join();
-  event->del();
 }
 
 

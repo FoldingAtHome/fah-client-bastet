@@ -31,7 +31,7 @@
 #include "GPUResource.h"
 
 #include <cbang/hw/GPUIndex.h>
-#include <cbang/event/Scheduler.h>
+#include <cbang/event/Event.h>
 #include <cbang/http/Request.h>
 
 
@@ -40,17 +40,18 @@ namespace FAH {
     class App;
     class Unit;
 
-    class GPUResources :
-      public cb::JSON::ObservableDict,
-      public cb::Event::Scheduler<GPUResources> {
+    class GPUResources : public cb::JSON::ObservableDict {
       App &app;
 
       bool loaded = false;
       cb::GPUIndex gpuIndex;
-      int64_t lastGPUsFail;
+      int64_t lastGPUsFail = 0;
+
+      cb::Event::EventPtr event;
 
     public:
       GPUResources(App &app);
+      ~GPUResources();
 
       bool isLoaded() const {return loaded;}
 

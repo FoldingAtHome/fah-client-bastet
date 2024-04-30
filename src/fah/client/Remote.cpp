@@ -45,7 +45,7 @@ using namespace std;
 
 
 Remote::Remote(App &app) : app(app) {}
-Remote::~Remote() {if (logEvent.isSet()) logEvent->del();}
+Remote::~Remote() {}
 
 
 void Remote::sendViz() {
