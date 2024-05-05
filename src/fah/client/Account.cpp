@@ -59,7 +59,7 @@ Account::Account(App &app) : app(app) {
     "machine-name", machName, "Name used to identify this machine.");
   options.popCategory();
 
-  updateEvent = app.getEventBase().newEvent(this, &Account::update);
+  updateEvent = app.getEventBase().newEvent(this, &Account::update, 0);
   updateEvent->activate();
 }
 
@@ -105,7 +105,7 @@ void Account::reset() {
   if (db.has("account")) db.unset("account");
 
   // Close websocket
-  close(WS::Status::WS_STATUS_NORMAL);
+  close(WS::Status::WS_STATUS_NORMAL, "Account resetting");
 }
 
 
