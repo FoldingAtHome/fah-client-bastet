@@ -207,13 +207,15 @@ void Core::download(const string &url) {
         progressCBs[i](bytes, size);
     };
 
-  auto pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
+  pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 
 
 void Core::response(HTTP::Request &req) {
+  pr.release();
+
   try {
     if (req.getConnectionError()) THROW("No response");
     if (!req.isOk()) THROW(req.getResponseCode() << ": " << req.getInput());

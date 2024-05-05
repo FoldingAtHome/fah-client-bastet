@@ -139,9 +139,7 @@ void Account::retryUpdate() {updateEvent->add((unsigned)updateBackoff.next());}
 
 
 void Account::requestInfo() {
-  HTTP::Client::RequestPtr pr;
-
-  auto cb = [this, pr] (HTTP::Request &req) mutable {
+  auto cb = [this] (HTTP::Request &req) mutable {
     try {
       if (req.logResponseErrors()) {
         // If the account does not exist, forget about it
@@ -157,12 +155,13 @@ void Account::requestInfo() {
       }
     } CATCH_ERROR;
 
-    pr.release(); // Release request
+    reqs["info"].release(); // Release request
   };
 
   string id = app.getID();
   URI uri(app.getOptions()["api-server"].toString() + "/machine/" + id);
-  pr = app.getClient().call(uri, HTTP::Method::HTTP_GET, cb);
+  auto pr = app.getClient().call(uri, HTTP::Method::HTTP_GET, cb);
+  reqs["info"] = pr;
   pr->send();
 }
 
@@ -181,9 +180,7 @@ void Account::connect() {
 
 
 void Account::link() {
-  HTTP::Client::RequestPtr pr;
-
-  auto cb = [this, pr] (HTTP::Request &req) mutable {
+  auto cb = [this] (HTTP::Request &req) mutable {
     if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
     else if (req.logResponseErrors()) retryUpdate();
 
@@ -194,12 +191,13 @@ void Account::link() {
       updateBackoff.reset();
     }
 
-    pr.release(); // Release request
+    reqs["link"].release(); // Release request
   };
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());
-  pr = app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb);
+  auto pr = app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb);
+  reqs["link"] = pr;
 
   JSON::Dict data;
   data.insert("name",  machName);

@@ -75,7 +75,7 @@ namespace {
 
 GPUResources::GPUResources(App &app) :
   app(app), event(app.getEventBase().newEvent(this, &GPUResources::update, 0)) {
-  event->add(0);
+  event->activate();
 }
 
 
@@ -90,6 +90,8 @@ void GPUResources::load(const JSON::Value &gpus) {
 
 
 void GPUResources::response(HTTP::Request &req) {
+  pr.release();
+
   if (req.isOk())
     try {
       auto gpus = req.getInputJSON();
@@ -127,8 +129,8 @@ void GPUResources::update() {
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
-  app.getClient().call(uri, HTTP::Method::HTTP_GET,
-                       this, &GPUResources::response)->send();
+  (pr = app.getClient().call(uri, HTTP::Method::HTTP_GET,
+                             this, &GPUResources::response))->send();
 }
 
 

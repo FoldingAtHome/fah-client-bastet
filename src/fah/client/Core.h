@@ -34,7 +34,7 @@
 #include <cbang/openssl/Certificate.h>
 
 #include <cbang/http/Request.h>
-#include <cbang/http/Enum.h>
+#include <cbang/http/Client.h>
 #include <cbang/event/Event.h>
 
 #include <functional>
@@ -54,6 +54,7 @@ namespace FAH {
 
       cb::Event::EventPtr nextEvent;
       cb::Event::EventPtr readyEvent;
+      cb::HTTP::Client::RequestPtr pr;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;
