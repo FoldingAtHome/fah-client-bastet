@@ -420,13 +420,7 @@ void Unit::save() {
 }
 
 
-void Unit::cancelRequest() {
-  if (pr.isSet()) {
-    pr->setCallback(0);
-    pr->getConnection()->close();
-    pr.release();
-  }
-}
+void Unit::cancelRequest() {pr.release();}
 
 
 void Unit::setState(UnitState state) {
@@ -872,36 +866,47 @@ void Unit::setWait(double delay) {
 
 
 void Unit::retry() {
+  triggerNext();
+
   // Clear any pending requests
   cancelRequest();
 
-  // Retry results with CS
-  if (getState() == UNIT_UPLOAD && data->select("wu.data")->hasList("cs")) {
-    auto const &csList = data->selectList("wu.data.cs");
+  try {
+    // Retry results with CS
+    if (getState() == UNIT_UPLOAD && data->select("wu.data")->hasList("cs")) {
+      auto const &csList = data->selectList("wu.data.cs");
 
-    if (csList.size()) {
-      if (cs <  (int)csList.size()) cs++;
-      if (cs == (int)csList.size()) cs = -1;
-      return next();
+      if (csList.size()) {
+        if (cs <  (int)csList.size()) cs++;
+        if (cs == (int)csList.size()) cs = -1;
+        return next();
+      }
     }
+
+    if (++retries < 10 || getState() == UNIT_ASSIGN ||
+        (retries <= 50 && UNIT_UPLOAD <= getState())) {
+      double delay = pow(2, std::min(9U, retries));
+      setWait(delay);
+      LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
+
+    } else {
+      LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
+      setWait(0);
+      retries = 0;
+      setState(UNIT_CLEAN);
+    }
+
+    insert("retries", retries);
+    return;
+
+  } CATCH_ERROR;
+
+  switch (getState()) {
+  case UNIT_DONE:                        break;
+  case UNIT_CLEAN: setState(UNIT_DONE);  break;
+  case UNIT_DUMP:  setState(UNIT_CLEAN); break;
+  default:         setState(UNIT_DUMP);  break;
   }
-
-  if (++retries < 10 || getState() == UNIT_ASSIGN ||
-      (retries <= 50 && UNIT_UPLOAD <= getState())) {
-    double delay = pow(2, std::min(9U, retries));
-    setWait(delay);
-    LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
-
-  } else {
-    LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
-    setWait(0);
-    retries = 0;
-    setState(UNIT_CLEAN);
-  }
-
-  insert("retries", retries);
-
-  triggerNext();
 }
 
 

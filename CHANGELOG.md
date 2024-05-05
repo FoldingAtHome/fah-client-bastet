@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.9
+ - Fixed ``'wu' not found`` error.  #231, #232
+ - Other bug fixes.
+
 ## v8.3.7
  - Better DNS error handling and support for IPv6 name servers
 
