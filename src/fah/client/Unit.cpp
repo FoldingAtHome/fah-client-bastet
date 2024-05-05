@@ -735,7 +735,7 @@ bool Unit::readViewerFrame() {
 void Unit::setResults(const string &status, const string &dataHash) {
   auto request = data->get("request");
   auto assign  = data->get("assignment");
-  auto wu      = data->get("wu");
+  auto wu      = data->get("wu", createDict());
   string sigData =
     request->toString() + assign->toString() + wu->toString() + status +
     dataHash;
