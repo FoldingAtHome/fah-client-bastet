@@ -110,7 +110,7 @@ void Remote::sendLog() {
 
       // Move to offset
       streamsize len = SystemUtilities::getFileSize(filename);
-      if (len < logOffset)  logOffset = 0;
+      if (len < logOffset) logOffset = 0;
       if (logOffset) log->seekg(logOffset, ios::beg);
 
       sendLog();

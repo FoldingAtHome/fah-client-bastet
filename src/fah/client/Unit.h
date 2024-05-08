@@ -31,15 +31,12 @@
 #include "UnitState.h"
 
 #include <cbang/json/Observable.h>
-
 #include <cbang/event/Event.h>
 #include <cbang/http/Enum.h>
 #include <cbang/http/Client.h>
 #include <cbang/http/Request.h>
-
 #include <cbang/os/Subprocess.h>
 #include <cbang/thread/Thread.h>
-
 #include <cbang/net/URI.h>
 
 
@@ -185,6 +182,8 @@ namespace FAH {
       void dump();
       void response(cb::HTTP::Request &req);
       void logCredit(const cb::JSON::ValuePtr &data);
+      void startLogCopy(const std::string &filename);
+      void endLogCopy();
     };
   }
 }

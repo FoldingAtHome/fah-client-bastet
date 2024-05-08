@@ -154,15 +154,11 @@ void Account::requestInfo() {
         updateBackoff.reset();
       }
     } CATCH_ERROR;
-
-    reqs["info"].release(); // Release request
   };
 
   string id = app.getID();
   URI uri(app.getOptions()["api-server"].toString() + "/machine/" + id);
-  auto pr = app.getClient().call(uri, HTTP::Method::HTTP_GET, cb);
-  reqs["info"] = pr;
-  pr->send();
+  ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_GET, cb))->send();
 }
 
 
@@ -190,14 +186,11 @@ void Account::link() {
       requestInfo();
       updateBackoff.reset();
     }
-
-    reqs["link"].release(); // Release request
   };
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());
-  auto pr = app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb);
-  reqs["link"] = pr;
+  auto pr = ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb));
 
   JSON::Dict data;
   data.insert("name",  machName);

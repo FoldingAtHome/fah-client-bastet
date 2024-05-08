@@ -32,9 +32,8 @@
 
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Certificate.h>
-
 #include <cbang/http/Request.h>
-#include <cbang/http/Client.h>
+#include <cbang/util/LifetimeManager.h>
 #include <cbang/event/Event.h>
 
 #include <functional>
@@ -54,7 +53,7 @@ namespace FAH {
 
       cb::Event::EventPtr nextEvent;
       cb::Event::EventPtr readyEvent;
-      cb::HTTP::Client::RequestPtr pr;
+      cb::LifetimeManager ltm;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;

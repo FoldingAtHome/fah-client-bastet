@@ -29,7 +29,7 @@
 #pragma once
 
 #include <cbang/event/Event.h>
-#include <cbang/http/Client.h>
+#include <cbang/util/LifetimeManager.h>
 #include <cbang/ws/JSONWebsocket.h>
 #include <cbang/util/Backoff.h>
 #include <cbang/json/Value.h>
@@ -61,7 +61,7 @@ namespace FAH {
       typedef std::map<std::string, cb::SmartPointer<NodeRemote>> nodes_t;
       nodes_t nodes;
 
-      std::map<std::string, cb::HTTP::Client::RequestPtr> reqs;
+      cb::LifetimeManager ltm;
 
     public:
       Account(App &app);

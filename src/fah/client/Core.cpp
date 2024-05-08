@@ -51,7 +51,7 @@ Core::Core(App &app, const JSON::ValuePtr &data) :
   app(app), data(data),
   nextEvent(app.getEventBase().newEvent(this, &Core::next, 0)),
   readyEvent(app.getEventBase().newEvent(this, &Core::ready, 0)) {
-  nextEvent->add(0);
+  nextEvent->activate();
 }
 
 
@@ -104,13 +104,13 @@ void Core::load() {
         THROW("Core " << path << " not found on disk");
 
       LOG_INFO(1, "Loaded " << path);
-      readyEvent->add(0);
+      readyEvent->activate();
       return;
     }
   } CATCH_ERROR;
 
   state = CORE_CERT;
-  nextEvent->add(0);
+  nextEvent->activate();
 }
 
 
@@ -190,7 +190,7 @@ void Core::downloadResponse(const string &pkg) {
   data->insert("path", filename);
   app.getDB("cores").set(getURL(), *data);
 
-  readyEvent->add(0);
+  readyEvent->activate();
 }
 
 
@@ -207,15 +207,13 @@ void Core::download(const string &url) {
         progressCBs[i](bytes, size);
     };
 
-  pr = app.getClient().call(url, HTTP_GET, this, &Core::response);
+  auto pr = ltm.add(app.getClient().call(url, HTTP_GET, this, &Core::response));
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
 
 
 void Core::response(HTTP::Request &req) {
-  pr.release();
-
   try {
     if (req.getConnectionError()) THROW("No response");
     if (!req.isOk()) THROW(req.getResponseCode() << ": " << req.getInput());
@@ -236,7 +234,7 @@ void Core::response(HTTP::Request &req) {
     default: THROW("Unexpected core state: " << state);
     }
 
-    nextEvent->add(0);
+    nextEvent->activate();
     return;
   } CATCH_ERROR;
 

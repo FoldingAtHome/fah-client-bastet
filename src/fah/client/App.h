@@ -32,7 +32,6 @@
 
 #include <cbang/event/Base.h>
 #include <cbang/event/Event.h>
-#include <cbang/http/Client.h>
 
 #include <cbang/db/Database.h>
 #include <cbang/db/NameValueTable.h>
@@ -42,7 +41,8 @@
 #include <cbang/openssl/CertificateChain.h>
 
 #include <cbang/json/Observable.h>
-#include <cbang/event/Event.h>
+#include <cbang/util/LifetimeManager.h>
+#include <cbang/http/Client.h>
 
 #include <map>
 
@@ -88,7 +88,8 @@ namespace FAH {
 
       unsigned nextAS = 0;
 
-      std::map<std::string, cb::Event::EventPtr> events;
+      cb::Event::EventPtr saveEvent;
+      cb::LifetimeManager ltm;
 
     public:
       App();

@@ -155,7 +155,7 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 
 Unit::~Unit() {
   cancelRequest();
-  if (logCopier.isSet()) logCopier->join();
+  endLogCopy();
 }
 
 
@@ -649,11 +649,7 @@ void Unit::run() {
                 Subprocess::PRIORITY_IDLE);
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
 
-  // Redirect core output to log
-  if (logCopier.isSet()) logCopier->join();
-  logCopier = new TailFileToLog(logFile, getLogPrefix());
-  logCopier->start();
-
+  startLogCopy(logFile); // Redirect core output to log
   processStarted();
   triggerNext();
 
@@ -747,8 +743,7 @@ void Unit::setResults(const string &status, const string &dataHash) {
 
 
 void Unit::finalizeRun() {
-  if (logCopier.isSet()) logCopier->join();
-  logCopier.release();
+  endLogCopy();
 
   ExitCode code = (ExitCode::enum_t)process->wait();
 
@@ -1222,4 +1217,17 @@ void Unit::logCredit(const JSON::ValuePtr &data) {
     SystemUtilities::ensureDirectory(dir);
     data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
   } CATCH_ERROR;
+}
+
+
+void Unit::startLogCopy(const string &filename) {
+  endLogCopy();
+  logCopier = new TailFileToLog(filename, getLogPrefix());
+  logCopier->start();
+}
+
+
+void Unit::endLogCopy() {
+  if (logCopier.isSet()) logCopier->join();
+  logCopier.release();
 }

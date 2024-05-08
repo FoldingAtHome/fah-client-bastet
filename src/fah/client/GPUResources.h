@@ -33,7 +33,7 @@
 #include <cbang/hw/GPUIndex.h>
 #include <cbang/event/Event.h>
 #include <cbang/http/Request.h>
-#include <cbang/http/Client.h>
+#include <cbang/util/LifetimeManager.h>
 
 
 namespace FAH {
@@ -49,7 +49,7 @@ namespace FAH {
       int64_t lastGPUsFail = 0;
 
       cb::Event::EventPtr event;
-      cb::HTTP::Client::RequestPtr pr;
+      cb::LifetimeManager ltm;
 
     public:
       GPUResources(App &app);

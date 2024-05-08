@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.10
+ - Logging bug fixes.
+
 ## v8.3.9
  - Fixed ``'wu' not found`` error.  #231, #232
  - Other bug fixes.

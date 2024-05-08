@@ -90,8 +90,6 @@ void GPUResources::load(const JSON::Value &gpus) {
 
 
 void GPUResources::response(HTTP::Request &req) {
-  pr.release();
-
   if (req.isOk())
     try {
       auto gpus = req.getInputJSON();
@@ -129,8 +127,8 @@ void GPUResources::update() {
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
-  (pr = app.getClient().call(uri, HTTP::Method::HTTP_GET,
-                             this, &GPUResources::response))->send();
+  ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_GET,
+                               this, &GPUResources::response))->send();
 }
 
 

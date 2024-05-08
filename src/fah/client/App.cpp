@@ -99,7 +99,7 @@ App::App() :
   account(new Account(*this)), gpus(new GPUResources(*this)),
   cores(new Cores(*this)) {
 
-  events["save-config"] = base.newEvent(this, &App::saveGlobalConfig, 0);
+  saveEvent = base.newEvent(this, &App::saveGlobalConfig, 0);
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -172,8 +172,8 @@ App::App() :
   options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  (events["sigint"]  = base.newSignal(SIGINT,  this, &App::signalEvent))->add();
-  (events["sigterm"] = base.newSignal(SIGTERM, this, &App::signalEvent))->add();
+  ltm.add(base.newSignal(SIGINT,  this, &App::signalEvent))->add();
+  ltm.add(base.newSignal(SIGTERM, this, &App::signalEvent))->add();
 
   // Network timeout
   client.setReadTimeout(60);
@@ -518,7 +518,7 @@ void App::notify(const list<JSON::ValuePtr> &change) {
 
   // Automatically save changes to config
   bool isConfig = 2 < change.size() && change.front()->getString() == "config";
-  if (isConfig) events["save-config"]->activate();
+  if (isConfig) saveEvent->activate();
 
   auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
   LOG_DEBUG(5, __func__ << ' ' << *changes);
