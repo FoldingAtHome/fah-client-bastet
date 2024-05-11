@@ -39,7 +39,7 @@
 #include <cbang/net/URI.h>
 
 
-namespace cb {class Thread;}
+namespace cb {class TailFileToLog;}
 
 
 namespace FAH {
@@ -70,7 +70,7 @@ namespace FAH {
       unsigned viewerFrame = 0;
 
       cb::SmartPointer<cb::Subprocess> process;
-      cb::SmartPointer<cb::Thread>     logCopier;
+      cb::SmartPointer<cb::TailFileToLog> logCopier;
 
       bool     success     = false;
       unsigned retries     = 0;
