@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.11
+ - Use LogTracker to follow log instead of reading back files.
+
 ## v8.3.10
  - Logging bug fixes.
 

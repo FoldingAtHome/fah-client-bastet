@@ -28,45 +28,48 @@
 
 #pragma once
 
-#include "LogTracker.h"
-
-#include <cbang/json/JSON.h>
+#include <cbang/log/LogLineListener.h>
 #include <cbang/event/Event.h>
+#include <cbang/json/List.h>
+
+#include <list>
+#include <vector>
+#include <set>
+#include <cstdint>
 
 
 namespace FAH {
   namespace Client {
-    class App;
+    class LogTracker : public cb::LogLineListener {
+    public:
+      class Listener {
+      public:
+        virtual ~Listener() {}
+        virtual void logUpdate(
+          const cb::SmartPointer<cb::JSON::List> &lines, uint64_t last) = 0;
+      };
 
-    class Remote : public LogTracker::Listener, public virtual cb::RefCounted {
-      App &app;
+    private:
+      cb::Event::EventPtr event;
+      std::set<cb::SmartPointer<Listener>> listeners;
 
-      std::string vizUnitID;
-      unsigned vizFrame = 0;
-      uint64_t lastLogLine = 0;
+      typedef std::pair<uint64_t, std::string> entry_t;
+      typedef std::list<entry_t> lines_t;
+      lines_t lines;
+      lines_t::iterator it = lines.end();
+      uint64_t count = 0;
 
     public:
-      Remote(App &app);
-      virtual ~Remote();
+      LogTracker(cb::Event::Base &base);
 
-      App &getApp() const {return app;}
+      void add(const cb::SmartPointer<Listener> &listener, uint64_t last);
+      void remove(const cb::SmartPointer<Listener> &listener);
 
-      virtual std::string getName() const = 0;
-      virtual void send(const cb::JSON::ValuePtr &msg) = 0;
-      virtual void close() = 0;
+    protected:
+      // From cb::LogLineListener
+      void writeln(const char *s) override;
 
-      void sendViz();
-      void readLogToNextLine();
-      void sendLog();
-      void sendChanges(const cb::JSON::ValuePtr &changes);
-
-      void onMessage(const cb::JSON::ValuePtr &msg);
-      void onOpen();
-      void onComplete();
-
-      // From LogTracker::Listner
-      void logUpdate(const cb::SmartPointer<cb::JSON::List> &lines,
-                     uint64_t last) override;
+      void update();
     };
   }
 }

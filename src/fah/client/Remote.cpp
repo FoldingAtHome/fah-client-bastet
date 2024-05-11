@@ -86,88 +86,6 @@ void Remote::sendViz() {
 }
 
 
-void Remote::readLogToNextLine() {
-  const unsigned size = 1024;
-  char buffer[size];
-
-  do {
-    log->clear();
-    log->getline(buffer, size);
-  } while (log->fail() && log->gcount());
-}
-
-
-void Remote::sendLog() {
-  if (!followLog) return;
-
-  if (logEvent.isNull())
-    logEvent = app.getEventBase().newEvent(this, &Remote::sendLog, 0);
-
-  if (log.isNull()) {
-    try {
-      string filename = app.getOptions()["log"];
-      log = SystemUtilities::open(filename, ios::in);
-
-      // Move to offset
-      streamsize len = SystemUtilities::getFileSize(filename);
-      if (len < logOffset) logOffset = 0;
-      if (logOffset) log->seekg(logOffset, ios::beg);
-
-      sendLog();
-    } CATCH_ERROR;
-
-    return;
-  }
-
-  try {
-    bool done    = false;
-    bool restart = logOffset == 0;
-    SmartPointer<JSON::List> lines = new JSON::List;
-
-    for (int i = 0; i < 256 && !done; i++) {
-      const unsigned size = 1024;
-      char buffer[size];
-
-      log->getline(buffer, size);
-      streamsize count = log->gcount();
-
-      if (count) {
-        if (buffer[count - 1] == '\r') buffer[count - 1] = 0;
-        lines->append(buffer);
-      }
-
-      // Handle incomplete long lines
-      if (!log->eof() && log->fail() && count) readLogToNextLine();
-
-      done = log->bad() || log->eof();
-      log->clear();
-
-      logOffset = log->tellg();
-
-      if (done) {
-        log.release();
-        logEvent->add(1);
-      }
-    }
-
-    if (!done) logEvent->activate();
-
-    if (!lines->empty()) {
-      SmartPointer<JSON::List> changes = new JSON::List;
-      changes->append("log");
-      if (!restart) changes->append(-2);
-      changes->append(lines);
-      sendChanges(changes);
-    }
-
-    return;
-  } CATCH_ERROR;
-
-  log.release();
-  logEvent->add(5);
-}
-
-
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
   send(changes);
 
@@ -200,8 +118,9 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     sendViz();
 
   } else if (cmd == "log") {
-    followLog = msg->getBoolean("enable", false);
-    sendLog();
+    if (msg->getBoolean("enable", false))
+      app.getLogTracker().add(SmartPhony(this), lastLogLine);
+    else app.getLogTracker().remove(SmartPhony(this));
 
   } else {
     LOG_WARNING("Received unsupported remote command '" << cmd << "'");
@@ -218,6 +137,19 @@ void Remote::onOpen() {
 
 void Remote::onComplete() {
   LOG_DEBUG(3, "Closing client " << getName());
-  if (logEvent.isSet()) logEvent->del();
+  app.getLogTracker().remove(SmartPhony(this));
   app.remove(*this);
+}
+
+
+void Remote::logUpdate(const SmartPointer<JSON::List> &lines, uint64_t last) {
+  bool restart = !lastLogLine || lastLogLine < last - lines->size();
+  lastLogLine = last;
+
+  SmartPointer<JSON::List> changes = new JSON::List;
+
+  changes->append("log");
+  if (!restart) changes->append(-2);
+  changes->append(lines);
+  sendChanges(changes);
 }

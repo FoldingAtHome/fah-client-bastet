@@ -26,47 +26,65 @@
 
 \******************************************************************************/
 
-#pragma once
-
 #include "LogTracker.h"
 
-#include <cbang/json/JSON.h>
-#include <cbang/event/Event.h>
+#include <cbang/log/Logger.h>
+#include <cbang/thread/SmartLock.h>
+
+using namespace std;
+using namespace cb;
+using namespace FAH::Client;
 
 
-namespace FAH {
-  namespace Client {
-    class App;
+LogTracker::LogTracker(Event::Base &base) :
+  event(base.newEvent(this, &LogTracker::update, 0)) {}
 
-    class Remote : public LogTracker::Listener, public virtual cb::RefCounted {
-      App &app;
 
-      std::string vizUnitID;
-      unsigned vizFrame = 0;
-      uint64_t lastLogLine = 0;
+void LogTracker::add(const cb::SmartPointer<Listener> &listener,
+                     uint64_t lastLine) {
+  listeners.insert(listener);
 
-    public:
-      Remote(App &app);
-      virtual ~Remote();
-
-      App &getApp() const {return app;}
-
-      virtual std::string getName() const = 0;
-      virtual void send(const cb::JSON::ValuePtr &msg) = 0;
-      virtual void close() = 0;
-
-      void sendViz();
-      void readLogToNextLine();
-      void sendLog();
-      void sendChanges(const cb::JSON::ValuePtr &changes);
-
-      void onMessage(const cb::JSON::ValuePtr &msg);
-      void onOpen();
-      void onComplete();
-
-      // From LogTracker::Listner
-      void logUpdate(const cb::SmartPointer<cb::JSON::List> &lines,
-                     uint64_t last) override;
-    };
+  auto newLines = SmartPtr(new JSON::List);
+  {
+    SmartLock lock(&Logger::instance());
+    for (auto it = lines.begin(); it != this->it; it++)
+      if (lastLine <= it->first) {
+        newLines->append(it->second);
+        lastLine = it->first;
+      }
   }
+
+  if (!newLines->empty()) listener->logUpdate(newLines, lastLine);
+}
+
+
+void LogTracker::remove(const cb::SmartPointer<Listener> &listener) {
+  listeners.erase(listener);
+}
+
+
+void LogTracker::writeln(const char *s) {
+  lines.push_back(entry_t(count++, s));
+  if (it == lines.end()) it--;
+  while (1e5 < lines.size()) lines.pop_front();
+  event->activate();
+}
+
+
+void LogTracker::update() {
+  uint64_t last = 0;
+  auto newLines = SmartPtr(new JSON::List);
+  {
+    SmartLock lock(&Logger::instance());
+    if (it == lines.end()) return;
+    for (auto it = this->it; it != lines.end(); it++) {
+      newLines->append(it->second);
+      last = it->first;
+    }
+    it = lines.end();
+  }
+
+  if (newLines->size())
+    for (auto &l: listeners)
+      l->logUpdate(newLines, last);
 }

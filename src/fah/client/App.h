@@ -60,6 +60,7 @@ namespace FAH {
     class Cores;
     class OS;
     class Remote;
+    class LogTracker;
 
     class App :
       public cb::Application,
@@ -83,6 +84,7 @@ namespace FAH {
       cb::SmartPointer<GPUResources> gpus;
       cb::SmartPointer<Cores>        cores;
       cb::SmartPointer<OS>           os;
+      cb::SmartPointer<LogTracker>   logTracker;
 
       std::list<cb::SmartPointer<Remote>> remotes;
 
@@ -90,6 +92,8 @@ namespace FAH {
 
       cb::Event::EventPtr saveEvent;
       cb::LifetimeManager ltm;
+
+      std::vector<std::string> log;
 
     public:
       App();
@@ -103,11 +107,12 @@ namespace FAH {
 
       cb::DB::NameValueTable &getDB(const std::string name);
 
-      Server           &getServer()    {return *server;}
-      Account          &getAccount()   {return *account;}
-      GPUResources     &getGPUs()      {return *gpus;}
-      Cores            &getCores()     {return *cores;}
-      OS               &getOS()        {return *os;}
+      Server           &getServer()     {return *server;}
+      Account          &getAccount()    {return *account;}
+      GPUResources     &getGPUs()       {return *gpus;}
+      Cores            &getCores()      {return *cores;}
+      OS               &getOS()         {return *os;}
+      LogTracker       &getLogTracker() {return *logTracker;}
 
       cb::SmartPointer<Groups> getGroups() const;
       cb::SmartPointer<Config> getConfig() const;

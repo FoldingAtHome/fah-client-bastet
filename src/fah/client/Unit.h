@@ -36,8 +36,10 @@
 #include <cbang/http/Client.h>
 #include <cbang/http/Request.h>
 #include <cbang/os/Subprocess.h>
-#include <cbang/thread/Thread.h>
 #include <cbang/net/URI.h>
+
+
+namespace cb {class Thread;}
 
 
 namespace FAH {

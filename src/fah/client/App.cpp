@@ -37,6 +37,7 @@
 #include "OS.h"
 #include "PasskeyConstraint.h"
 #include "Remote.h"
+#include "LogTracker.h"
 
 #include <cbang/Catch.h>
 #include <cbang/Info.h>
@@ -97,9 +98,11 @@ App::App() :
   Application("Folding@home Client", App::_hasFeature), base(true, true, 10),
   client(base, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
-  cores(new Cores(*this)) {
+  cores(new Cores(*this)), logTracker(new LogTracker(base)) {
 
   saveEvent = base.newEvent(this, &App::saveGlobalConfig, 0);
+
+  Logger::instance().addListener(logTracker);
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
