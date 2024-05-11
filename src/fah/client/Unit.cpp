@@ -41,7 +41,7 @@
 #include <cbang/Catch.h>
 
 #include <cbang/log/Logger.h>
-#include <cbang/log/TailFileToLog.h>
+#include <cbang/log/EventTailFileToLog.h>
 
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/os/SystemInfo.h>
@@ -1222,7 +1222,8 @@ void Unit::logCredit(const JSON::ValuePtr &data) {
 
 void Unit::startLogCopy(const string &filename) {
   endLogCopy();
-  logCopier = new TailFileToLog(filename, getLogPrefix());
+  logCopier =
+    new EventTailFileToLog(app.getEventBase(), filename, getLogPrefix());
   logCopier->start();
 }
 

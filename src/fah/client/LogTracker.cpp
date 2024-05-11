@@ -67,7 +67,7 @@ void LogTracker::writeln(const char *s) {
   lines.push_back(entry_t(count++, s));
   if (it == lines.end()) it--;
   while (1e5 < lines.size()) lines.pop_front();
-  event->activate();
+  if (!event->isPending()) event->add(0.25);
 }
 
 
