@@ -175,8 +175,8 @@ App::App() :
   options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  ltm.add(base.newSignal(SIGINT,  this, &App::signalEvent))->add();
-  ltm.add(base.newSignal(SIGTERM, this, &App::signalEvent))->add();
+  ltm.addLTO(base.newSignal(SIGINT,  this, &App::signalEvent))->add();
+  ltm.addLTO(base.newSignal(SIGTERM, this, &App::signalEvent))->add();
 
   // Network timeout
   client.setReadTimeout(60);

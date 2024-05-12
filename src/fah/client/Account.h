@@ -61,8 +61,6 @@ namespace FAH {
       typedef std::map<std::string, cb::SmartPointer<NodeRemote>> nodes_t;
       nodes_t nodes;
 
-      cb::LifetimeManager ltm;
-
     public:
       Account(App &app);
 

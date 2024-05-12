@@ -43,7 +43,10 @@ namespace FAH {
   namespace Client {
     class App;
 
-    class Core : public CoreState::Enum, public cb::HTTP::Enum {
+    class Core :
+      public CoreState::Enum,
+      public cb::HTTP::Enum,
+      public cb::LifetimeManager {
       App &app;
       cb::JSON::ValuePtr data;
       CoreState state = CORE_INIT;
@@ -53,7 +56,6 @@ namespace FAH {
 
       cb::Event::EventPtr nextEvent;
       cb::Event::EventPtr readyEvent;
-      cb::LifetimeManager ltm;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;

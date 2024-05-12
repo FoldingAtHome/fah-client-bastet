@@ -41,7 +41,8 @@ namespace FAH {
     class App;
     class Unit;
 
-    class GPUResources : public cb::JSON::ObservableDict {
+    class GPUResources :
+      public cb::JSON::ObservableDict, public cb::LifetimeManager {
       App &app;
 
       bool loaded = false;
@@ -49,7 +50,6 @@ namespace FAH {
       int64_t lastGPUsFail = 0;
 
       cb::Event::EventPtr event;
-      cb::LifetimeManager ltm;
 
     public:
       GPUResources(App &app);

@@ -207,7 +207,7 @@ void Core::download(const string &url) {
         progressCBs[i](bytes, size);
     };
 
-  auto pr = ltm.add(app.getClient().call(url, HTTP_GET, this, &Core::response));
+  auto pr = addLTO(app.getClient().call(url, HTTP_GET, this, &Core::response));
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }

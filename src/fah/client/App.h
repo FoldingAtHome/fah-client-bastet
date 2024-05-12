@@ -67,9 +67,10 @@ namespace FAH {
       public cb::Event::Enum,
       public cb::JSON::ObservableDict {
 
-      cb::Event::Base  base;
-      cb::HTTP::Client client;
-      cb::KeyPair      key;
+      cb::Event::Base     base;
+      cb::HTTP::Client    client;
+      cb::LifetimeManager ltm;
+      cb::KeyPair         key;
 
       cb::Certificate caCert;
 
@@ -91,7 +92,6 @@ namespace FAH {
       unsigned nextAS = 0;
 
       cb::Event::EventPtr saveEvent;
-      cb::LifetimeManager ltm;
 
       std::vector<std::string> log;
 

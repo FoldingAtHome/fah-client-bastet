@@ -158,7 +158,7 @@ void Account::requestInfo() {
 
   string id = app.getID();
   URI uri(app.getOptions()["api-server"].toString() + "/machine/" + id);
-  ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_GET, cb))->send();
+  addLTO(app.getClient().call(uri, HTTP::Method::HTTP_GET, cb))->send();
 }
 
 
@@ -190,7 +190,7 @@ void Account::link() {
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());
-  auto pr = ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb));
+  auto pr = addLTO(app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb));
 
   JSON::Dict data;
   data.insert("name",  machName);

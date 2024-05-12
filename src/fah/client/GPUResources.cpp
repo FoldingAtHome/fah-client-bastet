@@ -127,8 +127,8 @@ void GPUResources::update() {
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
-  ltm.add(app.getClient().call(uri, HTTP::Method::HTTP_GET,
-                               this, &GPUResources::response))->send();
+  addLTO(app.getClient().call(uri, HTTP::Method::HTTP_GET,
+                              this, &GPUResources::response))->send();
 }
 
 
