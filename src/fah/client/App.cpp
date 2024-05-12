@@ -102,6 +102,7 @@ App::App() :
 
   saveEvent = base.newEvent(this, &App::saveGlobalConfig, 0);
 
+  Logger::instance().initEvents(base);
   Logger::instance().addListener(logTracker);
 
   // Info
