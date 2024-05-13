@@ -65,7 +65,7 @@ void LogTracker::remove(const cb::SmartPointer<Listener> &listener) {
 
 void LogTracker::writeln(const char *s) {
   lines.push_back(entry_t(count++, s));
-  if (it == lines.end()) it--;
+  if (it == lines.end()) it = prev(lines.end());
   while (1e5 < lines.size()) lines.pop_front();
   if (!event->isPending()) event->add(0.25);
 }
@@ -81,7 +81,6 @@ void LogTracker::update() {
       newLines->append(it->second);
       last = it->first;
     }
-    it = lines.end();
   }
 
   if (newLines->size())
