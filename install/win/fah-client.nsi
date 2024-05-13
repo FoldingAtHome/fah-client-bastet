@@ -206,6 +206,7 @@ install_files:
   SetOverwrite try
   SetOutPath "$INSTDIR"
   File /oname=${CLIENT_EXE}  "${CLIENT_HOME}\fah-client.exe"
+  File /nonfatal /oname=${CLIENT_EXE}.pdb "${CLIENT_HOME}\fah-client.exe.pdb"
   File "${CLIENT_HOME}\HideConsole.exe"
   File /oname=${CLIENT_ICON} "${CLIENT_HOME}\images\fahlogo.ico"
   File /oname=README.txt     "${CLIENT_HOME}\README.md"
