@@ -4,6 +4,8 @@ Folding@home Client Changelog
 ## v8.3.11
  - Use LogTracker to follow log instead of reading back files.
  - Fixed core log following on macOS.  #234
+ - Fix Windows crash.  #235
+ - Fix Windows log rotation.  #233
 
 ## v8.3.10
  - Logging bug fixes.
