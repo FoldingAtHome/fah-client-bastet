@@ -53,11 +53,13 @@ namespace FAH {
       cb::Event::EventPtr event;
       std::set<cb::SmartPointer<Listener>> listeners;
 
+      static const unsigned maxLines = 1e5;
       typedef std::pair<uint64_t, std::string> entry_t;
-      typedef std::list<entry_t> lines_t;
-      lines_t lines;
-      lines_t::iterator it = lines.end();
-      uint64_t count = 0;
+      entry_t lines[maxLines];
+      unsigned head  = 0;
+      unsigned tail  = 0;
+      unsigned last  = 0;
+      uint64_t index = 0;
 
     public:
       LogTracker(cb::Event::Base &base);
@@ -70,6 +72,7 @@ namespace FAH {
       void writeln(const char *s) override;
 
       void update();
+      void adv(unsigned &ptr);
     };
   }
 }

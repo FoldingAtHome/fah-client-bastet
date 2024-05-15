@@ -47,10 +47,11 @@ void LogTracker::add(const cb::SmartPointer<Listener> &listener,
   auto newLines = SmartPtr(new JSON::List);
   {
     SmartLock lock(&Logger::instance());
-    for (auto it = lines.begin(); it != this->it; it++)
-      if (lastLine <= it->first) {
-        newLines->append(it->second);
-        lastLine = it->first;
+
+    for (unsigned ptr = head; ptr != last; adv(ptr))
+      if (lastLine < lines[ptr].first) {
+        newLines->append(lines[ptr].second);
+        lastLine = lines[ptr].first;
       }
   }
 
@@ -64,26 +65,30 @@ void LogTracker::remove(const cb::SmartPointer<Listener> &listener) {
 
 
 void LogTracker::writeln(const char *s) {
-  lines.push_back(entry_t(count++, s));
-  if (it == lines.end()) it = prev(lines.end());
-  while (1e5 < lines.size()) lines.pop_front();
+  lines[tail] = entry_t(index++, s);
+  adv(tail);
+  if (tail == head) adv(head);
+  if (tail == last) adv(last);
   if (!event->isPending()) event->add(0.25);
 }
 
 
 void LogTracker::update() {
-  uint64_t last = 0;
+  uint64_t lastIndex = 0;
   auto newLines = SmartPtr(new JSON::List);
   {
     SmartLock lock(&Logger::instance());
-    if (it == lines.end()) return;
-    for (auto it = this->it; it != lines.end(); it++) {
-      newLines->append(it->second);
-      last = it->first;
+
+    for (; last != tail; adv(last)) {
+      newLines->append(lines[last].second);
+      lastIndex = lines[last].first;
     }
   }
 
   if (newLines->size())
     for (auto &l: listeners)
-      l->logUpdate(newLines, last);
+      l->logUpdate(newLines, lastIndex);
 }
+
+
+void LogTracker::adv(unsigned &ptr) {if (++ptr == maxLines) ptr = 0;}

@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.13
+ - Fix for log updates to Web Control.
+
 ## v8.3.12
  - Fix Windows and macOS crashing.
 
