@@ -6,6 +6,7 @@ Folding@home Client Changelog
 
 ## v8.3.12
  - Fix Windows and macOS crashing.
+ - Removed PDB file from Windows release mode installer.
 
 ## v8.3.11
  - Use LogTracker to follow log instead of reading back files.
