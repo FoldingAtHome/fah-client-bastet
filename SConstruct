@@ -12,7 +12,8 @@ env.CBLoadTools('compiler cbang dist build_info packager resources osx')
 # Options
 env.CBAddVariables(
     BoolVariable('wrap_glibc', 'Wrap some glibc functions for backwards '
-                 'compatibility with older Linux OSes', 0))
+                 'compatibility with older Linux OSes', 0),
+                ('extra_lib', 'List of libraries to be linked', ''))
 
 conf = env.CBConfigure()
 
@@ -37,6 +38,9 @@ if not env.GetOption('clean'):
     conf.CBConfig('compiler')
     conf.CBConfig('cbang')
     env.CBDefine('USING_CBANG') # Using CBANG macro namespace
+
+    extra_lib = env.get('extra_lib', '')
+    if hasattr(extra_lib, 'split'): env.Append(LIBS = extra_lib.split())
 
     # OSX
     if env['PLATFORM'] == 'darwin':
