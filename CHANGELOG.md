@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.3.15
  - Fix crash caused by failed DNS server. #235
+ - Improved Linux battery detection.  #240
 
 ## v8.3.14
  - Fix Windows crash. #235
