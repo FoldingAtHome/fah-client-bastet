@@ -1032,8 +1032,6 @@ void Unit::assign() {
 
 
 void Unit::downloadResponse(const JSON::ValuePtr &data) {
-  LOG_INFO(1, "Received WU");
-
   // Check certificate, F@H usage & signature
   auto request = data->get("request");
   auto assign  = data->get("assignment");
@@ -1042,6 +1040,11 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
   string inter = wu->getString("intermediate");
   string sig64 = wu->getString("signature");
   wu = wu->get("data");
+
+  LOG_INFO(1, "Received WU " << data->format(
+             "P%(assignment.data.project)u R%(wu.data.run)u "
+             "C%(wu.data.clone)u G%(wu.data.gen)u", "???"));
+
   string sigData = request->toString() + assign->toString() + wu->toString();
   app.checkBase64SHA256(cert, inter, sig64, sigData, "WS");
 

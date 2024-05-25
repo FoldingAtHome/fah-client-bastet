@@ -65,7 +65,7 @@ namespace {
           devices.push_back(dev);
       }
     } catch (const Exception &e) {
-      LOG_ERROR(LIB::getName() << " not supported: " << e.getMessage());
+      LOG_WARNING(LIB::getName() << " not supported: " << e.getMessage());
     }
 
     return devices;
@@ -141,7 +141,7 @@ void GPUResources::detect() {
     if (!cd.isPCIValid()) continue;
     string id = "gpu:" + cd.getPCIID();
 
-    SmartPointer<GPUResource> res = resources[id] = new GPUResource(id);
+    auto res = resources[id] = new GPUResource(id);
     res->set("opencl", cd);
   }
 
