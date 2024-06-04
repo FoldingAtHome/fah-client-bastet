@@ -107,12 +107,11 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
   else if (cmd == "unpause") app.setState("fold");   // Deprecated
   else if (cmd == "state")   app.setState(*msg);
   else if (cmd == "config")  app.configure(*msg);
-  else if (cmd == "reset")   app.getAccount().reset();
-  else if (cmd == "link") {
-    app.getAccount().setToken(msg->getString("token"));
-    app.getAccount().setMachName(msg->getString("name"));
+  else if (cmd == "restart") app.getAccount().restart();
+  else if (cmd == "link")
+    app.getAccount().link(msg->getString("token"), msg->getString("name"));
 
-  } else if (cmd == "viz") {
+  else if (cmd == "viz") {
     vizUnitID = msg->getString("unit", "");
     vizFrame  = msg->getU32("frame", 0);
     sendViz();

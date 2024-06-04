@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.17
+ - Fixes for account (un)linking and node changes.
+ - Fix for repeated "No active" exception.
+
 ## v8.3.16
  - Fix Linux battery detection.  #240
 

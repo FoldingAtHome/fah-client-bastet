@@ -45,8 +45,16 @@ namespace FAH {
     class Account : public cb::WS::JSONWebsocket {
       App &app;
 
-      std::string token;
-      std::string machName = "machine-#";
+      typedef enum {
+        STATE_IDLE,
+        STATE_LINK,
+        STATE_INFO,
+        STATE_CONNECT,
+        STATE_CONNECTED,
+      } state_t;
+
+      state_t state = STATE_IDLE;
+
       cb::JSON::ValuePtr data;
 
       cb::KeyPair accountKey;
@@ -64,21 +72,21 @@ namespace FAH {
     public:
       Account(App &app);
 
-      void setData(const cb::JSON::ValuePtr &data);
-      void setToken(const std::string &token);
-
-      const std::string &getMachName() const {return machName;}
-      void setMachName(const std::string &name) {machName = name;}
+      std::string getMachName() const;
 
       void init();
-      void reset();
+      void link(const std::string &token, const std::string &machName);
+      void restart();
 
       void sendEncrypted(const cb::JSON::Value &msg, const std::string &sid);
 
     protected:
-      void retryUpdate();
+      void setState(state_t state);
+      void setData(const cb::JSON::ValuePtr &data);
+      void retry();
+      void reset();
 
-      void requestInfo();
+      void info();
       void connect();
       void link();
       void update();

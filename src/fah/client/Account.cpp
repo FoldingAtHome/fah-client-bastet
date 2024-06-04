@@ -50,13 +50,10 @@ using namespace std;
 
 
 Account::Account(App &app) : app(app) {
-  try {machName = SystemInfo::instance().getHostname();} catch (...) {}
-
   auto &options = app.getOptions();
   options.pushCategory("Account");
-  options.addTarget("account-token", token, "Folding@home account token.");
-  options.addTarget(
-    "machine-name", machName, "Name used to identify this machine.");
+  options.add("account-token", "Folding@home account token.");
+  options.add("machine-name", "Name used to identify this machine.");
   options.popCategory();
 
   updateEvent = app.getEventBase().newEvent(this, &Account::update, 0);
@@ -64,48 +61,70 @@ Account::Account(App &app) : app(app) {
 }
 
 
-void Account::setData(const JSON::ValuePtr &data) {
-  this->data = data;
+string Account::getMachName() const {
+  string machName = app.getDB("config").getString("machine-name", "");
 
-  string akey = data->getString("pubkey");
-  accountKey.readPublicSPKI(Base64().decode(akey));
-  string aid = Digest::urlBase64(accountKey.getRSA_N().toBinString(), "sha256");
-  app.getDict("info").insert("account", aid);
+  if (machName.empty())
+    try {machName = SystemInfo::instance().getHostname();} catch (...) {}
 
-  LOG_DEBUG(3, "account = " << data->toString(2));
-}
-
-
-void Account::setToken(const string &token) {
-  if (this->token == token) return;
-  reset();
-  this->token = token;
-  if (!token.empty()) updateEvent->activate();
+  return machName.empty() ? "machine-#" : machName;
 }
 
 
 void Account::init() {
   auto &db = app.getDB("config");
 
-  if (db.has("account"))
-    setData(JSON::Reader::parse(db.getString("account")));
+  // Get account info
+  if (db.has("account")) setData(JSON::Reader::parse(db.getString("account")));
+
+  // Command line linking
+  auto &options = app.getOptions();
+  if (options["account-token"].hasValue()) {
+    string token = options["account-token"];
+
+    if (token != db.getString("command-line-token", "")) {
+      db.set("command-line-token", token);
+      db.set("requested-token",    token);
+      if (options["machine-name"].hasValue())
+        db.set("machine-name", options["machine-name"]);
+    }
+  }
+
+  restart();
 }
 
 
-void Account::reset() {
+void Account::link(const string &token, const string &machName) {
   auto &db = app.getDB("config");
 
-  // Clear token
-  token = "";
-  if (db.has("account-token")) db.unset("account-token");
+  db.set("requested-token", token);
+  db.set("machine-name", machName);
+
+  restart();
+}
+
+
+void Account::restart() {
+  // Close websocket
+  close(WS::Status::WS_STATUS_NORMAL, "Account restart");
+
+  // Are we linked with the account?
+  auto &db = app.getDB("config");
+  string requestedToken = db.getString("requested-token", "");
+  string accountToken   = db.getString("account-token",   "");
+
+  if (!requestedToken.empty() && requestedToken != accountToken)
+    return setState(STATE_LINK);
+
+  // Already linked
+  if (!accountToken.empty()) return setState(STATE_INFO);
 
   // Delete account data
   data.release();
   app.getDict("info").insert("account", "");
   if (db.has("account")) db.unset("account");
 
-  // Close websocket
-  close(WS::Status::WS_STATUS_NORMAL, "Account resetting");
+  setState(STATE_IDLE);
 }
 
 
@@ -135,25 +154,67 @@ void Account::sendEncrypted(const JSON::Value &_msg, const string &sid) {
 }
 
 
-void Account::retryUpdate() {updateEvent->add((unsigned)updateBackoff.next());}
+void Account::setState(state_t state) {
+  if (this->state == state) return;
+  this->state = state;
+
+  updateBackoff.reset();
+
+  if (state != STATE_CONNECTED && state != STATE_IDLE)
+    updateEvent->activate();
+}
 
 
-void Account::requestInfo() {
+void Account::setData(const JSON::ValuePtr &data) {
+  this->data = data;
+
+  string akey = data->getString("pubkey");
+  accountKey.readPublicSPKI(Base64().decode(akey));
+  string aid = Digest::urlBase64(accountKey.getRSA_N().toBinString(), "sha256");
+  app.getDict("info").insert("account", aid);
+
+  LOG_DEBUG(3, "account = " << data->toString(2));
+}
+
+
+void Account::retry() {updateEvent->add((unsigned)updateBackoff.next());}
+
+
+void Account::reset() {
+  auto &db = app.getDB("config");
+
+  // Clear token
+  if (db.has("account-token"))   db.unset("account-token");
+  if (db.has("requested-token")) db.unset("requested-token");
+
+  // Delete account data
+  data.release();
+  app.getDict("info").insert("account", "");
+  if (db.has("account")) db.unset("account");
+
+  restart();
+}
+
+
+void Account::info() {
   auto cb = [this] (HTTP::Request &req) mutable {
     try {
       if (req.logResponseErrors()) {
         // If the account does not exist, forget about it
         if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-        else retryUpdate();
+        else retry();
 
       } else { // Account is valid, connect to node
         setData(req.getInputJSON());
         app.getConfig()->configure(*data);
         app.getDB("config").set("account", data->toString());
-        connect();
-        updateBackoff.reset();
+        setState(STATE_CONNECT);
       }
+
+      return;
     } CATCH_ERROR;
+
+    retry();
   };
 
   string id = app.getID();
@@ -166,25 +227,27 @@ void Account::connect() {
   try {
     setURI("wss://" + data->getString("node") + "/ws/client");
     app.getClient().send(this);
-    updateBackoff.reset();
+    setState(STATE_CONNECTED);
     return;
 
   } CATCH_ERROR;
 
-  retryUpdate();
+  retry();
 }
 
 
 void Account::link() {
-  auto cb = [this] (HTTP::Request &req) mutable {
+  auto &db = app.getDB("config");
+  string requestedToken = db.getString("requested-token", "");
+
+  auto cb = [this, requestedToken] (HTTP::Request &req) mutable {
     if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-    else if (req.logResponseErrors()) retryUpdate();
+    else if (req.logResponseErrors()) retry();
 
     else {
       LOG_INFO(1, "Account linked");
-      app.getDB("config").set("account-token", token);
-      requestInfo();
-      updateBackoff.reset();
+      app.getDB("config").set("account-token", requestedToken);
+      setState(STATE_INFO);
     }
   };
 
@@ -193,8 +256,8 @@ void Account::link() {
   auto pr = addLTO(app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb));
 
   JSON::Dict data;
-  data.insert("name",  machName);
-  data.insert("token", token);
+  data.insert("name",  getMachName());
+  data.insert("token", requestedToken);
 
   auto &key        = app.getKey();
   string signature = URLBase64().encode(key.signSHA256(data.toString()));
@@ -213,14 +276,12 @@ void Account::link() {
 
 
 void Account::update() {
-  string savedToken = app.getDB("config").getString("account-token", "");
-
-  // If token is set and it's not the same as the saved token, link account
-  if (!token.empty() && token != savedToken) link();
-  else {
-    // If we already have the account info, try to connect to the node
-    if (data.isSet() && !data->getString("node", "").empty()) connect();
-    else if (!token.empty()) requestInfo(); // Otherwise get account info
+  switch (state) {
+  case STATE_CONNECTED:
+  case STATE_IDLE:    return;
+  case STATE_LINK:    return link();
+  case STATE_INFO:    return info();
+  case STATE_CONNECT: return connect();
   }
 }
 
@@ -270,9 +331,12 @@ void Account::onBroadcast(const JSON::ValuePtr &msg) {
   // Process command
   string cmd = payload->getString("cmd");
 
-  if (cmd == "state")  return app.setState(*payload);
-  if (cmd == "config") return app.configure(*payload);
-  if (cmd == "reset")  return reset();
+  if (cmd == "state")   return app.setState(*payload);
+  if (cmd == "config")  return app.configure(*payload);
+  if (cmd == "restart") {
+    if (app.validateChange(*payload)) restart();
+    return;
+  }
 
   LOG_WARNING("Unsupported broadcast message '" << cmd << "'");
 }
