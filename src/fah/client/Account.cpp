@@ -398,13 +398,14 @@ void Account::onMessage(const JSON::ValuePtr &msg) {
 
 void Account::onClose(WS::Status status, const string &msg) {
   LOG_INFO(1, "Account websocket closed: " << status << " msg=" << msg);
-  updateEvent->add(5);
 
   // Close remotes
   for (auto &remote: nodes)
     remote.second->close();
 
   nodes.clear();
+
+  if (status != WS::Status::WS_STATUS_NORMAL) restart();
 }
 
 
