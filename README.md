@@ -36,10 +36,12 @@ development purposes.
 
 # Quick Start for Debian Linux
 
+(see the [BUILDING-RPM.md](BUILDING-RPM.md) file for instructions on how to build the RPM package)
+
 ## Install the Prerequisites
 ```
 sudo apt update
-sudo apt install -y scons git npm build-essential libssl-dev libsystemd-dev
+sudo apt install -y scons git npm build-essential libssl-dev zlib1g-dev libbz2-dev libsystemd-dev
 ```
 
 ## Get the code
@@ -58,15 +60,15 @@ scons -C fah-client-bastet package
 ```
 
 ## Install the package
-The last build step builds the Debian package.  Before installing this package
-it is recommend that you first uninstall any previous Folding@home client
-software.  You can then install the package like this:
+The last build step builds the Debian package.  You can then install it like this:
 
 ```
 sudo apt install ./fah-client-bastet/fah-client_<version>_amd64.deb
 ```
 
 Where ``<version>`` is the software version number.
+
+Folding@home Client older than v8 will be automatically removed.
 
 ## Folding@home Client Service
 After installation, the service runs and will automatically restart on startup.
