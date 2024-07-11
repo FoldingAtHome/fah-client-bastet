@@ -32,6 +32,7 @@
 #include "Server.h"
 #include "Account.h"
 #include "Units.h"
+#include "Unit.h"
 #include "Config.h"
 #include "Group.h"
 
@@ -86,6 +87,40 @@ void Remote::sendViz() {
 }
 
 
+void Remote::sendWUs() {
+  if (!sendWUsEnabled) return;
+
+  auto changes = SmartPtr(new JSON::List);
+  auto wus     = SmartPtr(new JSON::List);
+  changes->append("wus");
+  changes->append(wus);
+
+  app.getDB("wu_log", true)
+    .foreach([&wus] (const string &id, const string &data) {
+      try {
+        wus->append(JSON::parse(data));
+      } CATCH_ERROR;
+    }, 10000);
+
+
+  sendChanges(changes);
+}
+
+
+void Remote::logWU(const Unit &wu) {
+  if (!sendWUsEnabled) return;
+
+  auto changes = SmartPtr(new JSON::List);
+  auto wus     = SmartPtr(new JSON::List);
+  changes->append("wus");
+  changes->append(-2);
+  changes->append(wus);
+  wus->append(wu.copy(true));
+
+  sendChanges(changes);
+}
+
+
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
   send(changes);
 
@@ -120,6 +155,10 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
     if (msg->getBoolean("enable", false))
       app.getLogTracker().add(SmartPhony(this), lastLogLine);
     else app.getLogTracker().remove(SmartPhony(this));
+
+  } else if (cmd == "wus") {
+    sendWUsEnabled = msg->getBoolean("enable", false);
+    sendWUs();
 
   } else {
     LOG_WARNING("Received unsupported remote command '" << cmd << "'");

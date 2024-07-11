@@ -215,11 +215,11 @@ bool App::_hasFeature(int feature) {
 }
 
 
-DB::NameValueTable &App::getDB(const string name) {
+DB::NameValueTable &App::getDB(const string name, bool ordered) {
   auto it = tables.find(name);
 
   if (it == tables.end()) {
-    SmartPointer<DB::NameValueTable> table = new DB::NameValueTable(db, name);
+    auto table = SmartPtr(new DB::NameValueTable(db, name, ordered));
     table->create();
     table->init();
     it = tables.insert(tables_t::value_type(name, table)).first;
@@ -457,6 +457,14 @@ void App::loadConfig() {
   if (db.has("config")) config->load(*db.getJSON("config"));
 
   insert("config", config);
+}
+
+
+void App::logWU(const Unit &wu) {
+  getDB("wu_log", true).set(wu.getID(), wu.toString());
+
+  for (auto &remote: remotes)
+    TRY_CATCH_ERROR(remote->logWU(wu));
 }
 
 

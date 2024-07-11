@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.0
+ - Don't add client install path to ``PATH`` when running cores on Windows.
+
 ## v8.3.18
  - Windows installer fixes.
 

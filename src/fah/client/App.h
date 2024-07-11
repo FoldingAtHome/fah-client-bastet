@@ -105,7 +105,8 @@ namespace FAH {
       cb::HTTP::Client &getClient()    {return client;}
       cb::KeyPair      &getKey()       {return key;}
 
-      cb::DB::NameValueTable &getDB(const std::string name);
+      cb::DB::NameValueTable &getDB(
+        const std::string name, bool ordered = false);
 
       Server           &getServer()     {return *server;}
       Account          &getAccount()    {return *account;}
@@ -157,6 +158,8 @@ namespace FAH {
 
       void upgradeDB();
       void loadConfig();
+
+      void logWU(const Unit &wu);
 
       // From cb::Application
       int init(int argc, char *argv[]) override;

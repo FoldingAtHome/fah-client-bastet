@@ -47,7 +47,7 @@ Groups::Groups(App &app) : app(app) {
       try {
         if (!name.empty()) getGroup(name);
       } CATCH_ERROR;
-    });
+    }, 1000);
 }
 
 

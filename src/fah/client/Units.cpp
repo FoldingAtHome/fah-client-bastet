@@ -55,7 +55,7 @@ Units::Units(App &app) {
         else LOG_ERROR("WU with client ID " << unit->getClientID()
                        << " does not belong client " << clientID);
       } CATCH_ERROR;
-    });
+    }, 1000);
 
   LOG_INFO(3, "Loaded " << count << " wus.");
 }

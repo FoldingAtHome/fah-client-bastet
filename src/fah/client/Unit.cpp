@@ -286,9 +286,9 @@ uint64_t Unit::getRunTimeEstimate() const {
 double Unit::getEstimatedProgress() const {
   if (isFinished()) return has("error") ? 0 : 1;
 
-  // If the core process is not currently running, return saved "progress"
+  // If the core process is not currently running, return saved "wu_progress"
   if (!processStartTime || !lastKnownProgressUpdate)
-    return getNumber("progress", 0);
+    return getNumber("wu_progress", 0);
 
   // Get estimated progress since last update from core
   double delta         = getRunTime() - lastKnownProgressUpdateRunTime;
@@ -484,16 +484,20 @@ void Unit::next() {
 }
 
 
-void Unit::processStarted() {
+void Unit::processStarted(const SmartPointer<Subprocess> &process) {
+  LOG_INFO(3, "Started FahCore on PID " << process->getPID());
+  this->process = process;
   lastProcessTimer = processStartTime = Time::now();
   processInterruptTime = lastKnownDone = lastKnownTotal =
     lastKnownProgressUpdate = clockSkew = 0;
+  insert("start_time", Time(processStartTime).toString());
 }
 
 
 void Unit::processEnded() {
   if (Time::SEC_PER_MIN * 5 < getRunTimeDelta()) retries = 0;
   insert("run_time", getRunTime());
+  erase("start_time");
   processStartTime = 0;
 }
 
@@ -532,13 +536,14 @@ void Unit::updateKnownProgress(uint64_t done, uint64_t total) {
 
 
 void Unit::setProgress(double done, double total) {
+  const char *key = getState() == UNIT_RUN ? "wu_progress" : "progress";
   double progress = total ? done / total : 0;
-  double oldValue = getNumber("progress", 0);
+  double oldValue = getNumber(key, 0);
 
   progress = round(progress * 1000) / 1000;
 
   if (oldValue != progress) {
-    insert("progress", progress);
+    insert(key, progress);
 
     if (floor(oldValue * 100) < floor(progress * 100) &&
         getState() != UNIT_RUN && 1 < total)
@@ -589,14 +594,14 @@ void Unit::run() {
   // Remove old results if exists
   SystemUtilities::unlink(getDirectory() + "/wuresults_01.dat");
 
-  process = new Subprocess;
+  // Rotate old log file
+  string logFile = getDirectory() + "/logfile_01.txt";
+  SystemUtilities::rotate(logFile, string(), 32);
+
+  auto process = new Subprocess;
 
   // Set environment library paths
   vector<string> paths;
-#ifdef _WIN32
-  string execPath = SystemUtilities::getExecutablePath();
-  paths.push_back(SystemUtilities::dirname(execPath));
-#endif
   string corePath = SystemUtilities::absolute(core->getPath());
   paths.push_back(SystemUtilities::dirname(corePath));
   const string &ldPath = SystemUtilities::library_path;
@@ -637,24 +642,19 @@ void Unit::run() {
     args.push_back(String(runningCPUs));
   }
 
-  // Rotate old log file
-  string logFile = getDirectory() + "/logfile_01.txt";
-  SystemUtilities::rotate(logFile, string(), 32);
-
   // Run
   LOG_INFO(3, "Running FahCore: " << Subprocess::assemble(args));
   process->setWorkingDirectory("work");
   process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
                 Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
                 Subprocess::PRIORITY_IDLE);
-  LOG_INFO(3, "Started FahCore on PID " << process->getPID());
-
+  processStarted(process);
   startLogCopy(logFile); // Redirect core output to log
-  processStarted();
   triggerNext();
 
   insert("assignment", data->select("assignment.data"));
   insert("wu",         data->select("wu.data"));
+  if (!has("wu_progress")) insert("wu_progress", 0);
 }
 
 
@@ -823,10 +823,10 @@ void Unit::monitorRun() {
     readViewerData();
 
     // Update ETA, PPD and progress
-    string   eta = TimeInterval(getETA()).toString();
+    uint64_t eta = getETA();
     uint64_t ppd = getPPD();
-    if (eta != getString("eta", "-")) insert("eta", eta);
-    if (ppd != getU64   ("ppd", -1))  insert("ppd", ppd);
+    if (eta != getU64("eta",  0)) insert("eta", eta);
+    if (ppd != getU64("ppd", -1)) insert("ppd", ppd);
     setProgress(getEstimatedProgress(), 1);
   } CATCH_ERROR;
 
@@ -836,6 +836,12 @@ void Unit::monitorRun() {
 
 void Unit::clean() {
   LOG_DEBUG(3, "Cleaning WU");
+
+  // Log WU
+  if (!id.empty()) {
+    insert("end_time", Time().toString());
+    app.logWU(*this);
+  }
 
   // Remove from disk
   TRY_CATCH_ERROR(SystemUtilities::rmdir(getDirectory(), true));
@@ -1198,10 +1204,10 @@ void Unit::response(HTTP::Request &req) {
       if (has("error")) erase("error");
 
       switch (getState()) {
-      case UNIT_ASSIGN:   assignResponse(req.getInputJSON());   break;
+      case UNIT_ASSIGN:     assignResponse(req.getInputJSON()); break;
       case UNIT_DOWNLOAD: downloadResponse(req.getInputJSON()); break;
-      case UNIT_UPLOAD:   uploadResponse(req.getInputJSON());   break;
-      case UNIT_DUMP:     dumpResponse(req.getInputJSON());     break;
+      case UNIT_UPLOAD:     uploadResponse(req.getInputJSON()); break;
+      case UNIT_DUMP:         dumpResponse(req.getInputJSON()); break;
       default: THROW("Unexpected unit state " << getState());
       }
     }
@@ -1221,7 +1227,6 @@ void Unit::logCredit(const JSON::ValuePtr &data) {
     data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
   } CATCH_ERROR;
 }
-
 
 void Unit::startLogCopy(const string &filename) {
   endLogCopy();

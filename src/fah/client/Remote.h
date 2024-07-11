@@ -37,6 +37,7 @@
 namespace FAH {
   namespace Client {
     class App;
+    class Unit;
 
     class Remote : public LogTracker::Listener, public virtual cb::RefCounted {
       App &app;
@@ -44,6 +45,7 @@ namespace FAH {
       std::string vizUnitID;
       unsigned vizFrame = 0;
       uint64_t lastLogLine = 0;
+      bool sendWUsEnabled = false;
 
     public:
       Remote(App &app);
@@ -56,8 +58,8 @@ namespace FAH {
       virtual void close() = 0;
 
       void sendViz();
-      void readLogToNextLine();
-      void sendLog();
+      void sendWUs();
+      void logWU(const Unit &wu);
       void sendChanges(const cb::JSON::ValuePtr &changes);
 
       void onMessage(const cb::JSON::ValuePtr &msg);

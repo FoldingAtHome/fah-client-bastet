@@ -150,7 +150,7 @@ namespace FAH {
       void setState(UnitState state);
       void next();
 
-      void processStarted();
+      void processStarted(const cb::SmartPointer<cb::Subprocess> &process);
       void processEnded();
       void processTimer();
       double getKnownProgress() const;

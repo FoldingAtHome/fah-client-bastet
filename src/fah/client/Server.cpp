@@ -32,6 +32,7 @@
 
 #include <cbang/Info.h>
 #include <cbang/log/Logger.h>
+#include <cbang/os/SystemUtilities.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -42,12 +43,7 @@ Server::Server(App &app) :
   HTTP::Server(app.getEventBase()), app(app) {
   addOptions(app.getOptions());
   app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
-
   setPortPriority(3);
-
-  addMember(this, &Server::corsCB);
-  addMember(HTTP_GET, "/",     this, &Server::redirectWebControl);
-  addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
 }
 
 
@@ -59,15 +55,23 @@ void Server::init() {
   for (unsigned i = 0; i < origins.size(); i++)
     allowedOrigins.insert(origins[i]);
 
+  addMember(this, &Server::corsCB);
+
   // Web root
   if (options["web-root"].hasValue()) {
     string root = options["web-root"];
-    addHandler("/.*", root);
-    addHandler("/.*", root + "/index.html");
+    if (SystemUtilities::exists(root)) {
+      addHandler("/.*", root);
+      addHandler("/.*", root + "/index.html");
+    }
   }
+
+  addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
 
   // Init
   HTTP::Server::init(options);
+
+  addMember(HTTP_GET, "/.*", this, &Server::redirectWebControl);
 }
 
 
