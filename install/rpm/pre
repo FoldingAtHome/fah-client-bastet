@@ -3,6 +3,14 @@ if [ $1 -eq 1 ]; then
   # Old v7 init script is broken and does not stop when told so
   if [ -e /etc/init.d/FAHClient ]; then
     systemctl kill FAHClient 2>/dev/null || true
+
+    # Missing PID file in init scripts cripples systemd monitoring,
+    # requiring manual waiting for process exit
+    TRY=0
+    while pgrep -x FAHClient >/dev/null && [ $TRY -lt 120 ]; do
+      sleep 1
+      TRY=$((TRY+1))
+    done
   fi
 
   # Create group if it does not exist
