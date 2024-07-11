@@ -64,16 +64,15 @@ Unicode true ; For all languages to display correctly
 ; Variables
 Var AutoStart
 Var UninstDir
-Var UnDataDir
 Var DataDir
 Var DataDirText
+Var v7DataDir
 
 
 ; Includes
 !include MUI2.nsh
 !include nsDialogs.nsh
 !include LogicLib.nsh
-!include EnvVarUpdate.nsh
 !include WinVer.nsh
 !include FileFunc.nsh ; File Functions Header used by RefreshShellIcons
 !insertmacro RefreshShellIcons
@@ -121,84 +120,48 @@ RequestExecutionLevel admin
 
 ; Sections
 Section -Install
-  ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
-
-  ; Remove from PATH and Registry (FAH v7.x uninstaller was not run)
-  IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove
-    ; FAH v7.x is in 32 bit registry
-    SetRegView 32
-    ReadRegStr $UninstDir HKLM "${PRODUCT_DIR_REGKEY}" "Path"
-    ReadRegStr $UnDataDir HKLM "${PRODUCT_UNINST_KEY}" "DataDirectory"
-    ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $UninstDir
-    DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
-    DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
-    ; 32/64 bit registry
-    SetRegView %(PACKAGE_ARCH)s
-    ; Set a flag indicating overwriting FAH v7.x
-    StrCpy $3 "v7"
-
-  ; Remove service (FAH Client v7.x only commands)
-  IfFileExists "$UninstDir\${CLIENT_EXE}" 0 skip_remove
-    DetailPrint "$(^UninstallingSubText)$\r$\n$UninstDir\${CLIENT_EXE}$\r$\n \
-      Removing service (This can take awhile)"
-    nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --stop-service'
-    nsExec::Exec '"$UninstDir\${CLIENT_EXE}" --uninstall-service'
-skip_remove:
-
   ; Terminate
-  Call CloseApps
+  Push "${CLIENT_EXE}"
+  Call EndProcess
+  Push "FAHControl.exe"
+  Call EndProcess
 
-  ; Remove Autostart
-  Delete "$SMSTARTUP\${CLIENT_NAME}.lnk"
-  Delete "$SMSTARTUP\FAHControl.lnk"
+  ; Check for v7 client and remove
+  ReadRegStr $UninstDir HKLM32 "${PRODUCT_DIR_REGKEY}" "Path"
+
+  IfFileExists "$UninstDir\FAHControl.exe" 0 skip_remove_v7
+    DetailPrint "Removing v7 folding client"
+    ReadRegStr $v7DataDir HKLM32 "${PRODUCT_UNINST_KEY}" "DataDirectory"
+
+    IfFileExists "$DataDir\config.xml" +2 0
+      CopyFiles "$v7DataDir\config.xml" "$DataDir\config.xml"
+
+    ExecWait "$UninstDir\${CLIENT_EXE} --stop-service"
+    ExecWait "$UninstDir\${CLIENT_EXE} --uninstall-service"
+
+    ; Only remove directory if the path ends with "FAHClient"
+    StrCpy $0 "$UninstDir" "" -9
+    ${If} $0 == "FAHClient"
+      RMDir /r "$UninstDir"
+    ${Else}
+      Delete "$UninstDir\FAHControl.exe"
+    ${EndIf}
+
+    Delete "$v7DataDir\sample-config.xml"
+    Delete "$v7DataDir\GPUs.txt"
+    RMDir /r "$v7DataDir\themes"
+skip_remove_v7:
 
   ; Data directory
-  CreateDirectory "$DataDir"
-  ; Set working directory for files, etc. Do before AccessControl::GrantOnFile
+  IfFileExists "$DataDir" skip_create_data_dir
+    CreateDirectory "$DataDir"
+
+    ; Set working directory for files, etc. Do before AccessControl::GrantOnFile
+    SetOutPath "$DataDir"
+    AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
+skip_create_data_dir:
+
   SetOutPath "$DataDir"
-  AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
-
-  ; Uninstall old software
-  ; Avoid simply removing the whole directory as that causes subsequent file
-  ; writes to fail for several seconds.
-  StrCmp $3 "v7" 0 skip_v7cleanup
-  ; Same or different data folder as FAH v7
-  RMDir /r "$UnDataDir\cores"
-  RMDir /r "$UnDataDir\themes"
-  Delete "$UnDataDir\GPUs.txt"
-  ; Different data folder, copy FAH v7 settings to new v8 data location
-  ${If} $UnDataDir != $DataDir
-    CopyFiles "$UnDataDir\config.xml" "$DataDir\config.xml"
-    CopyFiles "$UnDataDir\FAHControl.db" "$DataDir\FAHControl.db"
-    CopyFiles "$UnDataDir\log.txt" "$DataDir\log.txt"
-    CopyFiles "$UnDataDir\configs\*.xml" "$DataDir\configs"
-    CopyFiles "$UnDataDir\logs\*.txt" "$DataDir\logs"
-    CopyFiles "$UnDataDir\work" "$DataDir\work"
-    DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UnDataDir"
-    ; Remove sub-folders recursively
-    RMDir /r "$UnDataDir\configs"
-    RMDir /r "$UnDataDir\logs"
-    RMDir /r "$UnDataDir\work"
-    Delete "$UnDataDir\*.txt"
-    Delete "$UnDataDir\*.xml"
-    Delete "$UnDataDir\*.db"
-    ; Only remove DataDir when empty. Avoid recursive remove to DataDir
-    RMDir "$UnDataDir"
-  ${EndIf}
-
-  DetailPrint "Folding@home $(^UninstallingSubText)$\r$\n$UninstDir"
-  ; Remove lib folder (FAH v7.x uninstaller was not run)
-  RMDir /r "$UninstDir\lib"
-skip_v7cleanup:
-  ; Delete program files. Leave the folder, if it's the new location
-  Delete "$UninstDir\*"
-  StrCmp $INSTDIR $UninstDir +2
-    RMDir "$UninstDir"
-
-  ; Remove v8 settings
-  ${EnvVarUpdate} $0 "PATH" "R" "HKCU" $UninstDir
-  DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
-  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   ; Install files
 install_files:
@@ -224,9 +187,6 @@ install_files:
       from the Folding@home installation.  Note, complete shutdown can take \
       a little while after the application has closed." \
       IDRETRY install_files IDCANCEL abort
-
-  ; Add to PATH
-  ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
 
   ; Set working directory for shortcuts, etc.
   SetOutPath "$DataDir"
@@ -319,7 +279,8 @@ Section -un.Program
   DetailPrint "Shutting down any local clients"
 
   ; Terminate
-  Call un.CloseApps
+  Push "${CLIENT_EXE}"
+  Call un.EndProcess
 
   ; Menu
   RMDir /r "${MENU_PATH}"
@@ -329,9 +290,6 @@ Section -un.Program
 
   ; Desktop
   Delete "$DESKTOP\Folding @Home.lnk"
-
-  ; Remove from PATH
-  ${un.EnvVarUpdate} $0 "PATH" "R" "HKCU" $INSTDIR
 
   ; Registry
   DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
@@ -430,15 +388,6 @@ FunctionEnd
 
 !insertmacro EndProcess ""
 !insertmacro EndProcess "un."
-
-
-Function CloseApps
-  Push "${CLIENT_EXE}"
-  Call EndProcess
-
-  Push "FAHControl.exe"
-  Call EndProcess
-FunctionEnd
 
 
 Function ValidPath
@@ -566,10 +515,4 @@ Function un.onInit
 
   ; Use same language as installer
   !insertmacro MUI_UNGETLANGUAGE
-FunctionEnd
-
-
-Function un.CloseApps
-  Push "${CLIENT_EXE}"
-  Call un.EndProcess
 FunctionEnd

@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.3.18
+ - Windows installer fixes.
+
 ## v8.3.17
  - Fixes for account (un)linking and node changes.
  - Fix for repeated "No active" exception.
