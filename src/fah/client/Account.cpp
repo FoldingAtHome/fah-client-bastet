@@ -207,7 +207,16 @@ void Account::info() {
       } else { // Account is valid, connect to node
         setData(req.getInputJSON());
         app.getConfig()->configure(*data);
-        app.getDB("config").set("account", data->toString());
+
+        auto db = app.getDB("config");
+        db.set("account", data->toString());
+
+        if (data->hasString("mach_name")) {
+          auto name = data->getString("mach_name");
+          app.getDict("info").insert("mach_name", name);
+          db.set("machine-name", name);
+        }
+
         setState(STATE_CONNECT);
       }
 
