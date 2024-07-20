@@ -203,7 +203,9 @@ App::App() :
 }
 
 
-App::~App() {}
+App::~App() {
+  clear(); // Deallocate object in ObservableDict before Event::Base
+}
 
 
 bool App::_hasFeature(int feature) {

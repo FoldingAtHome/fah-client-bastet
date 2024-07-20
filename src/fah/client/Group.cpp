@@ -197,13 +197,13 @@ void Group::update() {
     auto unitGPUs = unit->getGPUs();
     if (unitGPUs.empty()) continue;
 
-    uint32_t minCPUs = unit->getMinCPUs();
-    bool     runable = minCPUs <= remainingCPUs || minCPUs < 2;
+    uint32_t minCPUs  = unit->getMinCPUs();
+    bool     runnable = minCPUs <= remainingCPUs || minCPUs < 2;
 
     std::set<string> gpusWithWU = remainingGPUs;
-    for (auto id: unitGPUs) runable &= gpusWithWU.erase(id) != 0;
+    for (auto id: unitGPUs) runnable &= gpusWithWU.erase(id) != 0;
 
-    if (runable) {
+    if (runnable) {
       remainingGPUs = gpusWithWU;
       remainingCPUs -= min(remainingCPUs, minCPUs); // Allocate minimum CPUs
       enabledWUs.insert(unit->getID());

@@ -97,11 +97,8 @@ void Remote::sendWUs() {
 
   app.getDB("wu_log", true)
     .foreach([&wus] (const string &id, const string &data) {
-      try {
-        wus->append(JSON::parse(data));
-      } CATCH_ERROR;
-    }, 10000);
-
+      TRY_CATCH_ERROR(wus->append(JSON::parse(data)));
+    }, 500);
 
   sendChanges(changes);
 }

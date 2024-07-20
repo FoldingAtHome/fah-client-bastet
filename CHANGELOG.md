@@ -3,6 +3,9 @@ Folding@home Client Changelog
 
 ## v8.4.0
  - Don't add client install path to ``PATH`` when running cores on Windows.
+ - Added disable CUDA option.
+ - Added system HTTP proxy support.  No config necessary.
+ - Automatically set machine from account settings.
 
 ## v8.3.18
  - Windows installer fixes.

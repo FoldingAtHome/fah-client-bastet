@@ -314,7 +314,7 @@ uint64_t Unit::getCreditEstimate() const {
 
   // No bonus after timeout
   if (0 < delta && delta < (int64_t)timeout) {
-    double bonus = sqrt(0.75 * (double)deadline / delta); // Bonus forumula
+    double bonus = sqrt(0.75 * (double)deadline / delta); // Bonus formula
     if (1 < bonus) credit *= bonus;
   }
 
@@ -406,7 +406,7 @@ void Unit::dumpWU() {
 
 
 void Unit::save() {
-  if (getState() == UNIT_ASSIGN || getState() == UNIT_DONE) return;
+  if (getState() < UNIT_RUN || getState() == UNIT_DONE) return;
 
   JSON::BufferWriter writer;
 
@@ -625,12 +625,26 @@ void Unit::run() {
 
   auto &gpus = *get("gpus");
   if (gpus.size()) {
-    auto &gpu = *app.getGPUs().get(gpus.getString(0)).cast<GPUResource>();
+    string id = gpus.getString(0);
+    auto &gpu = *app.getGPUs().get(id).cast<GPUResource>();
 
+    // GPU UUID
+    if (gpu.hasString("uuid")) {
+      args.push_back("-gpu-uuid");
+      args.push_back(gpu.getString("uuid"));
+    }
+
+    // GPU platform
+    bool withCUDA = getConfig().isCUDAEnabled();
+    args.push_back("-gpu-platform");
+    args.push_back(withCUDA ? "cuda" : "opencl");
+
+    // Old GPU options
     args.push_back("-gpu-vendor");
     args.push_back(gpu.getString("type"));
+
     addGPUArgs(args, gpu, "opencl");
-    addGPUArgs(args, gpu, "cuda");
+    if (withCUDA) addGPUArgs(args, gpu, "cuda");
 
     if (gpu.has("opencl")) {
       args.push_back("-gpu");
@@ -1183,7 +1197,7 @@ void Unit::response(HTTP::Request &req) {
         }
       } CATCH_ERROR;
 
-      // Handle HTTP reponse codes
+      // Handle HTTP response codes
       switch (req.getResponseCode()) {
       case HTTP_SERVICE_UNAVAILABLE:
         // We always need a new assignment token

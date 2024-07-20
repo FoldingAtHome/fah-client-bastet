@@ -39,7 +39,7 @@ using namespace cb;
 using namespace std;
 
 
-// TODO delete cores that havent been used in awhile
+// TODO delete cores that haven't been used in awhile
 Cores::Cores(App &app) : app(app) {}
 
 

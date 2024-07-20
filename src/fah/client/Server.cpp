@@ -50,7 +50,7 @@ Server::Server(App &app) :
 void Server::init() {
   auto &options = app.getOptions();
 
-  // Allowed orgins
+  // Allowed origins
   auto origins = options["allowed-origins"].toStrings();
   for (unsigned i = 0; i < origins.size(); i++)
     allowedOrigins.insert(origins[i]);
