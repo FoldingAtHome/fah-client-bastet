@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.1
+ - Log machine and group ``pause``, ``fold``, ``finish`` changes.
+
 ## v8.4.0
  - Don't add client install path to ``PATH`` when running cores on Windows.
  - Added disable CUDA option.

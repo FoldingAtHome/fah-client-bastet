@@ -114,12 +114,15 @@ void Groups::triggerUpdate() {
 
 
 void Groups::setState(const JSON::Value &msg) {
-  if (msg.hasString("group"))
+  if (msg.hasString("group")) {
+    LOG_INFO(1, "Group state " << msg.getString("state"));
     getGroup(msg.getString("group")).getConfig().setState(msg);
 
-  else
+  } else {
+    LOG_INFO(1, "Machine state " << msg.getString("state"));
     for (auto &name: keys())
       getGroup(name).getConfig().setState(msg);
+  }
 }
 
 
