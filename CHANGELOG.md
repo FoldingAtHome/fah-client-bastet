@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.2
+ - Fixed DNS bug.  #257
+
 ## v8.4.1
  - Log machine and group ``pause``, ``fold``, ``finish`` changes.
 
