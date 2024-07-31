@@ -293,7 +293,7 @@ double Unit::getEstimatedProgress() const {
   // Get estimated progress since last update from core
   double delta         = getRunTime() - lastKnownProgressUpdateRunTime;
   double runtime       = getRunTimeEstimate();
-  double deltaProgress = runtime ? delta / runtime : 0;
+  double deltaProgress = (0 < delta && 0 < runtime) ? delta / runtime : 0;
   if (0.01 < deltaProgress) deltaProgress = 0.01; // No more than 1%
 
   double progress = getKnownProgress() + deltaProgress;
@@ -837,10 +837,10 @@ void Unit::monitorRun() {
     readViewerData();
 
     // Update ETA, PPD and progress
-    uint64_t eta = getETA();
-    uint64_t ppd = getPPD();
-    if (eta != getU64("eta",  0)) insert("eta", eta);
-    if (ppd != getU64("ppd", -1)) insert("ppd", ppd);
+    auto eta = TimeInterval(getETA(), true).toString();
+    auto ppd = getPPD();
+    if (eta != getString("eta", "")) insert("eta", eta);
+    if (ppd != getU64("ppd", -1))    insert("ppd", ppd);
     setProgress(getEstimatedProgress(), 1);
   } CATCH_ERROR;
 
