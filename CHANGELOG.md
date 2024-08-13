@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.3
+ -
+
 ## v8.4.2
  - Fixed DNS bug.  #257
  - Reduced ETA updates.
