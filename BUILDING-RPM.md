@@ -4,14 +4,14 @@
 
 ### Fedora/Red Hat Enterprise Linux (RHEL)
 ```
-sudo dnf -y install git python3-scons gcc-c++ openssl-devel zlib-devel bzip2-devel systemd-devel rpm-build systemd-rpm-macros
+sudo dnf -y install git python3-scons gcc-c++ openssl-devel zlib-devel bzip2-devel lz4-devel systemd-devel rpm-build systemd-rpm-macros
 ```
 
 On Red Hat Enterprise Linux (RHEL) 8 and clones, you need to first enable the PowerTools repository with `sudo dnf config-manager --set-enabled powertools`. On RHEL 9 and clones, enable the [EPEL repository](https://docs.fedoraproject.org/en-US/epel/) instead.
 
 ### openSUSE
 ```
-sudo zypper -n in git scons gcc-c++ libopenssl-devel zlib-devel libbz2-devel systemd-devel rpm-build systemd-rpm-macros
+sudo zypper -n in git scons gcc-c++ libopenssl-devel zlib-devel libbz2-devel liblz4-devel systemd-devel rpm-build systemd-rpm-macros
 ```
 
 ## Get the code

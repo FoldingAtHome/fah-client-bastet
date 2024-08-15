@@ -51,7 +51,7 @@ if not env.GetOption('clean'):
             flags = ['-Wl,--wrap=' + x for x in funcs.split()]
             env.AppendUnique(LINKFLAGS = flags)
 
-        env.Append(PREFER_DYNAMIC = 'bz2 z m'.split())
+        env.Append(PREFER_DYNAMIC = 'z bz2 lz4 systemd m'.split())
 
 conf.Finish()
 
