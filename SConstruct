@@ -169,7 +169,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         icons              = ['images/fahlogo.png'],
 
         documents          = docs,
-        programs           = [str(client[0])],
+        programs           = [str(client[0]), 'scripts/fahctl'],
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
@@ -185,6 +185,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         deb_depends        = 'ca-certificates',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
+        deb_suggests       = 'python3-websocket',
         deb_pre_depends    = 'adduser, procps',
         deb_priority       = 'optional',
 

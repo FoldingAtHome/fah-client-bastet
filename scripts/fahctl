@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+import sys
+import argparse
+import json
+
+try:
+  from websocket import create_connection
+except Exception as e:
+  print('Missing python3-websocket library', file = sys.stderr)
+  sys.exit(1)
+
+
+# Parse args
+epilog = '''\
+Examples:
+  fahctl fold
+  fahctl finish
+  fahctl pause
+'''
+
+parser = argparse.ArgumentParser(
+  'Folding@home v8 Client command line control',
+  formatter_class = argparse.RawDescriptionHelpFormatter, epilog = epilog)
+
+parser.add_argument('command', choices = ['fold', 'pause', 'finish', 'state'],
+                    help = 'The command to send to the client')
+parser.add_argument('group', nargs = '?',
+                    help = 'Optional target resource group')
+parser.add_argument('--address', default = '127.0.0.1:7396',
+                    help = 'Client address')
+
+args = parser.parse_args()
+
+
+# Connect
+ws = create_connection('ws://%s/api/websocket' % args.address)
+
+
+# Send command
+if args.command == 'state': print(ws.recv())
+else:
+  msg = dict(cmd = 'state', state = args.command)
+  if args.group is not None: msg['group'] = args.group
+  ws.send(json.dumps(msg))
+
+
+# Close
+ws.close()
