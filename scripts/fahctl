@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+'Folding@home v8 Client command line control'
 
 import sys
 import argparse
@@ -19,8 +20,7 @@ Examples:
   fahctl pause
 '''
 
-parser = argparse.ArgumentParser(
-  'Folding@home v8 Client command line control',
+parser = argparse.ArgumentParser(description = __doc__,
   formatter_class = argparse.RawDescriptionHelpFormatter, epilog = epilog)
 
 parser.add_argument('command', choices = ['fold', 'pause', 'finish', 'state'],
@@ -34,7 +34,7 @@ args = parser.parse_args()
 
 
 # Connect
-ws = create_connection('ws://%s/api/websocket' % args.address)
+ws = create_connection(f'ws://{args.address}/api/websocket')
 
 
 # Send command

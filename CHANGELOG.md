@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.4.4
  - Acquire client DB lock on startup.  #269
+ - Added ``fahctl`` command line client control script.  #119
 
 ## v8.4.3
  - Start Linux client after DNS service.  (Marcos Mello)
