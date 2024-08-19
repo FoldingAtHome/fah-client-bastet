@@ -487,6 +487,8 @@ void App::run() {
   // Open DB
   LOG_INFO(1, "Opening Database");
   db.open("client.db");
+  db.execute("PRAGMA locking_mode=EXCLUSIVE");
+  db.execute("PRAGMA synchronous=NORMAL");
 
   // Check that we have AS
   if (options["assignment-servers"].toStrings().empty())
