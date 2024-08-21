@@ -28,7 +28,7 @@ parser.add_argument('command', choices = ['fold', 'pause', 'finish', 'state'],
 parser.add_argument('group', nargs = '?',
                     help = 'Optional target resource group')
 parser.add_argument('--address', default = '127.0.0.1:7396',
-                    help = 'Client address')
+                    help = 'Client address (default: %(default)s)')
 
 args = parser.parse_args()
 
