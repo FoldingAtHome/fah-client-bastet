@@ -201,7 +201,7 @@ void Core::download(const string &url) {
   auto progressCB =
     [this] (const Progress &p) {
       unsigned bytes = p.getTotal();
-      unsigned size = p.getSize();
+      unsigned size  = p.getSize();
 
       for (unsigned i = 0; i < progressCBs.size(); i++)
         progressCBs[i](bytes, size);
@@ -220,13 +220,13 @@ void Core::response(HTTP::Request &req) {
 
     switch (state) {
     case CORE_CERT: {
-      cert = req.getInput();
+      cert  = req.getInput();
       state = CORE_SIG;
       break;
     }
 
     case CORE_SIG:
-      sig = Base64().decode(req.getInput());
+      sig   = Base64().decode(req.getInput());
       state = CORE_DOWNLOAD;
       break;
 

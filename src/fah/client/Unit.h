@@ -35,7 +35,6 @@
 #include <cbang/http/Enum.h>
 #include <cbang/http/Client.h>
 #include <cbang/http/Request.h>
-#include <cbang/os/Subprocess.h>
 #include <cbang/net/URI.h>
 
 
@@ -48,6 +47,7 @@ namespace FAH {
     class Group;
     class GPUResource;
     class Core;
+    class CoreProcess;
     class Config;
 
     class Unit :
@@ -69,8 +69,9 @@ namespace FAH {
 
       unsigned viewerFrame = 0;
 
-      cb::SmartPointer<cb::Subprocess> process;
+      cb::SmartPointer<CoreProcess> process;
       cb::SmartPointer<cb::TailFileToLog> logCopier;
+      unsigned bytesCopiedToLog = 0;
 
       bool     success     = false;
       unsigned retries     = 0;
@@ -78,10 +79,9 @@ namespace FAH {
       int      cs          = -1;
       uint32_t runningCPUs = 0;
 
-      uint64_t processStartTime     = 0; // Core process start time
-      uint64_t processInterruptTime = 0; // Core process interrupt time
-      uint64_t lastProcessTimer     = 0; // For detecting clock skew
-      int64_t  clockSkew            = 0; // Due to sleeping or clock changes
+      uint64_t processStartTime = 0; // Core process start time
+      uint64_t lastSkewTimer    = 0; // For detecting clock skew
+      int64_t  clockSkew        = 0; // Due to sleeping or clock changes
 
       uint64_t lastKnownDone                  = 0;
       uint64_t lastKnownTotal                 = 0;
@@ -150,9 +150,9 @@ namespace FAH {
       void setState(UnitState state);
       void next();
 
-      void processStarted(const cb::SmartPointer<cb::Subprocess> &process);
+      void processStarted(const cb::SmartPointer<CoreProcess> &process);
       void processEnded();
-      void processTimer();
+      void skewTimer();
       double getKnownProgress() const;
       void updateKnownProgress(uint64_t done, uint64_t total);
 

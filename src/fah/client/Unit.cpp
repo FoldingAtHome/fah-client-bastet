@@ -34,6 +34,7 @@
 #include "GPUResources.h"
 #include "Groups.h"
 #include "Core.h"
+#include "CoreProcess.h"
 #include "Cores.h"
 #include "Config.h"
 #include "ExitCode.h"
@@ -397,6 +398,7 @@ void Unit::dumpWU() {
   // Stop waiting
   setWait(0);
   retries = 0;
+  success = true; // Don't delay group retry
   event->del();
 
   cancelRequest(); // Terminate any active connections
@@ -484,12 +486,11 @@ void Unit::next() {
 }
 
 
-void Unit::processStarted(const SmartPointer<Subprocess> &process) {
+void Unit::processStarted(const SmartPointer<CoreProcess> &process) {
   LOG_INFO(3, "Started FahCore on PID " << process->getPID());
   this->process = process;
-  lastProcessTimer = processStartTime = Time::now();
-  processInterruptTime = lastKnownDone = lastKnownTotal =
-    lastKnownProgressUpdate = clockSkew = 0;
+  lastSkewTimer = processStartTime = Time::now();
+  lastKnownDone = lastKnownTotal = lastKnownProgressUpdate = clockSkew = 0;
   insert("start_time", Time(processStartTime).toString());
 }
 
@@ -502,11 +503,11 @@ void Unit::processEnded() {
 }
 
 
-void Unit::processTimer() {
+void Unit::skewTimer() {
   uint64_t now = Time::now();
 
   // Detect and adjust for clock skew
-  int64_t delta = (int64_t)now - lastProcessTimer;
+  int64_t delta = (int64_t)now - lastSkewTimer;
   if (data < 0 || 15 < delta) {
     LOG_WARNING("Detected clock skew (" << TimeInterval(delta)
                 << "), I/O delay, laptop hibernation, other slowdown or "
@@ -514,7 +515,7 @@ void Unit::processTimer() {
     clockSkew += delta;
   }
 
-  lastProcessTimer = now;
+  lastSkewTimer = now;
 }
 
 
@@ -598,20 +599,10 @@ void Unit::run() {
   string logFile = getDirectory() + "/logfile_01.txt";
   SystemUtilities::rotate(logFile, string(), 32);
 
-  auto process = new Subprocess;
-
-  // Set environment library paths
-  vector<string> paths;
-  string corePath = SystemUtilities::absolute(core->getPath());
-  paths.push_back(SystemUtilities::dirname(corePath));
-  const string &ldPath = SystemUtilities::library_path;
-  if (SystemUtilities::getenv(ldPath))
-    SystemUtilities::splitPaths(SystemUtilities::getenv(ldPath), paths);
-  process->set(ldPath, SystemUtilities::joinPaths(paths));
+  auto process = SmartPtr(new CoreProcess(core->getPath()));
 
   // Args
   vector<string> args;
-  args.push_back(SystemUtilities::absolute(core->getPath()));
   args.push_back("-dir");
   args.push_back(getID());
   args.push_back("-suffix");
@@ -657,11 +648,7 @@ void Unit::run() {
   }
 
   // Run
-  LOG_INFO(3, "Running FahCore: " << Subprocess::assemble(args));
-  process->setWorkingDirectory("work");
-  process->exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
-                Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
-                Subprocess::PRIORITY_IDLE);
+  process->exec(args);
   processStarted(process);
   startLogCopy(logFile); // Redirect core output to log
   triggerNext();
@@ -757,26 +744,53 @@ void Unit::setResults(const string &status, const string &dataHash) {
 
 
 void Unit::finalizeRun() {
+  group->triggerUpdate(); // Notify parent
+  triggerNext();
   endLogCopy();
 
   ExitCode code = (ExitCode::enum_t)process->wait();
 
-  if (process->getWasKilled())  LOG_WARNING("Core was killed");
-  if (process->getDumpedCore()) LOG_WARNING("Core crashed");
-  if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1);
+#ifdef _WIN32
+  if (0xc0000000 <= (unsigned)code) {
+    LOG_ERROR("Core exited with Windows unhandled exception code "
+                << String::printf("0x%08x", (unsigned)code)
+                << ".  See https://bit.ly/2CXgWkZ for more information.");
+    code = ExitCode::FAILED_1;
+  }
+#endif
+
+  if (process->getWasKilled()) {
+    LOG_ERROR("Core was killed");
+    code = ExitCode::FAILED_1;
+  }
+
+  if (process->getDumpedCore()) {
+    LOG_ERROR("Core crashed with exit code " << (unsigned)code);
+    code = ExitCode::FAILED_1;
+  }
 
   process.release();
+  if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1);
   processEnded();
 
   bool ok = code == ExitCode::FINISHED_UNIT || code == ExitCode::INTERRUPTED;
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_WARNING,
       "Core returned " << code << " (" << (unsigned)code << ')');
 
-  // Notify parent
-  group->triggerUpdate();
-
   // WU not complete if core was interrupted
-  if (code == ExitCode::INTERRUPTED) return triggerNext();
+  if (code == ExitCode::INTERRUPTED) return;
+
+  if (!bytesCopiedToLog)
+    LOG_ERROR("The folding core did not produce any log output.  This "
+      "indicates that the core is not functional on your system.  Check "
+      "for missing libraries or GPU drivers.  Make a post about your issue "
+      "on https://foldingforum.org/ to get more help.");
+
+  if (!code.isValid()) {
+    LOG_ERROR("Core exited with an unknown error code " << (unsigned)code
+                << " which probably indicates that it crashed. Dumping WU");
+    return setState(UNIT_DUMP);
+  }
 
   // Read result data
   string filename = getDirectory() + "/wuresults_01.dat";
@@ -789,46 +803,25 @@ void Unit::finalizeRun() {
     // TODO Send multi-part data with JSON followed by binary data
     setResults("", hash64);
     data->insert("data", Base64().encode(resultData));
-    setState(UNIT_UPLOAD);
 
-  } else if (!code.isValid()) {
-#ifdef _WIN32
-    if (0xc0000000 <= (unsigned)code)
-      LOG_WARNING("Core exited with Windows unhandled exception code "
-                  << String::printf("0x%08x", (unsigned)code)
-                  << ".  See https://bit.ly/2CXgWkZ for more information.");
-    else
-#endif
-      LOG_WARNING("Core exited with an unknown error code " << (unsigned)code
-                  << " which probably indicates that it crashed");
+    return setState(UNIT_UPLOAD);
+  }
 
-    retry();
-
-  } else setState(UNIT_DUMP);
-
-  triggerNext();
+  LOG_ERROR("Run did not produce any results. Dumping WU");
+  setState(UNIT_DUMP);
 }
 
 
 void Unit::stopRun() {
-  if (!processInterruptTime) {
-    processInterruptTime = Time::now();
-    process->interrupt();
-
-  } else if (processInterruptTime + 60 < Time::now()) {
-    LOG_WARNING("Core did not shutdown gracefully, killing process");
-    process->kill();
-    processInterruptTime = 1; // Prevent further interrupt or kill
-  }
-
+  process->stop();
   triggerNext(1);
 }
 
 
 void Unit::monitorRun() {
   try {
-    // Time run
-    processTimer();
+    // Check for clock skew
+    skewTimer();
 
     // Read core shared info file
     readInfo();
@@ -1155,7 +1148,6 @@ void Unit::upload() {
 void Unit::dumpResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Dumped");
   setState(UNIT_CLEAN);
-  success = true;
   logCredit(data);
 }
 
@@ -1243,9 +1235,14 @@ void Unit::logCredit(const JSON::ValuePtr &data) {
 }
 
 void Unit::startLogCopy(const string &filename) {
+  bytesCopiedToLog = 0;
   endLogCopy();
   logCopier = new TailFileToLog(app.getEventBase(), filename, getLogPrefix());
 }
 
 
-void Unit::endLogCopy() {logCopier.release();}
+void Unit::endLogCopy() {
+  if (logCopier.isNull()) return;
+  bytesCopiedToLog = logCopier->getBytesCopied();
+  logCopier.release();
+}

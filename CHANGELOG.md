@@ -5,6 +5,9 @@ Folding@home Client Changelog
  - Acquire client DB lock on startup.  #269
  - Added ``fahctl`` command line client control script.  #119
  - Added package dependency on libexpat.  #266
+ - Ignore exit code of killed or crashed cores.
+ - Delay next WU after failure.
+ - Log error if core does not produce any log output.
 
 ## v8.4.3
  - Start Linux client after DNS service.  (Marcos Mello)
