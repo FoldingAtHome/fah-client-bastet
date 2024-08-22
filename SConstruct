@@ -182,7 +182,7 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         deb_directory      = 'build/install/debian',
         deb_section        = 'science',
-        deb_depends        = 'ca-certificates',
+        deb_depends        = 'ca-certificates, libexpat1',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
         deb_suggests       = 'python3-websocket',
@@ -200,7 +200,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_suggests       = 'python3-websocket-client',
         rpm_provides       = 'user(fah-client), group(fah-client)',
         rpm_build_requires = 'systemd-rpm-macros',
-        rpm_requires       = 'polkit',
+        rpm_requires       = 'polkit, expat',
         rpm_pre_requires   = 'systemd, procps, (shadow-utils or shadow)',
         rpm_post_requires  = 'systemd, coreutils',
         rpm_preun_requires = 'systemd',
