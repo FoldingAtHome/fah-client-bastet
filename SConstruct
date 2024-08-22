@@ -125,6 +125,7 @@ if 'package' in COMMAND_LINE_TARGETS:
             ],
             pkg_files = [
                 [str(client[0]), 'usr/local/bin/', 0o755],
+                ['scripts/fahctl', 'usr/local/bin/', 0o755],
                 ['build/install/osx/fahclient.url',
                  'Applications/Folding@home/Folding@home.url', 0o644],
                 ['build/install/osx/uninstall.url',
