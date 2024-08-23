@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 'Folding@home v8 Client command line control'
 
+# /// script
+# requires-python = ">=3.8"
+# dependencies = ["websocket-client"]
+# ///
+
 import sys
 import argparse
 import json
@@ -23,7 +28,8 @@ Examples:
 parser = argparse.ArgumentParser(description = __doc__,
   formatter_class = argparse.RawDescriptionHelpFormatter, epilog = epilog)
 
-parser.add_argument('command', choices = ['fold', 'pause', 'finish', 'state'],
+parser.add_argument('command',
+                    choices = ['fold', 'pause', 'finish', 'state', 'groups'],
                     help = 'The command to send to the client')
 parser.add_argument('group', nargs = '?',
                     help = 'Optional target resource group')
@@ -36,9 +42,18 @@ args = parser.parse_args()
 # Connect
 ws = create_connection(f'ws://{args.address}/api/websocket')
 
+data_str = ws.recv()
+data = json.loads(data_str)
+groups = list(data.get("groups", {}).keys())
+
+if args.group is not None and args.group not in groups:
+  print(f'Group "{args.group}" does not exist', file = sys.stderr)
+  sys.exit(1)
+
 
 # Send command
-if args.command == 'state': print(ws.recv())
+if args.command == 'state': print(data_str)
+elif args.command == 'groups': print(json.dumps(groups))
 else:
   msg = dict(cmd = 'state', state = args.command)
   if args.group is not None: msg['group'] = args.group
