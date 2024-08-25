@@ -2,13 +2,14 @@
 'Folding@home v8 Client command line control'
 
 # /// script
-# requires-python = ">=3.8"
+# requires-python = ">=3.6"
 # dependencies = ["websocket-client"]
 # ///
 
 import sys
 import argparse
 import json
+from urllib.parse import urlparse
 
 try:
   from websocket import create_connection
@@ -31,16 +32,24 @@ parser = argparse.ArgumentParser(description = __doc__,
 parser.add_argument('command',
                     choices = ['fold', 'pause', 'finish', 'state', 'groups'],
                     help = 'The command to send to the client')
-parser.add_argument('group', nargs = '?',
-                    help = 'Optional target resource group')
-parser.add_argument('--address', default = '127.0.0.1:7396',
+parser.add_argument('group', nargs = '?', metavar='GROUP',
+                    help = 'Optional target resource group name')
+parser.add_argument('-a', '--address', default = '127.0.0.1:7396',
                     help = 'Client address (default: %(default)s)')
 
 args = parser.parse_args()
 
+u = urlparse('ws://' + args.address)
+host = u.hostname or '127.0.0.1'
+port = u.port or 7396
+url = f'ws://{host}:{port}/api/websocket'
 
 # Connect
-ws = create_connection(f'ws://{args.address}/api/websocket')
+try:
+  ws = create_connection(url)
+except Exception as e:
+  print(f'{e}: {url}', file = sys.stderr)
+  sys.exit(1)
 
 data_str = ws.recv()
 data = json.loads(data_str)
