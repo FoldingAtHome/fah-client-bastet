@@ -145,12 +145,12 @@ if 'package' in COMMAND_LINE_TARGETS:
     elif env['PLATFORM'] == 'posix':
         if env.GetPackageType() == 'deb':
             polkit = [
-                'build/install/lin/fah-client.pkla',
-                'var/lib/polkit-1/localauthority/10-vendor.d/fah-client.pkla'
+                'build/install/lin/10-fah-client.pkla',
+                'var/lib/polkit-1/localauthority/10-vendor.d/10-fah-client.pkla'
             ]
         else:
-            polkit = ['build/install/lin/fah-client.rules',
-                      'usr/share/polkit-1/rules.d/fah-client.rules']
+            polkit = ['build/install/lin/10-fah-client.rules',
+                      'usr/share/polkit-1/rules.d/10-fah-client.rules']
 
         misc.append(polkit)
 
