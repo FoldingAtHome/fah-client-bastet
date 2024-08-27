@@ -599,8 +599,6 @@ void Unit::run() {
   string logFile = getDirectory() + "/logfile_01.txt";
   SystemUtilities::rotate(logFile, string(), 32);
 
-  auto process = SmartPtr(new CoreProcess(core->getPath()));
-
   // Args
   vector<string> args;
   args.push_back("-dir");
@@ -648,6 +646,7 @@ void Unit::run() {
   }
 
   // Run
+  auto process = SmartPtr(new CoreProcess(core->getPath()));
   process->exec(args);
   processStarted(process);
   startLogCopy(logFile); // Redirect core output to log
