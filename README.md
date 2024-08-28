@@ -51,6 +51,19 @@ git clone https://github.com/foldingathome/fah-client-bastet
 git clone https://github.com/foldingathome/fah-web-client-bastet
 ```
 
+## Build a specific version (Optional)
+To checkout the code for a specific version of the client run:
+
+```
+git -C cbang checkout bastet-v<version>
+git -C fah-client-bastet checkout v<version>
+git -C fah-web-client-bastet checkout v<version>
+```
+
+Where ``<version>`` is a version number.
+
+Run ``git -C fah-client-bastet tag`` to list available version numbers.
+
 ## Build the Folding@home Client
 ```
 export CBANG_HOME=$PWD/cbang
