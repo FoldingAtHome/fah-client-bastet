@@ -35,7 +35,6 @@
 #include "Cores.h"
 #include "Config.h"
 #include "OS.h"
-#include "PasskeyConstraint.h"
 #include "Remote.h"
 #include "LogTracker.h"
 
@@ -64,7 +63,7 @@
 #include <cbang/openssl/CertificateStoreContext.h>
 
 #include <cbang/config/MinMaxConstraint.h>
-#include <cbang/config/MinConstraint.h>
+#include <cbang/config/RegexConstraint.h>
 
 #include <set>
 #include <csignal>
@@ -143,7 +142,10 @@ App::App() :
   options.add("user", "Your user name.")->setDefault("Anonymous");
   options.add("team", "Your team number.",
               new MinMaxConstraint<int32_t>(0, 2147483647))->setDefault(0);
-  opt = options.add("passkey", "Your passkey.", new PasskeyConstraint);
+  opt = options.add("passkey", "Your passkey.",
+    new RegexConstraint(Regex("[a-fA-F0-9]{32}"),
+      "Passkey must be 32 characters long and can only contain hexadecimal "
+      "characters."));
   opt->setDefault("");
   opt->setObscured();
   options.popCategory();
@@ -204,7 +206,7 @@ App::App() :
 
 
 App::~App() {
-  clear(); // Deallocate object in ObservableDict before Event::Base
+  clear(); // Deallocate objects in ObservableDict before Event::Base
 }
 
 

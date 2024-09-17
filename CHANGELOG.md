@@ -1,6 +1,12 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.5
+ - Don't allow invalid machine name option.  #282
+ - Track WU end state.
+ - Clear WU retry count after WU has run successfully for some time.
+ - Set WU final WU progress correctly.
+
 ## v8.4.4
  - Acquire client DB lock on startup.  #269
  - Added ``fahctl`` command line client control script.  #119

@@ -361,7 +361,6 @@ bool Unit::isFinished() const {
   switch (getState()) {
   case UNIT_UPLOAD:
   case UNIT_DUMP:
-  case UNIT_CLEAN:
   case UNIT_DONE:
     return true;
 
@@ -374,7 +373,6 @@ bool Unit::isExpired() const {
   switch (getState()) {
   case UNIT_ASSIGN:
   case UNIT_DUMP:
-  case UNIT_CLEAN:
   case UNIT_DONE:
     return false;
 
@@ -389,19 +387,17 @@ void Unit::triggerNext(double secs) {event->add(secs);}
 void Unit::dumpWU() {
   LOG_INFO(3, "Dumping " << id);
 
-  switch (getState()) {
-  case UNIT_ASSIGN: case UNIT_DOWNLOAD:            setState(UNIT_CLEAN); break;
-  case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP);  break;
-  case UNIT_DUMP: case UNIT_CLEAN: case UNIT_DONE: return; // Do nothing
-  }
-
-  // Stop waiting
-  setWait(0);
+  setWait(0); // Stop waiting
   retries = 0;
   success = true; // Don't delay group retry
-  event->del();
-
   cancelRequest(); // Terminate any active connections
+
+  switch (getState()) {
+  case UNIT_ASSIGN: case UNIT_DOWNLOAD: clean("dumped"); break;
+  case UNIT_CORE: case UNIT_RUN: case UNIT_UPLOAD: setState(UNIT_DUMP); break;
+  case UNIT_DUMP: case UNIT_DONE: return; // Do nothing
+  }
+
   save();
   triggerNext();
 }
@@ -429,7 +425,7 @@ void Unit::setState(UnitState state) {
   if (hasString("state") && state == getState()) return;
   if (group.isSet()) group->triggerUpdate();
   insert("state", state.toString());
-  setProgress(0, 0);
+  clearProgress();
 }
 
 
@@ -437,7 +433,7 @@ void Unit::next() {
   // Check if WU has expired
   if (isExpired()) {
     LOG_INFO(1, "Unit expired, deleting");
-    setState(UNIT_CLEAN);
+    return clean("expired");
   }
 
   // Update pause reason
@@ -457,7 +453,7 @@ void Unit::next() {
 
   // Handle pause
   if (isPaused() && getState() < UNIT_DUMP) {
-    if (!pr.isSet() && getState() == UNIT_ASSIGN) setState(UNIT_CLEAN);
+    if (!pr.isSet() && getState() == UNIT_ASSIGN) return clean("aborted");
     else {
       setWait(0); // Stop waiting
       retries = 0;
@@ -466,7 +462,7 @@ void Unit::next() {
   }
 
   // Handle event backoff
-  if (getState() < UNIT_CLEAN && isWaiting())
+  if (getState() <= UNIT_DUMP && isWaiting())
     return triggerNext(wait - Time::now());
 
   try {
@@ -477,7 +473,6 @@ void Unit::next() {
     case UNIT_RUN:      return run();
     case UNIT_UPLOAD:   return upload();
     case UNIT_DUMP:     return dump();
-    case UNIT_CLEAN:    return clean();
     case UNIT_DONE:     return;
     }
   } CATCH_ERROR;
@@ -496,7 +491,6 @@ void Unit::processStarted(const SmartPointer<CoreProcess> &process) {
 
 
 void Unit::processEnded() {
-  if (Time::SEC_PER_MIN * 5 < getRunTimeDelta()) retries = 0;
   insert("run_time", getRunTime());
   erase("start_time");
   processStartTime = 0;
@@ -528,26 +522,23 @@ void Unit::updateKnownProgress(uint64_t done, uint64_t total) {
   if (!total || total < done) return;
 
   if (lastKnownDone != done || lastKnownTotal != total) {
-    lastKnownDone = done;
-    lastKnownTotal = total;
-    lastKnownProgressUpdate = Time::now();
+    lastKnownDone                  = done;
+    lastKnownTotal                 = total;
+    lastKnownProgressUpdate        = Time::now();
     lastKnownProgressUpdateRunTime = getRunTime();
   }
 }
 
 
-void Unit::setProgress(double done, double total) {
-  const char *key = getState() == UNIT_RUN ? "wu_progress" : "progress";
-  double progress = total ? done / total : 0;
+void Unit::setProgress(double done, double total, bool wu) {
+  const char *key = wu ? "wu_progress" : "progress";
+  double progress = round((total ? done / total : 0) * 1000) / 1000;
   double oldValue = getNumber(key, 0);
-
-  progress = round(progress * 1000) / 1000;
 
   if (oldValue != progress) {
     insert(key, progress);
 
-    if (floor(oldValue * 100) < floor(progress * 100) &&
-        getState() != UNIT_RUN && 1 < total)
+    if (floor(oldValue * 100) < floor(progress * 100) && !wu && 1 < total)
       LOG_INFO(1, getState() << String::printf(" %0.0f%% ", progress * 100)
                << HumanSize(done) << "B of " << HumanSize(total) << 'B');
   }
@@ -589,7 +580,7 @@ void Unit::run() {
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
     LOG_ERROR("Missing WU data");
-    return setState(UNIT_CLEAN);
+    return clean("missing");
   }
 
   // Remove old results if exists
@@ -769,10 +760,11 @@ void Unit::finalizeRun() {
   }
 
   process.release();
-  if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1);
+  if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1, true);
   processEnded();
 
-  bool ok = code == ExitCode::FINISHED_UNIT || code == ExitCode::INTERRUPTED;
+  success = code == ExitCode::FINISHED_UNIT;
+  bool ok = success || code == ExitCode::INTERRUPTED;
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_WARNING,
       "Core returned " << code << " (" << (unsigned)code << ')');
 
@@ -798,9 +790,8 @@ void Unit::finalizeRun() {
     string resultData = SystemUtilities::read(filename);
     string hash64 = Digest::base64(resultData, "sha256");
 
-    // TODO Set status "ok" once WS are upgraded
     // TODO Send multi-part data with JSON followed by binary data
-    setResults("", hash64);
+    setResults(ok ? "ok" : "failed", hash64);
     data->insert("data", Base64().encode(resultData));
 
     return setState(UNIT_UPLOAD);
@@ -833,20 +824,24 @@ void Unit::monitorRun() {
     auto ppd = getPPD();
     if (eta != getString("eta", "")) insert("eta", eta);
     if (ppd != getU64("ppd", -1))    insert("ppd", ppd);
-    setProgress(getEstimatedProgress(), 1);
+    setProgress(getEstimatedProgress(), 1, true);
+
+    // Clear retries after running long enough
+    if (retries && Time::SEC_PER_MIN * 2 < getRunTimeDelta()) retries = 0;
   } CATCH_ERROR;
 
   triggerNext(1);
 }
 
 
-void Unit::clean() {
+void Unit::clean(const string &result) {
   LOG_DEBUG(3, "Cleaning WU");
 
   // Log WU
   if (!id.empty()) {
     insert("end_time", Time().toString());
-    app.logWU(*this);
+    insert("result", result);
+    TRY_CATCH_ERROR(app.logWU(*this));
   }
 
   // Remove from disk
@@ -900,7 +895,8 @@ void Unit::retry() {
       LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
       setWait(0);
       retries = 0;
-      setState(UNIT_CLEAN);
+      success = false;
+      return clean("retries");
     }
 
     insert("retries", retries);
@@ -908,11 +904,12 @@ void Unit::retry() {
 
   } CATCH_ERROR;
 
+  // Retry failed
+  success = false;
   switch (getState()) {
-  case UNIT_DONE:                        break;
-  case UNIT_CLEAN: setState(UNIT_DONE);  break;
-  case UNIT_DUMP:  setState(UNIT_CLEAN); break;
-  default:         setState(UNIT_DUMP);  break;
+  case UNIT_DONE: return;
+  case UNIT_DUMP: return clean("failed");
+  default:        return setState(UNIT_DUMP);
   }
 }
 
@@ -1099,7 +1096,7 @@ void Unit::download() {
           &Unit::response);
 
   data->write(*pr->getJSONWriter());
-  setProgress(0, 0);
+  clearProgress();
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
 }
@@ -1107,9 +1104,8 @@ void Unit::download() {
 
 void Unit::uploadResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Credited");
-  setState(UNIT_CLEAN);
-  success = true;
   logCredit(data);
+  clean(success ? "credited" : "failed");
 }
 
 
@@ -1138,7 +1134,7 @@ void Unit::upload() {
   data->write(*writer);
   writer->close();
 
-  setProgress(0, 0);
+  clearProgress();
   pr->getConnection()->getWriteProgress().setCallback(progressCB, 1);
   pr->send();
 }
@@ -1146,8 +1142,8 @@ void Unit::upload() {
 
 void Unit::dumpResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Dumped");
-  setState(UNIT_CLEAN);
   logCredit(data);
+  clean("dumped");
 }
 
 
@@ -1200,9 +1196,7 @@ void Unit::response(HTTP::Request &req) {
         break;
 
       case HTTP_BAD_REQUEST: case HTTP_NOT_ACCEPTABLE: case HTTP_GONE:
-      default:
-        setState(UNIT_CLEAN);
-        break;
+      default: return clean("rejected");
       }
 
     } else {
@@ -1232,6 +1226,7 @@ void Unit::logCredit(const JSON::ValuePtr &data) {
     data->write(*SystemUtilities::oopen(dir + getID() + ".json"));
   } CATCH_ERROR;
 }
+
 
 void Unit::startLogCopy(const string &filename) {
   bytesCopiedToLog = 0;

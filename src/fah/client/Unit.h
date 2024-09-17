@@ -156,7 +156,8 @@ namespace FAH {
       double getKnownProgress() const;
       void updateKnownProgress(uint64_t done, uint64_t total);
 
-      void setProgress(double done, double total);
+      void clearProgress() {setProgress(0, 0);}
+      void setProgress(double done, double total, bool wu = false);
       void getCore();
       void run();
       void readInfo();
@@ -167,7 +168,7 @@ namespace FAH {
       void finalizeRun();
       void stopRun();
       void monitorRun();
-      void clean();
+      void clean(const std::string &result);
       void setWait(double delay);
       void retry();
 

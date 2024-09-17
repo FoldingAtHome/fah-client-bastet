@@ -43,6 +43,7 @@
 #include <cbang/comp/Press.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/http/Conn.h>
+#include <cbang/config/RegexConstraint.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -53,7 +54,9 @@ Account::Account(App &app) : app(app) {
   auto &options = app.getOptions();
   options.pushCategory("Account");
   options.add("account-token", "Folding@home account token.");
-  options.add("machine-name", "Name used to identify this machine.");
+  options.add("machine-name", "Name used to identify this machine.",
+    new RegexConstraint(Regex("[^<>;&'\\\"]{1,64}"),
+    "Must be between 1 and 64 characters and cannot include any of <>;&'\""));
   options.popCategory();
 
   updateEvent = app.getEventBase().newEvent(this, &Account::update, 0);
