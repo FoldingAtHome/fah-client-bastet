@@ -39,7 +39,6 @@ using namespace FAH::Client;
 
 
 Groups::Groups(App &app) : app(app) {
-  LOG_INFO(3, "Loading default group");
   getGroup(""); // Default group
 
   app.getDB("groups").foreach(

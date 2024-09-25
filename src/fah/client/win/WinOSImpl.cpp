@@ -246,9 +246,9 @@ void WinOSImpl::run() {
 LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
                               LPARAM lParam) {
   switch (message) {
-  case WM_DESTROY:
+  case WM_DESTROY: case WM_QUERYENDSESSION: case WM_ENDSESSION:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-    KillTimer(hWnd, ID_UPDATE_TIMER);
+    if (hWnd) KillTimer(hWnd, ID_UPDATE_TIMER);
     OS::requestExit();
     PostQuitMessage(0);
     hWnd = 0;
