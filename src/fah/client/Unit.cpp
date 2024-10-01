@@ -502,7 +502,7 @@ void Unit::skewTimer() {
 
   // Detect and adjust for clock skew
   int64_t delta = (int64_t)now - lastSkewTimer;
-  if (data < 0 || 15 < delta) {
+  if (data < 0 || 300 < delta) {
     LOG_WARNING("Detected clock skew (" << TimeInterval(delta)
                 << "), I/O delay, laptop hibernation, other slowdown or "
                 "clock change noted, adjusting time estimates");
