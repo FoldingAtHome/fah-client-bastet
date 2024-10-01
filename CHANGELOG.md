@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.6
+ - Attempt more graceful shutdown in Windows.
+ - Increase clock skew detection threshold from 15s to 5m.
+
 ## v8.4.5
  - Don't allow invalid machine name option.  #282
  - Track WU end state.
