@@ -183,7 +183,8 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         deb_directory      = 'build/install/debian',
         deb_section        = 'science',
-        deb_depends        = 'ca-certificates, libexpat1',
+        deb_depends        =
+          'ca-certificates, polkitd-pkla | policykit-1 (<< 0.106), libexpat1',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
         deb_suggests       = 'python3-websocket',
