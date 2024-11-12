@@ -52,6 +52,7 @@
 #include <cbang/net/Base64.h>
 
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/os/Subprocess.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/os/SignalManager.h> // For SIGHUP on Windows
 
@@ -506,7 +507,7 @@ void App::run() {
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
-    SystemUtilities::openURI(Info::instance().get(getName(), "URL"));
+    SystemUtilities::openURI(Info::instance().get(getName(), "URL"))->wait();
 
   // Event loop
   os->dispatch();
