@@ -7,6 +7,7 @@ Folding@home Client Changelog
  - Fix call to open Web Control URL on startup.
  - Require ``polkitd-pkla`` on Debian.
  - Handle ``CORE_RESTART`` return code correctly.
+ - Fix data dir permissions in Windows.
 
 ## v8.4.5
  - Don't allow invalid machine name option.  #282
