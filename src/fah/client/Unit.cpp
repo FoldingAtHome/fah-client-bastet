@@ -764,12 +764,14 @@ void Unit::finalizeRun() {
   processEnded();
 
   success = code == ExitCode::FINISHED_UNIT;
-  bool ok = success || code == ExitCode::INTERRUPTED;
-  LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_WARNING,
+  bool ok = success || code == ExitCode::INTERRUPTED ||
+    code == ExitCode::CORE_RESTART;
+  LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_ERROR,
       "Core returned " << code << " (" << (unsigned)code << ')');
 
-  // WU not complete if core was interrupted
-  if (code == ExitCode::INTERRUPTED) return;
+  // WU not complete if core was restarted or interrupted
+  if (code == ExitCode::INTERRUPTED)  return;
+  if (code == ExitCode::CORE_RESTART) return retry();
 
   if (!bytesCopiedToLog)
     LOG_ERROR("The folding core did not produce any log output.  This "

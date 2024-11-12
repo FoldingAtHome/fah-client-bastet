@@ -5,6 +5,8 @@ Folding@home Client Changelog
  - Attempt more graceful shutdown in Windows.
  - Increase clock skew detection threshold from 15s to 5m.
  - Fix call to open Web Control URL on startup.
+ - Require ``polkitd-pkla`` on Debian.
+ - Handle ``CORE_RESTART`` return code correctly.
 
 ## v8.4.5
  - Don't allow invalid machine name option.  #282
