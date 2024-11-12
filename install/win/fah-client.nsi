@@ -153,15 +153,11 @@ Section -Install
 skip_remove_v7:
 
   ; Data directory
-  IfFileExists "$DataDir" skip_create_data_dir
+  IfFileExists "$DataDir" +2
     CreateDirectory "$DataDir"
 
-    ; Set working directory for files, etc. Do before AccessControl::GrantOnFile
-    SetOutPath "$DataDir"
-    AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
-skip_create_data_dir:
-
-  SetOutPath "$DataDir"
+  ; Set data directory permissions
+  AccessControl::GrantOnFile "$DataDir" "(S-1-5-32-545)" "FullAccess"
 
   ; Install files
 install_files:
