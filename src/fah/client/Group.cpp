@@ -72,7 +72,9 @@ Group::Units Group::units() const {return Units(*app.getUnits(), name);}
 
 
 void Group::setState(const JSON::Value &msg) {
+  bool wasPaused = config->getPaused();
   config->setState(msg);
+  if (wasPaused && !config->getPaused()) clearErrors();
   triggerUpdate();
 }
 
@@ -115,14 +117,30 @@ void Group::shutdown(function<void ()> cb) {
 }
 
 
-void Group::unitComplete(bool success) {
-  if (success) {
-    failures = 0;
-    setWait(0);
+void Group::clearErrors() {
+  lostWUs  = 0;
+  failures = 0;
+  setWait(0);
+  insert("failed_wus", 0);
+  insert("lost_wus",   0);
+  insert("failed", "");
+}
 
-  } else {
-    failures++;
+
+void Group::unitComplete(bool success, bool downloaded) {
+  if (success) clearErrors();
+  else {
+    insert("failed_wus", ++failures);
     setWait(pow(2, std::min(failures, 10U)));
+
+    if (downloaded) {
+      insert("lost_wus", ++lostWUs);
+
+      if (4 < lostWUs) {
+        insert("failed", "Paused due too many failed Work Units.");
+        config->setPaused(true);
+      }
+    }
   }
 
   triggerUpdate();
@@ -178,8 +196,7 @@ void Group::update() {
   }
 
   // No further action if paused or idle
-  if (config->getPaused() || waitForIdle())
-    return setWait(0); // Pausing clears wait timer
+  if (config->getPaused() || waitForIdle()) return;
 
   // Wait on failures
   auto now = Time::now();

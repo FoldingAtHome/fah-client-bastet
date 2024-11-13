@@ -44,6 +44,7 @@ namespace FAH {
       cb::SmartPointer<Config> config;
 
       cb::Event::EventPtr event;
+      uint32_t lostWUs    = 0;
       uint32_t failures   = 0;
       uint64_t waitUntil  = 0;
 
@@ -95,9 +96,7 @@ namespace FAH {
       Group(App &app, const std::string &name);
 
       const std::string &getName() const {return name;}
-
       Config &getConfig() const {return *config;}
-
       Units units() const;
 
       void setState(const cb::JSON::Value &msg);
@@ -109,7 +108,8 @@ namespace FAH {
       bool hasUnrunWUs() const;
       void triggerUpdate();
       void shutdown(std::function<void ()> cb);
-      void unitComplete(bool success);
+      void clearErrors();
+      void unitComplete(bool success, bool downloaded);
 
       void save();
       void remove();

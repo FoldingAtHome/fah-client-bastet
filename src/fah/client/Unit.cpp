@@ -404,7 +404,7 @@ void Unit::dumpWU() {
 
 
 void Unit::save() {
-  if (getState() < UNIT_RUN || getState() == UNIT_DONE) return;
+  if (getState() < UNIT_CORE || getState() == UNIT_DONE) return;
 
   JSON::BufferWriter writer;
 
@@ -448,7 +448,8 @@ void Unit::next() {
       return monitorRun();
     }
 
-    return finalizeRun();
+    finalizeRun();
+    return save();
   }
 
   // Handle pause
@@ -853,7 +854,7 @@ void Unit::clean(const string &result) {
   TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   setState(UNIT_DONE);
-  group->unitComplete(success);
+  group->unitComplete(result == "credited", UNIT_CORE < getState());
 }
 
 
@@ -1080,7 +1081,7 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
 
   setState(UNIT_CORE);
   this->data = data;
-  save(); // Not strictly necessary
+  save();
 }
 
 

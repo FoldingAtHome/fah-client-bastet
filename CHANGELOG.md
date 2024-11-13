@@ -1,6 +1,10 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.7
+ - Pause group after 5 consecutive lost WUs. #305
+ - Ensure WU is saved to DB in case shutdown Windows kills the process. #290
+
 ## v8.4.6
  - Attempt more graceful shutdown in Windows.
  - Increase clock skew detection threshold from 15s to 5m.
