@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.8
+ - Delay Windows shutdown until F@H has shutdown gracefully.
+
 ## v8.4.7
  - Pause group after 5 consecutive lost WUs. #305
  - Ensure WU is saved to DB in case shutdown Windows kills the process. #290

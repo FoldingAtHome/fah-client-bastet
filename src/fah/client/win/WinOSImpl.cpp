@@ -246,12 +246,17 @@ void WinOSImpl::run() {
 LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
                               LPARAM lParam) {
   switch (message) {
-  case WM_DESTROY: case WM_QUERYENDSESSION: case WM_ENDSESSION:
+  case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
     if (hWnd) KillTimer(hWnd, ID_UPDATE_TIMER);
     OS::requestExit();
     PostQuitMessage(0);
     hWnd = 0;
+    return 0;
+
+  case WM_QUERYENDSESSION:
+    OS::requestExit();
+    if (hWnd) ShutdownBlockReasonCreate(hWnd, _T("Folding@home shutting down"));
     return 0;
 
   case WM_POWERBROADCAST:
@@ -280,7 +285,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
     case ID_USER_FOLD:       OS::setState(STATE_FOLD);  return 0;
     case ID_USER_PAUSE:      OS::setState(STATE_PAUSE); return 0;
     case ID_USER_ABOUT:      showAbout(hWnd);           return 0;
-    case ID_USER_EXIT:       DestroyWindow(hWnd);       return 0;
+    case ID_USER_EXIT:       OS::requestExit();         return 0;
     }
     break;
   }

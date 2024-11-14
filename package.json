@@ -1,6 +1,6 @@
 {
   "name": "fah-client",
-  "version": "8.4.7",
+  "version": "8.4.8",
   "bin": {"fah-client": "./fah-client"},
   "author": "Joseph Coffland <joseph@cauldrondevelopment.com>",
   "homepage": "https://foldingathome.org/",
