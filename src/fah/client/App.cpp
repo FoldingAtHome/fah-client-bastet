@@ -103,7 +103,6 @@ App::App() :
   saveEvent = base.newEvent(this, &App::saveGlobalConfig, 0);
 
   Logger::instance().initEvents(base);
-  Logger::instance().addListener(logTracker);
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
@@ -167,7 +166,7 @@ App::App() :
   options.popCategory();
 
   options["allow"].setDefault("127.0.0.1");
-  options["deny "].setDefault("0/0");
+  options["deny" ].setDefault("0/0");
 
   // Configure log
   options["verbosity"         ].setDefault(3);
@@ -203,10 +202,14 @@ App::App() :
   caCert = caRes->toString();
 
   // TODO get CRL from F@H periodically
+
+  // Must be near the end
+  Logger::instance().addListener(logTracker);
 }
 
 
 App::~App() {
+  Logger::instance().removeListener(logTracker);
   clear(); // Deallocate objects in ObservableDict before Event::Base
 }
 

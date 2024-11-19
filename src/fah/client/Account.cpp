@@ -242,7 +242,7 @@ void Account::info() {
 void Account::connect() {
   try {
     setURI("wss://" + data->getString("node") + "/ws/client");
-    app.getClient().send(this);
+    conn = app.getClient().send(this);
     setState(STATE_CONNECTED);
     return;
 

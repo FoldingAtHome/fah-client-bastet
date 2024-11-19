@@ -3,6 +3,8 @@ Folding@home Client Changelog
 
 ## v8.4.8
  - Delay Windows shutdown until F@H has shutdown gracefully.
+ - Fix crashing on Windows.  re: #278
+ - Use all DNS servers. #304
 
 ## v8.4.7
  - Pause group after 5 consecutive lost WUs. #305

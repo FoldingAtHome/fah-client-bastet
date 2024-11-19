@@ -70,6 +70,7 @@ namespace FAH {
       nodes_t nodes;
 
       cb::HTTP::Client::RequestPtr pr;
+      cb::SmartPointer<cb::HTTP::Conn> conn;
 
     public:
       Account(App &app);
