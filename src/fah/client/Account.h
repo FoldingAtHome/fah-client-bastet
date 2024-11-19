@@ -29,12 +29,12 @@
 #pragma once
 
 #include <cbang/event/Event.h>
-#include <cbang/util/LifetimeManager.h>
 #include <cbang/ws/JSONWebsocket.h>
 #include <cbang/util/Backoff.h>
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Cipher.h>
 #include <cbang/openssl/KeyPair.h>
+#include <cbang/http/Client.h>
 
 
 namespace FAH {
@@ -68,6 +68,8 @@ namespace FAH {
 
       typedef std::map<std::string, cb::SmartPointer<NodeRemote>> nodes_t;
       nodes_t nodes;
+
+      cb::HTTP::Client::RequestPtr pr;
 
     public:
       Account(App &app);

@@ -32,9 +32,8 @@
 
 #include <cbang/json/Value.h>
 #include <cbang/openssl/Certificate.h>
-#include <cbang/http/Request.h>
-#include <cbang/util/LifetimeManager.h>
 #include <cbang/event/Event.h>
+#include <cbang/http/Client.h>
 
 #include <functional>
 
@@ -46,7 +45,7 @@ namespace FAH {
     class Core :
       public CoreState::Enum,
       public cb::HTTP::Enum,
-      public cb::LifetimeManager {
+      public cb::RefCounted {
       App &app;
       cb::JSON::ValuePtr data;
       CoreState state = CORE_INIT;
@@ -56,6 +55,7 @@ namespace FAH {
 
       cb::Event::EventPtr nextEvent;
       cb::Event::EventPtr readyEvent;
+      cb::HTTP::Client::RequestPtr pr;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;

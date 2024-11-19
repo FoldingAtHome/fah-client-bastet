@@ -32,8 +32,7 @@
 
 #include <cbang/hw/GPUIndex.h>
 #include <cbang/event/Event.h>
-#include <cbang/http/Request.h>
-#include <cbang/util/LifetimeManager.h>
+#include <cbang/http/Client.h>
 
 
 namespace FAH {
@@ -41,8 +40,7 @@ namespace FAH {
     class App;
     class Unit;
 
-    class GPUResources :
-      public cb::JSON::ObservableDict, public cb::LifetimeManager {
+    class GPUResources : public cb::JSON::ObservableDict {
       App &app;
 
       bool loaded = false;
@@ -50,6 +48,7 @@ namespace FAH {
       int64_t lastGPUsFail = 0;
 
       cb::Event::EventPtr event;
+      cb::HTTP::Client::RequestPtr pr;
 
     public:
       GPUResources(App &app);

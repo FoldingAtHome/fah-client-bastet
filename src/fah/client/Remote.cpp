@@ -150,8 +150,8 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
   } else if (cmd == "log") {
     if (msg->getBoolean("enable", false))
-      app.getLogTracker().add(SmartPhony(this), lastLogLine);
-    else app.getLogTracker().remove(SmartPhony(this));
+      app.getLogTracker().add(PhonyPtr(this), lastLogLine);
+    else app.getLogTracker().remove(PhonyPtr(this));
 
   } else if (cmd == "wus") {
     sendWUsEnabled = msg->getBoolean("enable", false);
@@ -166,13 +166,13 @@ void Remote::onMessage(const JSON::ValuePtr &msg) {
 
 void Remote::onOpen() {
   LOG_DEBUG(3, "New client " << getName());
-  send(SmartPointer<JSON::Value>::Phony(&app));
+  send(PhonyPtr(&app));
 }
 
 
 void Remote::onComplete() {
   LOG_DEBUG(3, "Closing client " << getName());
-  app.getLogTracker().remove(SmartPhony(this));
+  app.getLogTracker().remove(PhonyPtr(this));
   app.remove(*this);
 }
 

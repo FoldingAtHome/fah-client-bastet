@@ -41,7 +41,6 @@
 #include <cbang/openssl/CertificateChain.h>
 
 #include <cbang/json/Observable.h>
-#include <cbang/util/LifetimeManager.h>
 #include <cbang/http/Client.h>
 
 #include <map>
@@ -69,7 +68,6 @@ namespace FAH {
 
       cb::Event::Base     base;
       cb::HTTP::Client    client;
-      cb::LifetimeManager ltm;
       cb::KeyPair         key;
 
       cb::Certificate caCert;
@@ -91,6 +89,8 @@ namespace FAH {
 
       unsigned nextAS = 0;
 
+      cb::Event::EventPtr sigintEvent;
+      cb::Event::EventPtr sigtermEvent;
       cb::Event::EventPtr saveEvent;
 
       std::vector<std::string> log;

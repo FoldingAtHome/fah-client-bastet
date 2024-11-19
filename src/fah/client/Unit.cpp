@@ -1031,7 +1031,7 @@ void Unit::assign() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
-  auto writer = pr->getJSONWriter();
+  auto writer = pr->getRequest()->getJSONWriter();
   writer->beginDict();
   writer->insert("data", *data);
   writer->insert("signature", Base64().encode(signature));
@@ -1098,7 +1098,7 @@ void Unit::download() {
     .call(getWSURL("/assign"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
-  data->write(*pr->getJSONWriter());
+  data->write(*pr->getRequest()->getJSONWriter());
   clearProgress();
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
@@ -1133,7 +1133,7 @@ void Unit::upload() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
-  auto writer = pr->getJSONWriter();
+  auto writer = pr->getRequest()->getJSONWriter();
   data->write(*writer);
   writer->close();
 
@@ -1161,7 +1161,7 @@ void Unit::dump() {
     .call(getWSURL("/results"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
-  auto writer = pr->getJSONWriter();
+  auto writer = pr->getRequest()->getJSONWriter();
   data->write(*writer);
   writer->close();
 

@@ -167,20 +167,20 @@ App::App() :
   options.popCategory();
 
   options["allow"].setDefault("127.0.0.1");
-  options["deny"].setDefault("0/0");
+  options["deny "].setDefault("0/0");
 
   // Configure log
-  options["verbosity"].setDefault(3);
-  options["log"].setDefault("log.txt");
+  options["verbosity"         ].setDefault(3);
+  options["log"               ].setDefault("log.txt");
   options["log-no-info-header"].setDefault(true);
-  options["log-thread-prefix"].setDefault(true);
-  options["log-short-level"].setDefault(true);
-  options["log-rotate-max"].setDefault(90);
-  options["log-rotate-period"].setDefault(Time::SEC_PER_DAY);
+  options["log-thread-prefix" ].setDefault(true);
+  options["log-short-level"   ].setDefault(true);
+  options["log-rotate-max"    ].setDefault(90);
+  options["log-rotate-period" ].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  ltm.addLTO(base.newSignal(SIGINT,  this, &App::signalEvent))->add();
-  ltm.addLTO(base.newSignal(SIGTERM, this, &App::signalEvent))->add();
+  ( sigintEvent = base.newSignal(SIGINT,  this, &App::signalEvent))->add();
+  (sigtermEvent = base.newSignal(SIGTERM, this, &App::signalEvent))->add();
 
   // Network timeout
   client.setReadTimeout(60);
@@ -194,7 +194,7 @@ App::App() :
 
   // Add custom certificate extension
   SSL::createObject("1.2.3.4.70.64.72", "fahKeyUsage",
-                    "Folding@home Key Usage");
+    "Folding@home Key Usage");
   Certificate::addExtensionAlias("fahKeyUsage", "nsComment");
 
   // Load Certificate Authority
@@ -277,7 +277,7 @@ void App::add(const SmartPointer<Remote> &remote) {
 
 void App::remove(Remote &remote) {
   LOG_DEBUG(3, "Removing remote " << remote.getName());
-  remotes.remove(SmartPointer<Remote>::Phony(&remote));
+  remotes.remove(PhonyPtr(&remote));
 }
 
 

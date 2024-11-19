@@ -41,6 +41,7 @@
 #include <cbang/comp/Tar.h>
 #include <cbang/comp/CompressionFilter.h>
 #include <cbang/boost/IOStreams.h>
+#include <cbang/util/WeakCallback.h>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -195,10 +196,11 @@ void Core::downloadResponse(const string &pkg) {
 
 
 void Core::download(const string &url) {
+  if (pr.isSet()) THROW("Already downloading core");
   LOG_INFO(1, "Downloading " << url);
 
   // Monitor download progress
-  auto progressCB =
+  Progress::callback_t progressCB =
     [this] (const Progress &p) {
       unsigned bytes = p.getTotal();
       unsigned size  = p.getSize();
@@ -207,14 +209,17 @@ void Core::download(const string &url) {
         progressCBs[i](bytes, size);
     };
 
-  auto pr = addLTO(app.getClient().call(url, HTTP_GET, this, &Core::response));
-  pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
+  HTTP::Client::callback_t cb = [this] (HTTP::Request &req) {response(req);};
+  pr = app.getClient().call(url, HTTP_GET, WeakCall(this, cb));
+  auto &progress = pr->getConnection()->getReadProgress();
+  progress.setCallback(WeakCall(this, progressCB), 1);
   pr->send();
 }
 
 
 void Core::response(HTTP::Request &req) {
   try {
+    pr.release();
     if (req.getConnectionError()) THROW("No response");
     if (!req.isOk()) THROW(req.getResponseCode() << ": " << req.getInput());
 

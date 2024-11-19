@@ -40,6 +40,7 @@
 #include <cbang/openssl/Digest.h>
 #include <cbang/openssl/KeyContext.h>
 #include <cbang/util/Random.h>
+#include <cbang/util/WeakCallback.h>
 #include <cbang/comp/Press.h>
 #include <cbang/os/SystemInfo.h>
 #include <cbang/http/Conn.h>
@@ -200,7 +201,9 @@ void Account::reset() {
 
 
 void Account::info() {
-  auto cb = [this] (HTTP::Request &req) mutable {
+  HTTP::Client::callback_t cb = [this] (HTTP::Request &req) mutable {
+    pr.release();
+
     try {
       if (req.logResponseErrors()) {
         // If the account does not exist, forget about it
@@ -231,7 +234,8 @@ void Account::info() {
 
   string id = app.getID();
   URI uri(app.getOptions()["api-server"].toString() + "/machine/" + id);
-  addLTO(app.getClient().call(uri, HTTP::Method::HTTP_GET, cb))->send();
+  pr = app.getClient().call(uri, HTTP_GET, WeakCall(this, cb));
+  pr->send();
 }
 
 
@@ -252,20 +256,22 @@ void Account::link() {
   auto &db = app.getDB("config");
   string requestedToken = db.getString("requested-token", "");
 
-  auto cb = [this, requestedToken] (HTTP::Request &req) mutable {
-    if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-    else if (req.logResponseErrors()) retry();
+  HTTP::Client::callback_t cb =
+    [this, requestedToken] (HTTP::Request &req) {
+      pr.release();
+      if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
+      else if (req.logResponseErrors()) retry();
 
-    else {
-      LOG_INFO(1, "Account linked");
-      app.getDB("config").set("account-token", requestedToken);
-      setState(STATE_INFO);
-    }
-  };
+      else {
+        LOG_INFO(1, "Account linked");
+        app.getDB("config").set("account-token", requestedToken);
+        setState(STATE_INFO);
+      }
+    };
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());
-  auto pr = addLTO(app.getClient().call(uri, HTTP::Method::HTTP_PUT, cb));
+  pr = app.getClient().call(uri, HTTP::Method::HTTP_PUT, WeakCall(this, cb));
 
   JSON::Dict data;
   data.insert("name",  getMachName());
@@ -275,7 +281,7 @@ void Account::link() {
   string signature = URLBase64().encode(key.signSHA256(data.toString()));
   string pubkey    = app.getPubKey();
 
-  auto writer = pr->getJSONWriter();
+  auto writer = pr->getRequest()->getJSONWriter();
   writer->beginDict();
   writer->insert("data",      data);
   writer->insert("signature", signature);
