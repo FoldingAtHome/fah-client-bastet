@@ -256,7 +256,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_QUERYENDSESSION:
     OS::requestExit();
-    if (hWnd) ShutdownBlockReasonCreate(hWnd, _T("Folding@home shutting down"));
+    if (hWnd) ShutdownBlockReasonCreate(hWnd, L"Folding@home shutting down");
     return 0;
 
   case WM_POWERBROADCAST:
