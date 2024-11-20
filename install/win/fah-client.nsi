@@ -352,7 +352,12 @@ Function ${un}EndProcess
   Push $R0
   Push $R2
 
-  Retry:
+  ; Attempt soft shutdown
+  FindWindow $R0 "Folding@home Client"
+  SendMessage $R0 ${WM_CLOSE} 0 0
+  Goto WaitForProcess
+
+  HardKill:
     nsProcess::_FindProcess /NOUNLOAD "$R1"
     Pop $R0
     IntCmp $R0 0 0 0 End
@@ -360,6 +365,7 @@ Function ${un}EndProcess
     nsProcess::_KillProcess /NOUNLOAD "$R1"
     Pop $R0
 
+  WaitForProcess:
     StrCpy $R2 0
     CheckAgain:
       Sleep 250 ; 1/4s
@@ -372,7 +378,7 @@ Function ${un}EndProcess
     MessageBox MB_RETRYCANCEL "Please close $R1, and press 'Retry'. \
         $\r$\n$\r$\nNote: Folding@home maybe running in the system tray \
         in the lower right-hand corner of your screen." \
-        /SD IDCANCEL IDCANCEL End IDRETRY Retry
+        /SD IDCANCEL IDCANCEL End IDRETRY HardKill
 
   End:
   Pop $R2

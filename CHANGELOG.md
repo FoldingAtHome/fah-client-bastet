@@ -1,8 +1,12 @@
 Folding@home Client Changelog
 =============================
 
+## v8.4.9
+ - Recommend ``nvidia-opencl-icd`` package on Debian install. #293
+ - Attempt graceful shutdown of client in Windows installer.  #290
+
 ## v8.4.8
- - Delay Windows shutdown until F@H has shutdown gracefully.
+ - Delay Windows shutdown until F@H has shutdown gracefully. #290
  - Fix crashing on Windows.  re: #278
  - Use all DNS servers. #304
 

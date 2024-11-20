@@ -185,6 +185,7 @@ if 'package' in COMMAND_LINE_TARGETS:
         deb_section        = 'science',
         deb_depends        =
           'ca-certificates, polkitd-pkla | policykit-1 (<< 0.106), libexpat1',
+        deb_recommends     = 'nvidia-opencl-icd',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
         deb_suggests       = 'python3-websocket',
