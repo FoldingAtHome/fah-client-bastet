@@ -133,6 +133,9 @@ WinOSImpl &WinOSImpl::instance() {
 
 
 void WinOSImpl::init() {
+  // We want to get shutdown before the cores
+  SetProcessShutdownParameters(0x380, 0);
+
   HICON hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NORMAL));
   if (!hIcon) THROW("Failed to load icon");
 
@@ -254,7 +257,10 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
     hWnd = 0;
     return 0;
 
-  case WM_QUERYENDSESSION:
+  case WM_QUERYENDSESSION: return 1; // Agree to shutdown
+
+  case WM_END­SESSION:
+    if (!lParam) return 0;  // Shutdown was cancelled
     OS::requestExit();
     if (hWnd) ShutdownBlockReasonCreate(hWnd, L"Folding@home shutting down");
     return 0;
