@@ -4,7 +4,7 @@
 
 ### Fedora/Red Hat Enterprise Linux (RHEL)
 ```
-sudo dnf -y install git python3-scons gcc-c++ openssl-devel zlib-devel bzip2-devel lz4-devel systemd-devel rpm-build systemd-rpm-macros
+sudo dnf -y install git python3-scons gcc-c++ openssl-devel openssl-devel-engine zlib-devel bzip2-devel lz4-devel systemd-devel rpm-build systemd-rpm-macros
 ```
 
 On Red Hat Enterprise Linux (RHEL) and clones, you need to first enable the [EPEL repository](https://docs.fedoraproject.org/en-US/epel/getting-started/).
