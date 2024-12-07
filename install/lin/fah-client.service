@@ -10,7 +10,7 @@ Restart=always
 StandardOutput=null
 KillMode=mixed
 PrivateTmp=yes
-NoNewPrivileges=yes
+# NoNewPrivileges=yes
 ProtectSystem=full
 ProtectHome=yes
 
