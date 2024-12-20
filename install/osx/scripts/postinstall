@@ -14,6 +14,14 @@ PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
 
 "$SCRIPTS"/organize-credits.sh &
 
+OS_MAJOR="`sw_vers -productVersion | cut -f1 -d.`"
+if [ "$OS_MAJOR" -ge 15 ]; then
+  /usr/libexec/PlistBuddy -c \
+    "Add :ProgramArguments:0 string '/usr/sbin/taskpolicy'" $PLIST
+  /usr/libexec/PlistBuddy -c \
+    "Add :ProgramArguments:1 string '-a'" $PLIST
+fi
+
 # Start service
 chmod 0644 "$PLIST"
 launchctl load -w "$PLIST"
