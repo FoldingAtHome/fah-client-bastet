@@ -86,7 +86,7 @@ void Core::next() {
 
 void Core::ready() {
   state = CORE_READY;
-  for (unsigned i = 0; i < progressCBs.size(); i++) progressCBs[i](1, 1);
+  for (auto &cb: progressCBs) cb(1, 1);
   progressCBs.clear(); // Release callbacks
 }
 
@@ -202,11 +202,8 @@ void Core::download(const string &url) {
   // Monitor download progress
   Progress::callback_t progressCB =
     [this] (const Progress &p) {
-      unsigned bytes = p.getTotal();
-      unsigned size  = p.getSize();
-
-      for (unsigned i = 0; i < progressCBs.size(); i++)
-        progressCBs[i](bytes, size);
+      for (auto &cb: progressCBs)
+        cb(p.getTotal(), p.getSize());
     };
 
   HTTP::Client::callback_t cb = [this] (HTTP::Request &req) {response(req);};
