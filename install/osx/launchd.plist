@@ -3,9 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>ExitTimeOut</key>
-	<integer>20</integer>
-	<key>GroupName</key>
-	<string>nobody</string>
+	<integer>60</integer>
 	<key>KeepAlive</key>
 	<dict>
 		<key>SuccessfulExit</key>
