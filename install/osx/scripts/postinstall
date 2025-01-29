@@ -12,6 +12,36 @@ chown -R nobody:nobody "$RUN_DIR"
 
 PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
 
+OS_MAJOR="`sw_vers -productVersion | cut -f1 -d.`"
+if [ "$OS_MAJOR" -ge 15 ]; then
+    # macOS 15+
+    username=_fahclient
+    realname="Foldingathome.org Client Service"
+    # try to create user if it does not exist
+    if ! id -u $username &>/dev/null; then
+        for (( uid = 499; uid > 199; --uid )) ; do
+            if ! id -u $uid &>/dev/null; then
+                dscl . -create /Users/$username
+                dscl . -create /Users/$username Password \*
+                dscl . -create /Users/$username NFSHomeDirectory /var/empty
+                dscl . -create /Users/$username PrimaryGroupID -2
+                dscl . -create /Users/$username RealName "$realname"
+                dscl . -create /Users/$username RecordName $username
+                dscl . -create /Users/$username UniqueID $uid
+                dscl . -create /Users/$username UserShell /usr/bin/false
+                dscl . -delete /Users/$username AuthenticationAuthority
+                dscl . -delete /Users/$username PasswordPolicyOptions
+                break
+            fi
+        done
+    fi
+    # if user exists, patch plist and chown data dir
+    if id -u $username &>/dev/null; then
+        /usr/libexec/PlistBuddy -c "Set :UserName $username" $PLIST
+        chown -R $username:nobody "$RUN_DIR"
+    fi
+fi
+
 "$SCRIPTS"/organize-credits.sh &
 
 # Start service
