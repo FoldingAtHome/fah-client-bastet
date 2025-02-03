@@ -45,16 +45,14 @@ Config::Config(App &app, const JSON::ValuePtr &defaults) :
 
 
 void Config::load(const JSON::Value &config) {
-  for (unsigned i = 0; i < config.size(); i++) {
-    string key = config.keyAt(i);
-    if (defaults->has(key)) insert(key, config.get(i));
-  }
+  for (auto it = config.begin(); it != config.end(); it++)
+    if (defaults->has(it.key())) insert(it.key(), *it);
 }
 
 
 void Config::load(const Options &opts) {
-  for (unsigned i = 0; i < size(); i++) {
-    string _key = keyAt(i);
+  for (auto it = begin(); it != end(); it++) {
+    string _key = it.key();
     string key  = String::replace(_key, "_", "-");
 
     if (opts.has(key) && !opts[key].isDefault() && opts[key].isSet())
@@ -69,9 +67,8 @@ void Config::load(const Options &opts) {
 
 
 void Config::configure(const JSON::Value &config) {
-  for (unsigned i = 0; i < config.size(); i++)
-    if (has(config.keyAt(i)))
-      insert(config.keyAt(i), config.get(i));
+  for (auto it = config.begin(); it != config.end(); it++)
+    if (has(it.key())) insert(it.key(), *it);
 }
 
 
@@ -130,9 +127,8 @@ uint32_t Config::getCPUs() const {
 std::set<string> Config::getGPUs() const {
   std::set<string> gpus;
 
-  auto &allGPUs = app.getGPUs();
-  for (unsigned i = 0; i < allGPUs.size(); i++) {
-    auto &gpu = *allGPUs.get(i).cast<GPUResource>();
+  for (auto &v: app.getGPUs()) {
+    auto &gpu = *v.cast<GPUResource>();
     if (gpu.getBoolean("supported", false) && isGPUEnabled(gpu.getID()))
       gpus.insert(gpu.getID());
   }
@@ -157,16 +153,17 @@ void Config::disableGPU(const string &id) {
 }
 
 
-int Config::insert(const string &key, const JSON::ValuePtr &value) {
+JSON::Value::iterator Config::insert(
+  const string &key, const JSON::ValuePtr &value) {
   if (!defaults->has(key)) {
     LOG_WARNING("Ignoring unsupported config key '" << key << "'");
-    return -1;
+    return end();
   }
 
   if (defaults->get(key)->getType() != value->getType()) {
     LOG_WARNING("Ignoring config key '" << key << "' with wrong type "
                 << value->getType());
-    return -1;
+    return end();
   }
 
   return Super_T::insert(key, value);

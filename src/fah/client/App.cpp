@@ -459,7 +459,7 @@ void App::loadConfig() {
   // Global config
   auto &r       = FAH::Client::resource0.get("global.json");
   auto defaults = JSON::Reader::parse(r);
-  SmartPointer<Config> config = new Config(*this, defaults);
+  auto config   = SmartPtr(new Config(*this, defaults));
 
   config->load(getOptions());
   if (db.has("config")) config->load(*db.getJSON("config"));

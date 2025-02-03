@@ -13,7 +13,6 @@ for dir in subdirs:
 
 if env['wrap_glibc']: src.append('fah/client/glibc.c')
 
-
 # Resources
 res = env.Resources('resources.cpp', ['#/src/resources'])
 resLib = env.Library('fahclient-resources', res)
@@ -31,7 +30,6 @@ else: src += Glob('fah/client/lin/*.cpp')
 info = env.BuildInfo('build_info.cpp', [])
 AlwaysBuild(info)
 src += [info]
-
 
 # FAHClient
 client = env.Program('#/fah-client', src)

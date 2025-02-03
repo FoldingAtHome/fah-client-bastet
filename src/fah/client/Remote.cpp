@@ -90,8 +90,8 @@ void Remote::sendViz() {
 void Remote::sendWUs() {
   if (!sendWUsEnabled) return;
 
-  auto changes = SmartPtr(new JSON::List);
-  auto wus     = SmartPtr(new JSON::List);
+  JSON::ValuePtr changes = new JSON::List;
+  JSON::ValuePtr wus     = new JSON::List;
   changes->append("wus");
   changes->append(wus);
 
@@ -107,8 +107,8 @@ void Remote::sendWUs() {
 void Remote::logWU(const Unit &wu) {
   if (!sendWUsEnabled) return;
 
-  auto changes = SmartPtr(new JSON::List);
-  auto wus     = SmartPtr(new JSON::List);
+  JSON::ValuePtr changes = new JSON::List;
+  JSON::ValuePtr wus     = new JSON::List;
   changes->append("wus");
   changes->append(-2);
   changes->append(wus);
@@ -177,11 +177,11 @@ void Remote::onComplete() {
 }
 
 
-void Remote::logUpdate(const SmartPointer<JSON::List> &lines, uint64_t last) {
+void Remote::logUpdate(const JSON::ValuePtr &lines, uint64_t last) {
   bool restart = !lastLogLine || lastLogLine < last - lines->size();
   lastLogLine = last;
 
-  SmartPointer<JSON::List> changes = new JSON::List;
+  JSON::ValuePtr changes = new JSON::List;
 
   changes->append("log");
   if (!restart) changes->append(-2);

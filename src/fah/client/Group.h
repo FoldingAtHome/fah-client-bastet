@@ -54,31 +54,23 @@ namespace FAH {
       struct UnitIterator : public cb::JSON::Iterator {
         const std::string &group;
 
-        UnitIterator(const Value &value, const std::string &group, int i = -1) :
-          cb::JSON::Iterator(value, i), group(group) {
-          if (!match()) ++(*this); // Find first
-        }
-
-
-        bool match() const {
-          return valid() && (**this)->getGroup().getName() == group;
-        }
-
+        UnitIterator(const cb::JSON::Iterator &it, const std::string &group) :
+          cb::JSON::Iterator(it), group(group) {next();}
 
         UnitIterator &operator++() {
-          while (valid()) {
-            i++;
-            if (match()) return *this;
-          }
-
-          i = -1;
+          cb::JSON::Iterator::operator++();
+          next();
           return *this;
         }
 
-
         cb::SmartPointer<Unit> operator*() const {
-          if (!valid()) CBANG_THROW("Invalid WU iterator");
-          return value.get(i).cast<Unit>();
+          return cb::JSON::Iterator::operator*().cast<Unit>();
+        }
+
+      private:
+        void next() {
+          while (operator bool() && (**this)->getGroup().getName() != group)
+            cb::JSON::Iterator::operator++();
         }
       };
 
@@ -88,8 +80,8 @@ namespace FAH {
         const std::string &group;
         Units(const Value &value, const std::string &group) :
           value(value), group(group) {}
-        UnitIterator begin() const {return UnitIterator(value, group, 0);}
-        UnitIterator end() const {return UnitIterator(value, group);}
+        UnitIterator begin() const {return UnitIterator(value.begin(), group);}
+        UnitIterator end()   const {return UnitIterator(value.end(),   group);}
       };
 
    public:

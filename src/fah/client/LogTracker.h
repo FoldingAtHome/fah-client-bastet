@@ -46,7 +46,7 @@ namespace FAH {
       public:
         virtual ~Listener() {}
         virtual void logUpdate(
-          const cb::SmartPointer<cb::JSON::List> &lines, uint64_t last) = 0;
+          const cb::JSON::ValuePtr &lines, uint64_t last) = 0;
       };
 
     private:

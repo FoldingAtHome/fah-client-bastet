@@ -235,11 +235,8 @@ void Unit::setGPUs(const std::set<string> &gpus) {
 
 std::set<string> Unit::getGPUs() const {
   std::set<string> gpus;
-
-  auto &l = *get("gpus");
-  for (unsigned i = 0; i < l.size(); i++)
-    gpus.insert(l.getString(i));
-
+  for (auto gpu: *get("gpus"))
+    gpus.insert(gpu->getString());
   return gpus;
 }
 

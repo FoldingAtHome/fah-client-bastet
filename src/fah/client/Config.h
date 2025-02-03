@@ -70,8 +70,8 @@ namespace FAH {
       void disableGPU(const std::string &id);
 
       // From JSON::Value
-      int insert(const std::string &key,
-                 const cb::JSON::ValuePtr &value) override;
+      cb::JSON::Value::iterator insert(const std::string &key,
+        const cb::JSON::ValuePtr &value) override;
       using Super_T::insert;
     };
   }

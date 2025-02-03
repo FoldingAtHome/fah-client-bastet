@@ -66,9 +66,8 @@ namespace FAH {
       void onOpen();
       void onComplete();
 
-      // From LogTracker::Listner
-      void logUpdate(const cb::SmartPointer<cb::JSON::List> &lines,
-                     uint64_t last) override;
+      // From LogTracker::Listener
+      void logUpdate(const cb::JSON::ValuePtr &lines, uint64_t last) override;
     };
   }
 }
