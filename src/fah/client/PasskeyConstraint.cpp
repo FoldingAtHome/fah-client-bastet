@@ -36,7 +36,9 @@ using namespace cb;
 using namespace FAH;
 
 
-void PasskeyConstraint::validate(const string &value) const {
+void PasskeyConstraint::validate(const JSON::Value &_value) const {
+  auto value = _value.asString();
+
   if (value.empty()) return;
   if (value.length() != 32) THROW("Passkey must be 32 characters long");
 

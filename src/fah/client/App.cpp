@@ -117,10 +117,12 @@ App::App() :
   options.add("open-web-control", "Make an operating system specific call to "
               "open the Web Control in a browser once client is fully loaded"
               )->setDefault(false);
-  options.add("allowed-origins", "Web origins (URLs) allowed to access this "
-              "client.  Only trusted origins should be added.  Web pages at "
-              "added origins will be able to control the client.")
-    ->setDefault(url + " http://localhost:7396");
+  auto opt = options.add(
+    "allowed-origins", "Web origins (URLs) allowed to access this client.  "
+    "Only trusted origins should be added.  Web pages at added origins will be "
+    "able to control the client.");
+  opt->setType(Option::TYPE_STRINGS);
+  opt->setDefault(url + " http://localhost:7396");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server")->setDefault("fah-web-control/dist");
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
@@ -130,14 +132,14 @@ App::App() :
   options.pushCategory("Debugging");
   options.add("debug-libevent", "Enable verbose libevent debugging"
               )->setDefault(false);
-  options.add("assignment-servers")
-    ->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
-                 "assign3.foldingathome.org assign4.foldingathome.org "
-                 "assign5.foldingathome.org assign6.foldingathome.org");
+  opt = options.add("assignment-servers");
+  opt->setType(Option::TYPE_STRINGS);
+  opt->setDefault("assign1.foldingathome.org assign2.foldingathome.org "
+                  "assign3.foldingathome.org assign4.foldingathome.org "
+                  "assign5.foldingathome.org assign6.foldingathome.org");
   options.add("api-server")->setDefault("https://api.foldingathome.org");
   options.popCategory();
 
-  SmartPointer<Option> opt;
   options.pushCategory("User Information");
   options.add("user", "Your user name.")->setDefault("Anonymous");
   options.add("team", "Your team number.",
