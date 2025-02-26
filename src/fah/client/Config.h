@@ -67,6 +67,7 @@ namespace FAH {
       std::set<std::string> getGPUs() const;
       bool isGPUEnabled(const std::string &id) const;
       bool isCUDAEnabled() const;
+      bool isHIPEnabled() const;
       void disableGPU(const std::string &id);
 
       // From JSON::Value
