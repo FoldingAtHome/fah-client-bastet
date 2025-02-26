@@ -110,6 +110,8 @@ WinOSImpl *WinOSImpl::singleton = 0;
 
 WinOSImpl::WinOSImpl(App &app) :
   OS(app), appName(app.getName()), version(app.getVersion()),
+  copyright(Info::instance().get(appName, "Copyright")),
+  url(Info::instance().get(appName, "URL")),
   hInstance((HINSTANCE)GetModuleHandle(0)) {
   if (singleton) THROW("There can be only one WinOSImpl");
   singleton = this;
@@ -306,9 +308,8 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
 
 void WinOSImpl::openWebControl() {
-  string url = Info::instance().get(appName, "URL");
-  if (ShellExecute(hWnd, "open", url.c_str(), 0, 0,
-                   SW_SHOWDEFAULT) <= (HINSTANCE)32)
+  auto inst = ShellExecute(hWnd, "open", url.c_str(), 0, 0, SW_SHOWDEFAULT);
+  if (inst <= (HINSTANCE)32)
     LOG_ERROR("Failed to open Web control: " << SysError());
 }
 
@@ -318,7 +319,7 @@ void WinOSImpl::showAbout(HWND hWnd) {
     ("Folding@home Client\n\r"
      "Version " << version << "\n\r"
      "\n\r"
-     "Copyright (c) 2001-2024 foldingathome.org\n\r"
+     "Copyright (c) " << copyright << "\n\r"
      "\n\r"
      "Folding@home uses your excess computing power to help scientists at "
      "Universities around the world to better understand and find cures "

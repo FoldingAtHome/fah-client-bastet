@@ -49,6 +49,8 @@ namespace FAH {
 
       std::string appName;
       cb::Version version;
+      std::string copyright;
+      std::string url;
 
       bool systrayEnabled = true;
 
