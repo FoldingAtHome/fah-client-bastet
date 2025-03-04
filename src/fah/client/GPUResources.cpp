@@ -41,6 +41,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/hw/OpenCLLibrary.h>
 #include <cbang/hw/CUDALibrary.h>
+#include <cbang/hw/HIPLibrary.h>
 #include <cbang/util/WeakCallback.h>
 
 using namespace FAH::Client;
@@ -163,6 +164,20 @@ void GPUResources::detect() {
 
     res->set("cuda", cd);
   }
+
+  // Enumerate HIP and match with OpenCL
+  auto hipGPUs = get_gpus<HIPLibrary>();
+  for (auto &cd: hipGPUs) {
+    if (!cd.isPCIValid()) continue;
+    string id = "gpu:" + cd.getPCIID();
+
+    SmartPointer<GPUResource> res;
+    auto it = resources.find(id);
+    if (it != resources.end()) res = it->second;
+    else resources[id] = res = new GPUResource(id);
+
+    res->set("hip", cd);
+  }
 #endif // __APPLE__
 
   // Enumerate PCI bus
@@ -178,8 +193,8 @@ void GPUResources::detect() {
     else if (!gpu.getType()) continue; // Ignore non-GPUs
     else resources[id] = res = new GPUResource(id);
 
-    // NOTE, It's possible the device was found by OpenCL/CUDA but the driver
-    // did not report PCI info.
+    // NOTE, It's possible the device was found by OpenCL/CUDA/HIP but the
+    // driver did not report PCI info.
 
     res->setPCI(dev);
     res->insertBoolean("supported", gpu.getSpecies() && it != resources.end());

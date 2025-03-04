@@ -146,6 +146,8 @@ bool Config::isGPUEnabled(const string &id) const {
 
 bool Config::isCUDAEnabled() const {return getBoolean("cuda", true);}
 
+bool Config::isHIPEnabled() const {return getBoolean("hip", true);}
+
 
 void Config::disableGPU(const string &id) {
   auto &gpus = *get("gpus");

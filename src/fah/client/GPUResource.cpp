@@ -81,6 +81,7 @@ void GPUResource::writeRequest(JSON::Sink &sink) const {
   sink.insert("device", getU16("device"));
 
   if (has("cuda"))   sink.insert("cuda",   *get("cuda"));
+  if (has("hip"))    sink.insert("hip",    *get("hip"));
   if (has("opencl")) sink.insert("opencl", *get("opencl"));
 
   sink.endDict();
