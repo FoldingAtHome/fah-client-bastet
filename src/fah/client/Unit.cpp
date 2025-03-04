@@ -616,7 +616,7 @@ void Unit::run() {
     bool withCUDA = getConfig().isCUDAEnabled() && gpu.has("cuda");
     bool withHIP  = getConfig().isHIPEnabled()  && gpu.has("hip");
     args.push_back("-gpu-platform");
-    args.push_back(withCUDA ? "cuda" : (withHIP ? "hip" : "opencl"));
+    args.push_back(withCUDA ? "cuda" : "opencl");
 
     // Old GPU options
     args.push_back("-gpu-vendor");
