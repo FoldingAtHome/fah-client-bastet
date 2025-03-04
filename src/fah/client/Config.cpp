@@ -145,7 +145,6 @@ bool Config::isGPUEnabled(const string &id) const {
 
 
 bool Config::isCUDAEnabled() const {return getBoolean("cuda", true);}
-
 bool Config::isHIPEnabled() const {return getBoolean("hip", true);}
 
 
