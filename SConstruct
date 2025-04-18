@@ -95,7 +95,6 @@ if 'package' in COMMAND_LINE_TARGETS:
 
     if 'SIGNTOOL' in os.environ: env['SIGNTOOL'] = os.environ['SIGNTOOL']
 
-    misc = []
     pkg_target = None
     pkg_components = []
     if env['PLATFORM'] == 'darwin':
@@ -142,18 +141,6 @@ if 'package' in COMMAND_LINE_TARGETS:
         ver = tuple([int(x) for x in pkg_target.split('.')])
         if ver < (10, 13): pkg_target = '10.13'
 
-    elif env['PLATFORM'] == 'posix':
-        if env.GetPackageType() == 'deb':
-            polkit = [
-                'build/install/lin/10-fah-client.pkla',
-                'var/lib/polkit-1/localauthority/10-vendor.d/10-fah-client.pkla'
-            ]
-        else:
-            polkit = ['build/install/lin/10-fah-client.rules',
-                      'usr/share/polkit-1/rules.d/10-fah-client.rules']
-
-        misc.append(polkit)
-
     # Package
     pkg = env.Packager(
         package_info.get('name'),
@@ -174,7 +161,8 @@ if 'package' in COMMAND_LINE_TARGETS:
         desktop_menu       = ['build/install/lin/fah-client.desktop'],
         changelog          = 'CHANGELOG.md',
         systemd            = ['build/install/lin/fah-client.service'],
-        misc               = misc,
+        misc               = [['build/install/lin/10-fah-client.rules',
+                               'usr/share/polkit-1/rules.d/10-fah-client.rules']],
 
         nsi                = 'build/install/win/fah-client.nsi',
         timestamp_url      = 'http://timestamp.comodoca.com/authenticode',
@@ -183,9 +171,8 @@ if 'package' in COMMAND_LINE_TARGETS:
 
         deb_directory      = 'build/install/debian',
         deb_section        = 'science',
-        deb_depends        =
-          'ca-certificates, polkitd-pkla | policykit-1 (<< 0.106), libexpat1',
-        deb_recommends     = 'nvidia-opencl-icd',
+        deb_depends        = 'ca-certificates, libexpat1',
+        deb_recommends     = 'polkitd, nvidia-opencl-icd',
         deb_conflicts      = 'FAHClient, fahclient',
         deb_replaces       = 'FAHClient, fahclient',
         deb_suggests       = 'python3-websocket',
