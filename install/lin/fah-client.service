@@ -9,6 +9,7 @@ WorkingDirectory=/var/lib/fah-client
 Restart=always
 StandardOutput=null
 KillMode=mixed
+TimeoutStopSec=60
 PrivateTmp=yes
 # NoNewPrivileges=yes
 ProtectSystem=full
