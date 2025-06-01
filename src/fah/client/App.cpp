@@ -497,6 +497,7 @@ void App::run() {
   db.open("client.db");
   db.execute("PRAGMA locking_mode=EXCLUSIVE");
   db.execute("PRAGMA synchronous=NORMAL");
+  db.execute("PRAGMA auto_vacuum=FULL");
 
   // Check that we have AS
   if (options["assignment-servers"].toStrings().empty())
@@ -516,6 +517,10 @@ void App::run() {
 
   // Event loop
   os->dispatch();
+
+  // Reduce database size
+  LOG_INFO(3, "Vacuuming database");
+  db.execute("VACUUM");
 
   // Dealocate
   clear();
