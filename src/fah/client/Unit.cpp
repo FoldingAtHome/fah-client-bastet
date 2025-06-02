@@ -613,8 +613,8 @@ void Unit::run() {
     }
 
     // GPU platform
-    bool withCUDA = getConfig().isCUDAEnabled() && gpu.has("cuda");
-    bool withHIP  = getConfig().isHIPEnabled()  && gpu.has("hip");
+    bool withCUDA = gpu.isComputeDeviceSupported("cuda", getConfig());
+    bool withHIP  = gpu.isComputeDeviceSupported("hip",  getConfig());
     args.push_back("-gpu-platform");
     args.push_back(withCUDA ? "cuda" : "opencl");
 
@@ -1001,8 +1001,8 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   // GPU
   for (auto &id: gpus) {
     auto &gpu = *app.getGPUs().get(id).cast<GPUResource>();
-    sink.beginInsert(id);
-    gpu.writeRequest(sink);
+     sink.beginInsert(id);
+     gpu.writeRequest(sink, getConfig());
   }
 
   sink.endDict(); // resources
@@ -1053,8 +1053,8 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
   wu = wu->get("data");
 
   LOG_INFO(1, "Received WU " << data->format(
-             "P%(assignment.data.project)u R%(wu.data.run)u "
-             "C%(wu.data.clone)u G%(wu.data.gen)u", "???"));
+    "P{assignment.data.project} R{wu.data.run} C{wu.data.clone} G{wu.data.gen}",
+    "???"));
 
   string sigData = request->toString() + assign->toString() + wu->toString();
   app.checkBase64SHA256(cert, inter, sig64, sigData, "WS");

@@ -117,12 +117,17 @@ App::App() :
   options.add("open-web-control", "Make an operating system specific call to "
               "open the Web Control in a browser once client is fully loaded"
               )->setDefault(false);
-  auto opt = options.add(
+  options.add(
     "allowed-origins", "Web origins (URLs) allowed to access this client.  "
     "Only trusted origins should be added.  Web pages at added origins will be "
-    "able to control the client.");
+    "able to control the client.  Entries are space separated."
+    )->setType(Option::TYPE_STRINGS);
+  auto opt = options.add(
+    "allowed-origin-exprs", "Same as ``allow-origins`` but accepts regular "
+    "expressions.");
   opt->setType(Option::TYPE_STRINGS);
-  opt->setDefault(url + " http://localhost:7396");
+  opt->setDefault(".*\\.foldingathome\\.org "
+    "http://((127.0.0.1)|(localhost))(:\\d+)?");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server")->setDefault("fah-web-control/dist");
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
@@ -519,7 +524,7 @@ void App::run() {
   os->dispatch();
 
   // Reduce database size
-  LOG_INFO(3, "Vacuuming database");
+  LOG_DEBUG(3, "Vacuuming database");
   db.execute("VACUUM");
 
   // Dealocate

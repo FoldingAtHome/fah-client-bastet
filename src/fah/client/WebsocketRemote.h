@@ -39,13 +39,10 @@ namespace FAH {
       cb::SmartPointer<cb::Event::Event> pingEvent;
 
     public:
-      WebsocketRemote(
-        App &app, const cb::SmartPointer<cb::HTTP::Conn> &connection,
-        const cb::URI &uri, const cb::Version &version);
+      WebsocketRemote(App &app);
 
       // From Remote
-      std::string getName() const override
-        {return getClientAddr().toString(false);}
+      std::string getName() const override;
       void send(const cb::JSON::ValuePtr &msg) override;
       void close() override;
 
@@ -56,10 +53,7 @@ namespace FAH {
 
       // From cb::WS::Websocket
       void onOpen() override;
-      void onClose(cb::WS::Status status, const std::string &msg) override;
-
-      // From cb::HTTP::Request
-      void onComplete() override;
+      void onShutdown() override;
 
     protected:
       void sendPing();

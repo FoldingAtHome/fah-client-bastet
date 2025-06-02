@@ -27,6 +27,7 @@
 \******************************************************************************/
 
 #include "GPUResource.h"
+#include "Config.h"
 
 #include <cbang/String.h>
 #include <cbang/json/JSON.h>
@@ -73,16 +74,33 @@ void GPUResource::set(const string &name, const ComputeDevice &cd) {
 }
 
 
-void GPUResource::writeRequest(JSON::Sink &sink) const {
+bool GPUResource::isComputeDeviceSupported(
+  const std::string &type, const Config &config) const {
+  return has(type) && config.isComputeDeviceEnabled(type);
+}
+
+
+bool GPUResource::isSupported(const Config &config) const {
+  return getBoolean("supported", false) && config.isGPUEnabled(getID()) &&
+    (isComputeDeviceSupported("cuda",   config) ||
+     isComputeDeviceSupported("hip",    config) ||
+     isComputeDeviceSupported("opencl", config));
+}
+
+
+void GPUResource::writeRequest(JSON::Sink &sink, const Config &config) const {
   sink.beginDict();
 
   sink.insert("gpu",    getString("type"));
   sink.insert("vendor", getU16("vendor"));
   sink.insert("device", getU16("device"));
 
-  if (has("cuda"))   sink.insert("cuda",   *get("cuda"));
-  if (has("hip"))    sink.insert("hip",    *get("hip"));
-  if (has("opencl")) sink.insert("opencl", *get("opencl"));
+  if (isComputeDeviceSupported("cuda", config))
+    sink.insert("cuda", *get("cuda"));
+  if (isComputeDeviceSupported("hip", config))
+    sink.insert("hip", *get("hip"));
+  if (isComputeDeviceSupported("opencl", config))
+    sink.insert("opencl", *get("opencl"));
 
   sink.endDict();
 }

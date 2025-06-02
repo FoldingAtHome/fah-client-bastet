@@ -241,8 +241,8 @@ void Account::info() {
 
 void Account::connect() {
   try {
-    setURI("wss://" + data->getString("node") + "/ws/client");
-    conn = app.getClient().send(this);
+    URI uri("wss://" + data->getString("node") + "/ws/client");
+    Websocket::connect(app.getClient(), uri);
     setState(STATE_CONNECTED);
     return;
 

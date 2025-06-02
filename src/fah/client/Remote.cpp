@@ -170,7 +170,7 @@ void Remote::onOpen() {
 }
 
 
-void Remote::onComplete() {
+void Remote::onClose() {
   LOG_DEBUG(3, "Closing client " << getName());
   app.getLogTracker().remove(PhonyPtr(this));
   app.remove(*this);

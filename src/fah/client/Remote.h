@@ -64,7 +64,7 @@ namespace FAH {
 
       void onMessage(const cb::JSON::ValuePtr &msg);
       void onOpen();
-      void onComplete();
+      void onClose();
 
       // From LogTracker::Listener
       void logUpdate(const cb::JSON::ValuePtr &lines, uint64_t last) override;

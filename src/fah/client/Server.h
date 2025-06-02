@@ -31,9 +31,9 @@
 #include <cbang/http/Server.h>
 #include <cbang/json/Value.h>
 #include <cbang/openssl/SSLContext.h>
+#include <cbang/util/Regex.h>
 
-#include <list>
-#include <set>
+#include <vector>
 
 
 namespace FAH {
@@ -43,25 +43,23 @@ namespace FAH {
 
     class Server : public cb::HTTP::Server {
       App &app;
-
-      std::set<std::string> allowedOrigins;
+      std::vector<cb::Regex> allowedOrigins;
 
     public:
       Server(App &app);
 
       void init();
 
+      bool allowed(const std::string &origin) const;
+
       // From cb::HTTP::Server
       using cb::HTTP::Server::init;
-      cb::SmartPointer<cb::HTTP::Request> createRequest(
-        const cb::SmartPointer<cb::HTTP::Conn> &connection,
-        cb::HTTP::Method method, const cb::URI &uri,
-        const cb::Version &version) override;
 
     protected:
       bool corsCB(cb::HTTP::Request &req);
       bool redirectWebControl(cb::HTTP::Request &req);
       bool redirectPing(cb::HTTP::Request &req);
+      bool handleWebsocket(cb::HTTP::Request &req);
     };
   }
 }

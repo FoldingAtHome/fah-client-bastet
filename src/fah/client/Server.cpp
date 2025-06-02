@@ -51,9 +51,10 @@ void Server::init() {
   auto &options = app.getOptions();
 
   // Allowed origins
-  auto origins = options["allowed-origins"].toStrings();
-  for (unsigned i = 0; i < origins.size(); i++)
-    allowedOrigins.insert(origins[i]);
+  for (auto origin: options["allowed-origins"].toStrings())
+    allowedOrigins.push_back(Regex::escape(origin));
+  for (auto origin: options["allowed-origin-exprs"].toStrings())
+    allowedOrigins.push_back(origin);
 
   addMember(this, &Server::corsCB);
 
@@ -67,6 +68,7 @@ void Server::init() {
   }
 
   addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
+  addMember(HTTP_GET, "/api/websocket", this, &Server::handleWebsocket);
 
   // Init
   HTTP::Server::init(options);
@@ -75,19 +77,11 @@ void Server::init() {
 }
 
 
-SmartPointer<HTTP::Request> Server::createRequest(
-  const SmartPointer<HTTP::Conn> &connection, HTTP::Method method,
-  const URI &uri, const Version &version) {
-  if (method == HTTP_GET &&
-      String::startsWith(uri.getPath(), "/api/websocket")) {
-    string name = uri.getPath().substr(14);
+bool Server::allowed(const string &origin) const {
+  for (auto re: allowedOrigins)
+    if (re.match(origin)) return true;
 
-    auto client = SmartPtr(new WebsocketRemote(app, connection, uri, version));
-    app.add(client);
-    return client;
-  }
-
-  return HTTP::Server::createRequest(connection, method, uri, version);
+  return false;
 }
 
 
@@ -95,8 +89,7 @@ bool Server::corsCB(HTTP::Request &req) {
   if (req.inHas("Origin")) {
     string origin = req.inGet("Origin");
 
-    if (allowedOrigins.find(origin) == allowedOrigins.end())
-      THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
+    if (!allowed(origin)) THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
 
     req.outSet("Access-Control-Allow-Origin", origin);
     req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
@@ -136,4 +129,12 @@ bool Server::redirectPing(HTTP::Request &req) {
   }
 
   return false;
+}
+
+
+bool Server::handleWebsocket(HTTP::Request &req) {
+  auto ws = SmartPtr(new WebsocketRemote(app));
+  ws->upgrade(req);
+  app.add(ws);
+  return true;
 }

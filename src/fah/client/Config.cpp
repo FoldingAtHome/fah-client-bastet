@@ -129,8 +129,7 @@ std::set<string> Config::getGPUs() const {
 
   for (auto &v: app.getGPUs()) {
     auto &gpu = *v.cast<GPUResource>();
-    if (gpu.getBoolean("supported", false) && isGPUEnabled(gpu.getID()))
-      gpus.insert(gpu.getID());
+    if (gpu.isSupported(*this)) gpus.insert(gpu.getID());
   }
 
   return gpus;
@@ -144,8 +143,9 @@ bool Config::isGPUEnabled(const string &id) const {
 }
 
 
-bool Config::isCUDAEnabled() const {return getBoolean("cuda", true);}
-bool Config::isHIPEnabled() const {return getBoolean("hip", true);}
+bool Config::isComputeDeviceEnabled(const string &type) const {
+  return getBoolean(type, true);
+}
 
 
 void Config::disableGPU(const string &id) {

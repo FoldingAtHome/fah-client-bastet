@@ -165,7 +165,7 @@ void GPUResources::detect() {
     res->set("cuda", cd);
   }
 
-  // Enumerate HIP and match with OpenCL
+  // Enumerate HIP and match with OpenCL/CUDA
   auto hipGPUs = get_gpus<HIPLibrary>();
   for (auto &cd: hipGPUs) {
     if (!cd.isPCIValid()) continue;
@@ -197,7 +197,11 @@ void GPUResources::detect() {
     // driver did not report PCI info.
 
     res->setPCI(dev);
+
+    // A GPU device is supported if GPUs.txt lists a non-zero species and
+    // at least one ComputeDevice is found for OpenCL/CUDA/HIP.
     res->insertBoolean("supported", gpu.getSpecies() && it != resources.end());
+
     if (!res->hasString("description") && !gpu.getDescription().empty())
       res->insert("description", gpu.getDescription());
   }

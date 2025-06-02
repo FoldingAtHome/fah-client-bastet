@@ -35,6 +35,8 @@
 
 namespace FAH {
   namespace Client {
+    class Config;
+
     class GPUResource : public cb::JSON::ObservableDict {
       std::string id;
 
@@ -48,7 +50,10 @@ namespace FAH {
       using cb::JSON::ObservableDict::set;
       void set(const std::string &name, const cb::ComputeDevice &cd);
 
-      void writeRequest(cb::JSON::Sink &sink) const;
+      bool isComputeDeviceSupported(
+        const std::string &type, const Config &config) const;
+      bool isSupported(const Config &config) const;
+      void writeRequest(cb::JSON::Sink &sink, const Config &config) const;
     };
   }
 }

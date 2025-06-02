@@ -56,4 +56,4 @@ void NodeRemote::send(const JSON::ValuePtr &msg) {
 }
 
 
-void NodeRemote::close() {onComplete();}
+void NodeRemote::close() {onClose();}
