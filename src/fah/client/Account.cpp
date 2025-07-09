@@ -281,14 +281,13 @@ void Account::link() {
   string signature = URLBase64().encode(key.signSHA256(data.toString()));
   string pubkey    = app.getPubKey();
 
-  auto writer = pr->getRequest()->getJSONWriter();
-  writer->beginDict();
-  writer->insert("data",      data);
-  writer->insert("signature", signature);
-  writer->insert("pubkey",    pubkey);
-  writer->endDict();
-  writer->close();
-
+  pr->getRequest()->send([&] (JSON::Sink &sink) {
+    sink.beginDict();
+    sink.insert("data",      data);
+    sink.insert("signature", signature);
+    sink.insert("pubkey",    pubkey);
+    sink.endDict();
+  });
   pr->send();
 }
 

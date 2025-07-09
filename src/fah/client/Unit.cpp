@@ -1030,13 +1030,13 @@ void Unit::assign() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
-  auto writer = pr->getRequest()->getJSONWriter();
-  writer->beginDict();
-  writer->insert("data", *data);
-  writer->insert("signature", Base64().encode(signature));
-  writer->insert("pub-key", app.getKey().publicToPEMString());
-  writer->endDict();
-  writer->close();
+  pr->getRequest()->send([&] (JSON::Sink &sink) {
+    sink.beginDict();
+    sink.insert("data", *data);
+    sink.insert("signature", Base64().encode(signature));
+    sink.insert("pub-key", app.getKey().publicToPEMString());
+    sink.endDict();
+  });
 
   pr->send();
 }
@@ -1097,7 +1097,7 @@ void Unit::download() {
     .call(getWSURL("/assign"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
-  data->write(*pr->getRequest()->getJSONWriter());
+  pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   clearProgress();
   pr->getConnection()->getReadProgress().setCallback(progressCB, 1);
   pr->send();
@@ -1132,10 +1132,7 @@ void Unit::upload() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
-  auto writer = pr->getRequest()->getJSONWriter();
-  data->write(*writer);
-  writer->close();
-
+  pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   clearProgress();
   pr->getConnection()->getWriteProgress().setCallback(progressCB, 1);
   pr->send();
@@ -1160,10 +1157,7 @@ void Unit::dump() {
     .call(getWSURL("/results"), HTTP::Method::HTTP_POST, this,
           &Unit::response);
 
-  auto writer = pr->getRequest()->getJSONWriter();
-  data->write(*writer);
-  writer->close();
-
+  pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   pr->send();
 }
 
