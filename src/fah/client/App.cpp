@@ -428,6 +428,8 @@ void App::loadConfig() {
   try {
     d->insert("hostname",  sysInfo.getHostname());
   } CATCH_WARNING;
+  d->insert("pid",         SystemUtilities::getPID());
+  d->insert("cwd",         SystemUtilities::getcwd());
 
   Info &info = Info::instance();
   d->insert("mode",               info.get(getName(), "Mode"));
