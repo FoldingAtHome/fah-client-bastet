@@ -41,7 +41,7 @@ development purposes.
 ## Install the Prerequisites
 ```
 sudo apt update
-sudo apt install -y scons git npm build-essential libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
+sudo apt install -y scons git npm build-essential fakeroot libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
 ```
 
 ## Get the code
