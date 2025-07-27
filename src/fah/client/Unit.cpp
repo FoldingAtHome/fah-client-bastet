@@ -480,17 +480,20 @@ void Unit::next() {
 
 
 void Unit::processStarted(const SmartPointer<CoreProcess> &process) {
-  LOG_INFO(3, "Started FahCore on PID " << process->getPID());
+  auto pid = process->getPID();
+  LOG_INFO(3, "Started FahCore on PID " << pid);
   this->process = process;
   lastSkewTimer = processStartTime = Time::now();
   lastKnownDone = lastKnownTotal = lastKnownProgressUpdate = clockSkew = 0;
   insert("start_time", Time(processStartTime).toString());
+  insert("pid", pid);
 }
 
 
 void Unit::processEnded() {
   insert("run_time", getRunTime());
   erase("start_time");
+  erase("pid");
   processStartTime = 0;
 }
 
