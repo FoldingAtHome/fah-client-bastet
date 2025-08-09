@@ -257,7 +257,7 @@ write_uninstaller:
       "$INSTDIR\${CLIENT_EXE}" "$INSTDIR\${CLIENT_ICON}"
   ${EndIf}
 
-  ; Refresh desktop to cleanup any deleted desktop icons
+  ; Refresh desktop to clean up any deleted desktop icons
   ${RefreshShellIcons}
 
   ; Set working directory for starting Folding@home, if selected on Finish page
@@ -291,7 +291,7 @@ Section -un.Program
   DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
-  ; Refresh desktop to cleanup any deleted desktop icons
+  ; Refresh desktop to clean up any deleted desktop icons
   ${un.RefreshShellIcons}
 
   ; Ensure the working path is different than the INSTDIR that may be deleted
@@ -376,7 +376,7 @@ Function ${un}EndProcess
       IntCmp $R2 120 0 CheckAgain ; Max 30s wait
 
     MessageBox MB_RETRYCANCEL "Please close $R1, and press 'Retry'. \
-        $\r$\n$\r$\nNote: Folding@home maybe running in the system tray \
+        $\r$\n$\r$\nNote: Folding@home may be running in the system tray \
         in the lower right-hand corner of your screen." \
         /SD IDCANCEL IDCANCEL End IDRETRY HardKill
 
