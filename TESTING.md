@@ -22,8 +22,8 @@ The new client:
     of FAHViewer and FAHControl are or will be implemented in the frontend.
   * is [Open-Source](https://opensource.org/osd).
   * uses a new API to talk to the servers at foldingathome.org.
-  * records a cryptographicly signed record of all F@H credits earned.
-  * "slots" are no longer supported.  Resources are allocated automatically.
+  * records a cryptographically signed record of all F@H credits earned.
+  * no longer supports "slots".  Resources are allocated automatically.
   * will support future GPU + CPU hybrid work units.
   * will copy some of the configuration from the old client.
   * will not continue WUs left by the old client.
