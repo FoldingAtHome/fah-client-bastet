@@ -23,7 +23,7 @@ git clone https://github.com/foldingathome/fah-client-bastet
 ```
 
 ## Build a specific version (Optional)
-To checkout the code for a specific version of the client run:
+To check out the code for a specific version of the client run:
 
 ```
 git -C cbang checkout bastet-v<version>
