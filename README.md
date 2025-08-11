@@ -52,7 +52,7 @@ git clone https://github.com/foldingathome/fah-web-client-bastet
 ```
 
 ## Build a specific version (Optional)
-To check out the code for a specific version of the client run:
+To checkout the code for a specific version of the client run:
 
 ```
 git -C cbang checkout bastet-v<version>
@@ -114,4 +114,5 @@ npm run dev
 
 With the development server running, open http://localhost:3000/ in a browser to
 view the client frontend.
+
 
