@@ -214,7 +214,7 @@ void Core::download(const string &url) {
 }
 
 
-void Core::response(HTTP::Request &req) {
+void Core::response(cb::HTTP::Request &req) {
   try {
     pr.release();
     if (req.getConnectionError()) THROW("No response");
@@ -236,9 +236,56 @@ void Core::response(HTTP::Request &req) {
     default: THROW("Unexpected core state: " << state);
     }
 
+    // Reset retry count on success
+    resetRetry();
     nextEvent->activate();
     return;
   } CATCH_ERROR;
 
-  // TODO retry on error
+  // Implement retry on error
+  if (retryCount < maxRetries) {
+    LOG_WARNING("Core download failed, retrying in " 
+                << retryBackoff.getCurrentDelay() << " seconds (attempt " 
+                << (retryCount + 1) << "/" << maxRetries << ")");
+    retryDownload();
+  } else {
+    LOG_ERROR("Core download failed after " << maxRetries << " attempts, marking as invalid");
+    state = CORE_INVALID;
+    nextEvent->activate();
+  }
+}
+
+
+void Core::retryDownload() {
+  retryCount++;
+  double delay = retryBackoff.next();
+  
+  // Schedule retry
+  auto retryEvent = app.getEventBase().newEvent([this]() {
+    // Reset state and retry
+    switch (state) {
+    case CORE_CERT:
+      download(getURL());
+      break;
+    case CORE_SIG:
+      download(getURL());
+      break;
+    case CORE_DOWNLOAD:
+      download(getURL());
+      break;
+    default:
+      LOG_ERROR("Cannot retry in current state: " << state);
+      state = CORE_INVALID;
+      nextEvent->activate();
+      break;
+    }
+  }, 0);
+  
+  retryEvent->add(delay);
+}
+
+
+void Core::resetRetry() {
+  retryCount = 0;
+  retryBackoff.reset();
 }

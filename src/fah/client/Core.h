@@ -34,6 +34,7 @@
 #include <cbang/openssl/Certificate.h>
 #include <cbang/event/Event.h>
 #include <cbang/http/Client.h>
+#include <cbang/util/Backoff.h>
 
 #include <functional>
 
@@ -56,6 +57,11 @@ namespace FAH {
       cb::Event::EventPtr nextEvent;
       cb::Event::EventPtr readyEvent;
       cb::HTTP::Client::RequestPtr pr;
+
+      // Retry mechanism
+      cb::Backoff retryBackoff = cb::Backoff(5, 300); // 5s to 5min
+      unsigned retryCount = 0;
+      const unsigned maxRetries = 3;
 
     public:
       typedef std::function<void (unsigned, int)> progress_cb_t;
@@ -85,6 +91,8 @@ namespace FAH {
       void downloadResponse(const std::string &pkg);
       void download(const std::string &url);
       void response(cb::HTTP::Request &req);
+      void retryDownload();
+      void resetRetry();
     };
   }
 }
