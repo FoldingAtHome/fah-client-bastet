@@ -261,7 +261,7 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
 
   case WM_QUERYENDSESSION: return 1; // Agree to shutdown
 
-  case WM_END­SESSION:
+  case WM_ENDSESSION:
     if (!lParam) return 0;  // Shutdown was cancelled
     OS::requestExit();
     if (hWnd) ShutdownBlockReasonCreate(hWnd, L"Folding@home shutting down");
