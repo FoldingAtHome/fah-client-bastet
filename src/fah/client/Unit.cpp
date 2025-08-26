@@ -66,6 +66,7 @@
 #include <cbang/json/BufferWriter.h>
 
 #include <cinttypes>
+#include <cmath>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -892,7 +893,7 @@ void Unit::retry() {
 
     if (++retries < 10 || getState() == UNIT_ASSIGN ||
         (retries <= 50 && UNIT_UPLOAD <= getState())) {
-      double delay = pow(2, std::min(9U, retries));
+      double delay = std::pow(2, std::min(9U, retries));
       setWait(delay);
       LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
 

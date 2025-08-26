@@ -36,6 +36,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/json/Reader.h>
 
+#include <cmath>
 
 using namespace std;
 using namespace cb;
@@ -131,7 +132,7 @@ void Group::unitComplete(bool success, bool downloaded) {
   if (success) clearErrors();
   else {
     insert("failed_wus", ++failures);
-    setWait(pow(2, std::min(failures, 10U)));
+    setWait(std::pow(2, std::min(failures, 10U)));
 
     if (downloaded) {
       insert("lost_wus", ++lostWUs);
