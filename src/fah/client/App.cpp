@@ -131,6 +131,8 @@ App::App() :
   options.add("web-root", "Path to files to be served by the client's Web "
               "server")->setDefault("fah-web-control/dist");
   options.add("on-idle", "Folding only when idle.")->setDefault(false);
+  options.add("max-uploads", "Maximum concurrent uploads per resource group",
+              new MinMaxConstraint<int32_t>(0, 99))->setDefault(3);
   options.popCategory();
 
   // Note these options are available but hidden in non-debug builds
