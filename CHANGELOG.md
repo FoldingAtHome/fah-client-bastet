@@ -1,7 +1,7 @@
 Folding@home Client Changelog
 =============================
 
-## v8.4.10
+## v8.5
  - Small improvements to Windows shutdown handling.
  - Added option and core parameters for HIP.
 
