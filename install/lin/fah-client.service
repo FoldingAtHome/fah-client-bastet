@@ -1,6 +1,7 @@
 [Unit]
 Description=Folding@home Client
-After=network.target nss-lookup.target
+After=network.target nss-lookup.target systemd-logind.service
+Wants=systemd-logind.service
 
 [Service]
 User=fah-client
