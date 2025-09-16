@@ -101,7 +101,7 @@ namespace FAH {
       void triggerUpdate();
       void shutdown(std::function<void ()> cb);
       void clearErrors();
-      void unitComplete(bool success, bool downloaded);
+      void unitComplete(const std::string &reason, bool downloaded);
 
       void save();
       void remove();

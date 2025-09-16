@@ -857,7 +857,7 @@ void Unit::clean(const string &result) {
   TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   setState(UNIT_DONE);
-  group->unitComplete(result == "credited", UNIT_CORE < getState());
+  group->unitComplete(result, UNIT_CORE < getState());
 }
 
 

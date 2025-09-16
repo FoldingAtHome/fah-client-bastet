@@ -128,11 +128,13 @@ void Group::clearErrors() {
 }
 
 
-void Group::unitComplete(bool success, bool downloaded) {
-  if (success) clearErrors();
+void Group::unitComplete(const string &reason, bool downloaded) {
+  if (reason == "success") clearErrors();
   else {
-    insert("failed_wus", ++failures);
-    setWait(std::pow(2, std::min(failures, 10U)));
+    if (reason != "dumped" && reason != "aborted") {
+      insert("failed_wus", ++failures);
+      setWait(std::pow(2, std::min(failures, 10U)));
+    }
 
     if (downloaded) {
       insert("lost_wus", ++lostWUs);
