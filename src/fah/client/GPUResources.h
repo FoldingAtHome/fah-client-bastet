@@ -43,7 +43,8 @@ namespace FAH {
     class GPUResources : public cb::JSON::ObservableDict {
       App &app;
 
-      bool loaded = false;
+      bool loaded   = false;
+      bool detected = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail = 0;
 
@@ -54,7 +55,8 @@ namespace FAH {
       GPUResources(App &app);
       ~GPUResources();
 
-      bool isLoaded() const {return loaded;}
+      bool isReady() const {return loaded && detected;}
+      void signalGPUReady();
 
     protected:
       void load(const cb::JSON::Value &gpus);

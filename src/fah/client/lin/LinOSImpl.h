@@ -34,13 +34,18 @@
 namespace FAH {
   namespace Client {
     class LinOSImpl : public OS {
+      struct private_t;
+      cb::SmartPointer<private_t> pri;
+
     public:
-      LinOSImpl(App &app) : OS(app) {}
+      LinOSImpl(App &app);
+      ~LinOSImpl();
 
       // From OS
-      const char *getName() const override;
-      const char *getCPU() const override;
-      bool isSystemIdle() const override;
+      const char *getName()      const override;
+      const char *getCPU()       const override;
+      bool        isSystemIdle() const override;
+      void        dispatch()           override;
     };
   }
 }

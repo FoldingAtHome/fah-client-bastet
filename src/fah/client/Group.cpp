@@ -275,7 +275,7 @@ void Group::update() {
 
   // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
   // have not yet been loaded.
-  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isLoaded())
+  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isReady())
     return;
 
   // Add new WU if we don't already have too many and there are some resources

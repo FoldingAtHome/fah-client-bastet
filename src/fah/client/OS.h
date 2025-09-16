@@ -56,10 +56,12 @@ namespace FAH {
       std::atomic<bool> active;
       std::atomic<bool> failure;
       std::atomic<bool> onBattery;
+      std::atomic<bool> gpuReady;
       std::atomic<state_t> state;
 
     protected:
       cb::SmartPointer<cb::Event::Event> event;
+      cb::SmartPointer<cb::Event::Event> gpuReadyEvent;
 
     public:
       OS(App &app);
@@ -76,11 +78,14 @@ namespace FAH {
       bool isActive()    const {return active;}
       bool hasFailure()  const {return failure;}
       bool isOnBattery() const {return onBattery;}
+      bool isGPUReady()  const {return gpuReady;}
       void requestExit();
       void setState(state_t state);
+      void setGPUReady(bool ready);
 
     protected:
       void update();
+      void signalGPUReady();
     };
   }
 }

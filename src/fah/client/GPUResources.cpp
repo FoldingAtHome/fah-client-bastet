@@ -31,6 +31,7 @@
 #include "App.h"
 #include "Units.h"
 #include "GPUResource.h"
+#include "OS.h"
 
 #include <cbang/String.h>
 #include <cbang/Catch.h>
@@ -84,9 +85,15 @@ GPUResources::GPUResources(App &app) :
 GPUResources::~GPUResources() {}
 
 
+void GPUResources::signalGPUReady() {
+  if (loaded) TRY_CATCH_ERROR(detect());
+}
+
+
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
-  TRY_CATCH_ERROR(detect());
+  loaded = true;
+  if (app.getOS().isGPUReady()) signalGPUReady();
   event->add(updateFreq);
 }
 
@@ -217,7 +224,7 @@ void GPUResources::detect() {
     }
   }
 
-  loaded = true;
+  detected = true;
   if (changed) {
     LOG_INFO(3, "gpus = " << *this);
     app.triggerUpdate();

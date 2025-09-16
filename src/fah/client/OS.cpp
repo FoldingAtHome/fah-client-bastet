@@ -29,6 +29,7 @@
 #include "OS.h"
 
 #include <fah/client/App.h>
+#include <fah/client/GPUResources.h>
 
 #if defined(_WIN32)
 #include "win/WinOSImpl.h"
@@ -49,7 +50,9 @@ using namespace std;
 
 OS::OS(App &app) :
   app(app), paused(false), active(false), failure(false), onBattery(false),
-  state(STATE_NULL), event(app.getEventBase().newEvent(this, &OS::update)) {
+  gpuReady(true), state(STATE_NULL),
+  event(app.getEventBase().newEvent(this, &OS::update)),
+  gpuReadyEvent(app.getEventBase().newEvent(this, &OS::signalGPUReady)) {
   event->add(2);
 }
 
@@ -84,6 +87,12 @@ void OS::requestExit() {app.requestExit();}
 void OS::setState(state_t state) {this->state = state; event->activate();}
 
 
+void OS::setGPUReady(bool ready) {
+  if (!gpuReady && ready) gpuReadyEvent->activate();
+  gpuReady = ready;
+}
+
+
 void OS::update() {
   switch (state.exchange(STATE_NULL)) {
   case STATE_NULL:                           break;
@@ -115,3 +124,6 @@ void OS::update() {
   // Update application info
   app.get("info")->insertBoolean("on_battery", onBattery);
 }
+
+
+void OS::signalGPUReady() {app.getGPUs().signalGPUReady();}
