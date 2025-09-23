@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.1
+ - Better error handling and size limits for vis file loading. #385 #376
+
 ## v8.5
  - Small improvements to Windows shutdown handling.
  - Added option and core parameters for HIP.

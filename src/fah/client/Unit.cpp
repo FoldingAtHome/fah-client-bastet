@@ -74,6 +74,9 @@ using namespace std;
 
 
 namespace {
+  static const uint64_t maxViewerBytes = 2.5e7;
+
+
   string idFromSig(const string &sig) {
     if (sig.empty()) return "";
     return Digest::urlBase64(sig, "sha256");
@@ -677,9 +680,23 @@ void Unit::readInfo() {
 
 
 void Unit::readViewerData() {
-  if (getState() < UNIT_CORE) return;
-  if (topology.isNull()) readViewerTop();
-  if (readViewerFrame()) triggerNext();
+  if (viewerFail < 0 || getState() < UNIT_CORE) return;
+
+  try {
+    if (topology.isNull()) readViewerTop();
+    return readViewerFrame();
+  } CATCH_WARNING;
+
+  if (5 < ++viewerFail) {
+    if (topology.isNull()) {
+      LOG_WARNING("Giving up on reading visualization");
+      viewerFail = -1;
+
+    } else {
+      LOG_WARNING("Giving up on reading visualization frame " << viewerFrame++);
+      viewerFail = 0;
+    }
+  }
 }
 
 
@@ -687,33 +704,51 @@ void Unit::readViewerTop() {
   string filename = getDirectory() + "/viewerTop.json";
 
   if (existsAndOlderThan(filename, 10)) {
-    topology = JSON::Reader::parseFile(filename);
     frames.clear();
+    viewerBytes = SystemUtilities::getFileSize(filename);
+
+    if (maxViewerBytes < viewerBytes) {
+      LOG_WARNING("Visualization topology too large, disabling visualization");
+      viewerFail = -1;
+      return;
+    }
+
+    topology = JSON::Reader::parseFile(filename);
+    viewerFail = 0;
   }
 }
 
 
-bool Unit::readViewerFrame() {
+void Unit::readViewerFrame() {
   string filename =
     getDirectory() + String::printf("/viewerFrame%d.json", viewerFrame);
 
   if (existsAndOlderThan(filename, 10)) {
+    uint64_t bytes = SystemUtilities::getFileSize(filename);
+
+    if (maxViewerBytes < viewerBytes + bytes) {
+      LOG_WARNING("Visualization size exceeded at frame " << viewerFrame
+        << ", no more frames will be loaded");
+      viewerFail = -1;
+      return;
+    }
+
     auto frame = JSON::Reader::parseFile(filename);
 
     if (!frames.empty() && *frames.back() == *frame)
       LOG_WARNING("Visualization frame " << viewerFrame
-                  << " unchanged, skipping");
+        << " unchanged, skipping");
 
     else if (!frame->empty()) {
       frames.push_back(frame);
       insert("frames", (uint32_t)frames.size());
+      viewerBytes += bytes;
     }
 
     viewerFrame++;
-    return true;
+    viewerFail = 0;
+    triggerNext(); // Try to load another frame
   }
-
-  return false;
 }
 
 

@@ -68,6 +68,8 @@ namespace FAH {
       cb::SmartPointer<Core>          core;
 
       unsigned viewerFrame = 0;
+      int      viewerFail  = 0;
+      uint64_t viewerBytes = 0;
 
       cb::SmartPointer<CoreProcess> process;
       cb::SmartPointer<cb::TailFileToLog> logCopier;
@@ -163,7 +165,7 @@ namespace FAH {
       void readInfo();
       void readViewerData();
       void readViewerTop();
-      bool readViewerFrame();
+      void readViewerFrame();
       void setResults(const std::string &status, const std::string &dataHash);
       void finalizeRun();
       void stopRun();
