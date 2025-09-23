@@ -78,9 +78,10 @@ bool LinOSImpl::isGPUReady() const {
 #ifdef HAVE_SYSTEMD
   if (bus) {
     int ready = 0;
-    sd_bus_get_property_trivial(bus, "org.freedesktop.login1",
+
+    if (sd_bus_get_property_trivial(bus, "org.freedesktop.login1",
       "/org/freedesktop/login1/seat/seat0", "org.freedesktop.login1.Seat",
-      "CanGraphical", 0, SD_BUS_TYPE_BOOLEAN, &ready);
+      "CanGraphical", 0, SD_BUS_TYPE_BOOLEAN, &ready) < 0) return true;
 
     return ready;
   }
