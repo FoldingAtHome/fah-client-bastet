@@ -48,13 +48,9 @@ using namespace cb;
 using namespace std;
 
 
-OS::OS(App &app) :
-  app(app), paused(false), active(false), failure(false), onBattery(false),
-  gpuReady(true), state(STATE_NULL),
-  event(app.getEventBase().newEvent(this, &OS::update)),
-  gpuReadyEvent(app.getEventBase().newEvent(this, &OS::signalGPUReady)) {
-  event->add(2);
-}
+OS::OS(App &app) : app(app), paused(false), active(false), failure(false),
+  onBattery(false), state(STATE_NULL),
+  event(app.getEventBase().newEvent(this, &OS::update)) {event->add(2);}
 
 
 OS::~OS() {}
@@ -87,12 +83,6 @@ void OS::requestExit() {app.requestExit();}
 void OS::setState(state_t state) {this->state = state; event->activate();}
 
 
-void OS::setGPUReady(bool ready) {
-  if (!gpuReady && ready) gpuReadyEvent->activate();
-  gpuReady = ready;
-}
-
-
 void OS::update() {
   switch (state.exchange(STATE_NULL)) {
   case STATE_NULL:                           break;
@@ -121,9 +111,13 @@ void OS::update() {
   if (!onBattery && app.keepAwake()) lastKeepAwake = Time::now();
   pm.allowSystemSleep(30 < Time::now() - lastKeepAwake);
 
+  // Signal when GPU is ready
+  if (!gpuReady && isGPUReady()) {
+    LOG_DEBUG(3, "GPU ready");
+    gpuReady = true;
+    app.getGPUs().signalGPUReady();
+  }
+
   // Update application info
   app.get("info")->insertBoolean("on_battery", onBattery);
 }
-
-
-void OS::signalGPUReady() {app.getGPUs().signalGPUReady();}

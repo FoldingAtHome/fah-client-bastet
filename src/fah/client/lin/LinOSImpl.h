@@ -30,12 +30,19 @@
 
 #include <fah/client/OS.h>
 
+#include <cbang/config.h>
+
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-bus.h>
+#endif
+
 
 namespace FAH {
   namespace Client {
     class LinOSImpl : public OS {
-      struct private_t;
-      cb::SmartPointer<private_t> pri;
+#ifdef HAVE_SYSTEMD
+    sd_bus *bus = 0;
+#endif
 
     public:
       LinOSImpl(App &app);
@@ -45,7 +52,7 @@ namespace FAH {
       const char *getName()      const override;
       const char *getCPU()       const override;
       bool        isSystemIdle() const override;
-      void        dispatch()           override;
+      bool        isGPUReady()   const override;
     };
   }
 }

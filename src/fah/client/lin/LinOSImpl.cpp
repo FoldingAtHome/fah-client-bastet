@@ -28,15 +28,10 @@
 
 #include "LinOSImpl.h"
 
-#include <cbang/config.h>
 #include <cbang/os/PowerManagement.h>
 #include <cbang/log/Logger.h>
 
 #include <sys/utsname.h>
-
-#if defined(HAVE_SYSTEMD)
-#include <systemd/sd-bus.h>
-#endif
 
 
 using namespace FAH::Client;
@@ -44,108 +39,18 @@ using namespace std;
 using namespace cb;
 
 
-#if defined(HAVE_SYSTEMD)
-class SDBusMessage {
-  sd_bus_message *msg;
-
-public:
-  SDBusMessage(sd_bus_message *msg) : msg(msg) {}
-
-
-  bool enter(char type, const char *contents) {
-    return 0 < sd_bus_message_enter_container(msg, type, contents);
-  }
-
-
-  void exit() {sd_bus_message_exit_container(msg);}
-  void skip(const char *contents) {sd_bus_message_skip(msg, contents);}
-
-
-  string getString() const {
-    const char *s = 0;
-    sd_bus_message_read_basic(msg, SD_BUS_TYPE_STRING, &s);
-    return string(s);
-  }
-
-
-  bool getBool() const {
-    int b = 0;
-    sd_bus_message_read_basic(msg, SD_BUS_TYPE_BOOLEAN, &b);
-    return b;
-  }
-};
-
-
-extern "C"
-int on_properties_changed(sd_bus_message *_msg, void *os, sd_bus_error *) {
-  SDBusMessage msg(_msg);
-
-  if (msg.getString() != "org.freedesktop.login1.Seat") return 0;
-
-  msg.enter(SD_BUS_TYPE_ARRAY, "{sv}");
-
-  while (msg.enter(SD_BUS_TYPE_DICT_ENTRY, "sv")) {
-    if (msg.getString() == "CanGraphical") {
-      msg.enter(SD_BUS_TYPE_VARIANT, "b");
-
-      if (msg.getBool()) {
-        LOG_DEBUG(3, "GPU ready after `CanGraphical` became true");
-        ((LinOSImpl *)os)->setGPUReady(true);
-      }
-
-      msg.exit();
-
-    } else msg.skip("v");
-
-    msg.exit();
-  }
-
-  msg.exit();
-  return 0;
+LinOSImpl::LinOSImpl(App &app) : OS(app) {
+#ifdef HAVE_SYSTEMD
+  sd_bus_open_system(&bus);
+#endif
 }
 
 
-struct LinOSImpl::private_t {
-  sd_bus *bus = 0;
-
-
-  private_t() {sd_bus_open_system(&bus);}
-  ~private_t() {if (bus) sd_bus_flush_close_unref(bus);}
-
-
-  void start(LinOSImpl &os) {
-    if (!bus) return os.setGPUReady(true);
-
-    int ready = 0;
-    sd_bus_get_property_trivial(bus, "org.freedesktop.login1",
-      "/org/freedesktop/login1/seat/seat0", "org.freedesktop.login1.Seat",
-      "CanGraphical", 0, SD_BUS_TYPE_BOOLEAN, &ready);
-
-    if (ready) {
-      LOG_DEBUG(3, "GPU ready on start up");
-      os.setGPUReady(true);
-
-    } else sd_bus_match_signal(bus, 0, "org.freedesktop.login1",
-      "/org/freedesktop/login1/seat/seat0",
-      "org.freedesktop.DBus.Properties", "PropertiesChanged",
-      on_properties_changed, &os);
-  }
-};
-
-
-#else
-struct LinOSImpl::private_t {
-  void start(LinOSImpl &os) {os.setGPUReady();}
-};
-#endif // HAVE_SYSTEMD
-
-
-LinOSImpl::LinOSImpl(App &app) : OS(app), pri(new private_t) {
-  setGPUReady(false);
+LinOSImpl::~LinOSImpl() {
+#ifdef HAVE_SYSTEMD
+  if (bus) sd_bus_flush_close_unref(bus);
+#endif
 }
-
-
-LinOSImpl::~LinOSImpl() {}
 
 
 const char *LinOSImpl::getName() const {return "linux";}
@@ -169,7 +74,17 @@ bool LinOSImpl::isSystemIdle() const {
 }
 
 
-void LinOSImpl::dispatch() {
-  pri->start(*this);
-  OS::dispatch();
-};
+bool LinOSImpl::isGPUReady() const {
+#ifdef HAVE_SYSTEMD
+  if (bus) {
+    int ready = 0;
+    sd_bus_get_property_trivial(bus, "org.freedesktop.login1",
+      "/org/freedesktop/login1/seat/seat0", "org.freedesktop.login1.Seat",
+      "CanGraphical", 0, SD_BUS_TYPE_BOOLEAN, &ready);
+
+    return ready;
+  }
+#endif // HAVE_SYSTEMD
+
+  return true;
+}

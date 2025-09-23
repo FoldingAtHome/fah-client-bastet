@@ -49,19 +49,18 @@ namespace FAH {
     private:
       App &app;
 
-      bool idle = false;
+      bool     gpuReady      = false;
+      bool     idle          = false;
       uint64_t lastKeepAwake = 0;
 
-      std::atomic<bool> paused;
-      std::atomic<bool> active;
-      std::atomic<bool> failure;
-      std::atomic<bool> onBattery;
-      std::atomic<bool> gpuReady;
+      std::atomic<bool>    paused;
+      std::atomic<bool>    active;
+      std::atomic<bool>    failure;
+      std::atomic<bool>    onBattery;
       std::atomic<state_t> state;
 
     protected:
       cb::SmartPointer<cb::Event::Event> event;
-      cb::SmartPointer<cb::Event::Event> gpuReadyEvent;
 
     public:
       OS(App &app);
@@ -70,22 +69,20 @@ namespace FAH {
       static cb::SmartPointer<OS> create(App &app);
 
       virtual const char *getName() const = 0;
-      virtual const char *getCPU() const;
-      virtual bool isSystemIdle() const = 0;
-      virtual void dispatch();
+      virtual const char * getCPU() const;
+      virtual bool   isSystemIdle() const = 0;
+      virtual bool     isGPUReady() const {return true;}
+      virtual void       dispatch();
 
-      bool isPaused()    const {return paused;}
-      bool isActive()    const {return active;}
-      bool hasFailure()  const {return failure;}
+      bool    isPaused() const {return paused;}
+      bool    isActive() const {return active;}
+      bool  hasFailure() const {return failure;}
       bool isOnBattery() const {return onBattery;}
-      bool isGPUReady()  const {return gpuReady;}
       void requestExit();
       void setState(state_t state);
-      void setGPUReady(bool ready);
 
     protected:
       void update();
-      void signalGPUReady();
     };
   }
 }
