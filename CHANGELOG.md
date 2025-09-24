@@ -3,6 +3,8 @@ Folding@home Client Changelog
 
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376
+ - Correct and simplify sd-bus canGraphical detection. #338
+ - Reopen Nameserver connection on write failure to fix macOS issue. #337
 
 ## v8.5
  - Small improvements to Windows shutdown handling.
