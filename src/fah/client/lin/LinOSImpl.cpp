@@ -32,25 +32,14 @@
 #include <cbang/log/Logger.h>
 
 #include <sys/utsname.h>
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-device.h>
+#endif
 
 
 using namespace FAH::Client;
 using namespace std;
 using namespace cb;
-
-
-LinOSImpl::LinOSImpl(App &app) : OS(app) {
-#ifdef HAVE_SYSTEMD
-  sd_bus_open_system(&bus);
-#endif
-}
-
-
-LinOSImpl::~LinOSImpl() {
-#ifdef HAVE_SYSTEMD
-  if (bus) sd_bus_flush_close_unref(bus);
-#endif
-}
 
 
 const char *LinOSImpl::getName() const {return "linux";}
@@ -76,15 +65,32 @@ bool LinOSImpl::isSystemIdle() const {
 
 bool LinOSImpl::isGPUReady() const {
 #ifdef HAVE_SYSTEMD
-  if (bus) {
-    int ready = 0;
+  sd_device_enumerator *enumerator;
+  sd_device *device;
+  bool ready = false;
 
-    if (sd_bus_get_property_trivial(bus, "org.freedesktop.login1",
-      "/org/freedesktop/login1/seat/seat0", "org.freedesktop.login1.Seat",
-      "CanGraphical", 0, SD_BUS_TYPE_BOOLEAN, &ready) < 0) return true;
+  if (sd_device_enumerator_new(&enumerator) < 0)
+    return true;
 
-    return ready;
+  if (sd_device_enumerator_add_match_subsystem(enumerator, "drm", 1) < 0 ||
+      sd_device_enumerator_add_match_sysname(enumerator, "renderD*") < 0) {
+    sd_device_enumerator_unref(enumerator);
+    return true;
   }
+
+  for (device = sd_device_enumerator_get_device_first(enumerator);
+       device != NULL;
+       device = sd_device_enumerator_get_device_next(enumerator)) {
+    // "platform" is for Raspberry Pi et al
+    if (sd_device_get_parent_with_subsystem_devtype(device, "pci", NULL, NULL) >= 0 ||
+        sd_device_get_parent_with_subsystem_devtype(device, "platform", NULL, NULL) >= 0) {
+      ready = true;
+      break;
+    }
+  }
+
+  sd_device_enumerator_unref(enumerator);
+  return ready;
 #endif // HAVE_SYSTEMD
 
   return true;

@@ -32,21 +32,12 @@
 
 #include <cbang/config.h>
 
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-bus.h>
-#endif
-
 
 namespace FAH {
   namespace Client {
     class LinOSImpl : public OS {
-#ifdef HAVE_SYSTEMD
-    sd_bus *bus = 0;
-#endif
-
     public:
-      LinOSImpl(App &app);
-      ~LinOSImpl();
+      LinOSImpl(App &app) : OS(app) {}
 
       // From OS
       const char *getName()      const override;
