@@ -891,8 +891,9 @@ void Unit::clean(const string &result) {
   // Remove from DB
   TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
+  bool downloaded = UNIT_DOWNLOAD < getState();
   setState(UNIT_DONE);
-  group->unitComplete(result, UNIT_CORE < getState());
+  group->unitComplete(result, downloaded);
 }
 
 

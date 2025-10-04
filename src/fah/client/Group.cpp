@@ -129,7 +129,7 @@ void Group::clearErrors() {
 
 
 void Group::unitComplete(const string &reason, bool downloaded) {
-  if (reason == "success") clearErrors();
+  if (reason == "credited") clearErrors();
   else {
     if (reason != "dumped" && reason != "aborted") {
       insert("failed_wus", ++failures);

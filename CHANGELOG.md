@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.2
+- Fix unit complete logic, re:#387
+
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376
  - Correct and simplify sd-bus canGraphical detection. #338
