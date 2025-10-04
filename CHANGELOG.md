@@ -2,7 +2,8 @@ Folding@home Client Changelog
 =============================
 
 ## v8.5.2
-- Fix unit complete logic, re:#387
+ - Fix unit complete logic, re:#387
+ - Poll for GPU render device instead of ``canGraphical``.  #338 @marcosfrm
 
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376

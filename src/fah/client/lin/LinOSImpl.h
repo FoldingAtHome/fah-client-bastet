@@ -30,8 +30,6 @@
 
 #include <fah/client/OS.h>
 
-#include <cbang/config.h>
-
 
 namespace FAH {
   namespace Client {

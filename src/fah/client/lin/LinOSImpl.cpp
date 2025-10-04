@@ -28,10 +28,12 @@
 
 #include "LinOSImpl.h"
 
+#include <cbang/config.h>
 #include <cbang/os/PowerManagement.h>
 #include <cbang/log/Logger.h>
 
 #include <sys/utsname.h>
+
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-device.h>
 #endif
@@ -40,6 +42,24 @@
 using namespace FAH::Client;
 using namespace std;
 using namespace cb;
+
+
+#ifdef HAVE_SYSTEMD
+namespace {
+  class SDDevEnum {
+    sd_device_enumerator *sdEnum = 0;
+
+  public:
+    SDDevEnum() {if (sd_device_enumerator_new(&sdEnum)) sdEnum = 0;}
+    ~SDDevEnum() {if (sdEnum) sd_device_enumerator_unref(sdEnum);}
+
+    operator sd_device_enumerator *() const {return sdEnum;}
+
+    sd_device *first() {return sd_device_enumerator_get_device_first(sdEnum);}
+    sd_device *next()  {return sd_device_enumerator_get_device_next(sdEnum);}
+  };
+}
+#endif
 
 
 const char *LinOSImpl::getName() const {return "linux";}
@@ -65,32 +85,20 @@ bool LinOSImpl::isSystemIdle() const {
 
 bool LinOSImpl::isGPUReady() const {
 #ifdef HAVE_SYSTEMD
-  sd_device_enumerator *enumerator;
-  sd_device *device;
-  bool ready = false;
+  SDDevEnum sdEnum;
 
-  if (sd_device_enumerator_new(&enumerator) < 0)
+  if (!sdEnum ||
+    sd_device_enumerator_add_match_subsystem(sdEnum, "drm", 1) < 0 ||
+    sd_device_enumerator_add_match_sysname(sdEnum, "renderD*") < 0)
     return true;
 
-  if (sd_device_enumerator_add_match_subsystem(enumerator, "drm", 1) < 0 ||
-      sd_device_enumerator_add_match_sysname(enumerator, "renderD*") < 0) {
-    sd_device_enumerator_unref(enumerator);
-    return true;
-  }
+  for (auto dev = sdEnum.first(); dev; dev = sdEnum.next())
+    // "platform" for Raspberry Pi
+    if (0 <= sd_device_get_parent_with_subsystem_devtype(dev, "pci", 0, 0) ||
+        0 <= sd_device_get_parent_with_subsystem_devtype(dev, "platform", 0, 0))
+      return true;
 
-  for (device = sd_device_enumerator_get_device_first(enumerator);
-       device != NULL;
-       device = sd_device_enumerator_get_device_next(enumerator)) {
-    // "platform" is for Raspberry Pi et al
-    if (sd_device_get_parent_with_subsystem_devtype(device, "pci", NULL, NULL) >= 0 ||
-        sd_device_get_parent_with_subsystem_devtype(device, "platform", NULL, NULL) >= 0) {
-      ready = true;
-      break;
-    }
-  }
-
-  sd_device_enumerator_unref(enumerator);
-  return ready;
+  return false;
 #endif // HAVE_SYSTEMD
 
   return true;
