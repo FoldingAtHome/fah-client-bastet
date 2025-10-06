@@ -4,6 +4,9 @@ Folding@home Client Changelog
 ## v8.5.2
  - Fix unit complete logic, re:#387
  - Poll for GPU render device instead of ``canGraphical``.  #338 @marcosfrm
+ - Search for GPU compute libs under various paths. re:cbang/#181
+ - Support abbreviated IP ranges like '169.254/16'.
+ - Prevent rapid core restart by adding min delay.  re:#362
 
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376

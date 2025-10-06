@@ -444,8 +444,15 @@ void Unit::next() {
   // Monitor running core process
   if (process.isSet()) {
     if (process->isRunning()) {
-      if (isPaused() || getState() != UNIT_RUN || getCPUs() != runningCPUs)
-        return stopRun();
+      // Only interrupt after minimum run time to give the core time to
+      // install it's interrupt handlers.
+      if (isPaused() || getState() != UNIT_RUN || getCPUs() != runningCPUs) {
+        const unsigned minRuntime = 5;
+        auto delta = getRunTimeDelta();
+        if (minRuntime <= delta) return stopRun();
+        else triggerNext(minRuntime - delta);
+      }
+
       return monitorRun();
     }
 
@@ -820,7 +827,7 @@ void Unit::finalizeRun() {
 
   if (!code.isValid()) {
     LOG_ERROR("Core exited with an unknown error code " << (unsigned)code
-                << " which probably indicates that it crashed. Dumping WU");
+      << " which probably indicates that it crashed. Dumping WU");
     return setState(UNIT_DUMP);
   }
 
@@ -1060,8 +1067,8 @@ void Unit::assign() {
   insert("id", id);
 
   LOG_INFO(1, "Requesting WU assignment for user "
-           << app.getConfig()->getUsername()
-           << " team " << app.getConfig()->getTeam());
+    << app.getConfig()->getUsername() << " team "
+    << app.getConfig()->getTeam());
   LOG_DEBUG(3, *data);
 
   // TODO validate peer certificate
