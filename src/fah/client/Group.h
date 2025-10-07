@@ -95,6 +95,7 @@ namespace FAH {
 
       bool waitForIdle() const;
       bool waitOnBattery() const;
+      bool waitOnGPU() const;
       bool keepAwake() const;
       bool isActive() const;
       bool hasUnrunWUs() const;

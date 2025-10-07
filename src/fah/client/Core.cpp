@@ -29,7 +29,7 @@
 #include "Core.h"
 
 #include "App.h"
-#include "GPUResources.h"
+#include "CoreProcess.h"
 
 #include <cbang/Catch.h>
 #include <cbang/log/Logger.h>
@@ -76,6 +76,7 @@ void Core::next() {
   case CORE_CERT:     download(getURL() + ".crt"); break;
   case CORE_SIG:      download(getURL() + ".sig"); break;
   case CORE_DOWNLOAD: download(getURL());          break;
+  case CORE_TEST:     test();                      break;
 
   case CORE_READY:
   case CORE_INVALID:
@@ -84,8 +85,15 @@ void Core::next() {
 }
 
 
+void Core::failed() {
+  state = CORE_INVALID;
+  app.getDB("cores").unset(getURL());
+  readyEvent->activate();
+}
+
+
 void Core::ready() {
-  state = CORE_READY;
+  if (state != CORE_INVALID) state = CORE_READY;
   for (auto &cb: progressCBs) cb(1, 1);
   progressCBs.clear(); // Release callbacks
 }
@@ -186,17 +194,19 @@ void Core::downloadResponse(const string &pkg) {
     THROW("Core package tar missing " << filename);
 
   SystemUtilities::chmod(filename, 0755);
-
-  // Save
   data->insert("path", filename);
-  app.getDB("cores").set(getURL(), *data);
 
-  readyEvent->activate();
+  // Test
+  LOG_INFO(1, "Testing core");
+  state = CORE_TEST;
+  process = SmartPtr(new CoreProcess(filename));
+  process->exec({"--info"});
+  nextEvent->add(0.25);
 }
 
 
 void Core::download(const string &url) {
-  if (pr.isSet()) THROW("Already downloading core");
+  if (pr.isSet()) {LOG_ERROR("Already downloading core"); return;}
   LOG_INFO(1, "Downloading " << url);
 
   // Monitor download progress
@@ -240,5 +250,21 @@ void Core::response(HTTP::Request &req) {
     return;
   } CATCH_ERROR;
 
-  // TODO retry on error
+  failed();
+}
+
+
+void Core::test() {
+  if (process->isRunning()) return nextEvent->add(0.25);
+
+  auto code = process->wait();
+  if (code) {
+    LOG_ERROR("Core test failed, invalid exit code: " << code);
+    failed();
+  }
+
+  // Core ready
+  LOG_INFO(1, "Core test passed");
+  app.getDB("cores").set(getURL(), *data); // Save data
+  readyEvent->activate();
 }

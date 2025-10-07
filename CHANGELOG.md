@@ -7,6 +7,9 @@ Folding@home Client Changelog
  - Search for GPU compute libs under various paths. re:cbang/#181
  - Support abbreviated IP ranges like '169.254/16'.
  - Prevent rapid core restart by adding min delay.  re:#362
+ - Don't adjust WU CPU counts while a new WU is downloading.
+ - Test cores after download. re:#357
+ - If a GPU is enabled but not yet detected, wait.
 
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376

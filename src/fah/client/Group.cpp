@@ -90,6 +90,23 @@ bool Group::waitOnBattery() const {
 }
 
 
+bool Group::waitOnGPU() const {
+  // Returns true if this group has any GPUs enabled which have not yet
+  // been detected as active and supported.
+
+  if (app.getGPUs().isReady()) return false;
+
+  auto supportedGPUs = config->getGPUs();
+  auto &gpus = *config->get("gpus");
+
+  for (auto &id: gpus.keys())
+    if (config->isGPUEnabled(id) && !supportedGPUs.count(id))
+      return true;
+
+  return false;
+}
+
+
 bool Group::keepAwake() const {return config->getKeepAwake() && isActive();}
 
 
@@ -184,7 +201,7 @@ void Group::update() {
   if (app.shouldQuit()) {
     for (auto unit: units())
       if (unit->isRunning())
-        return event->add(1); // Check again later
+        return event->add(0.25); // Check again later
 
     if (shutdownCB) {
       // Save state to DB
@@ -198,12 +215,10 @@ void Group::update() {
     return;
   }
 
-  // No further action if paused or idle
-  if (config->getPaused() || waitForIdle()) return;
-
-  // Wait on failures
-  auto now = Time::now();
-  if (now < waitUntil) return event->add(waitUntil - now);
+  // No further action if waiting
+  if (config->getPaused() || waitForIdle() || waitOnBattery() || waitOnGPU() ||
+      hasUnrunWUs() || Time::now() < waitUntil)
+    return event->add(0.25); // Check again later
 
   // Allocate resources
   unsigned         remainingCPUs = config->getCPUs();
@@ -257,7 +272,7 @@ void Group::update() {
     enabledWUs.insert(unit->getID());
   }
 
-  // Start and stop WUs
+  // Start and stop WUs, based on resource availability
   unsigned wuCount = 0;
   for (auto unit: units()) {
     wuCount++;
@@ -268,24 +283,21 @@ void Group::update() {
 
   // Report allocation status
   LOG_DEBUG(1, "Remaining CPUs: " << remainingCPUs << ", Remaining GPUs: "
-            << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
+    << remainingGPUs.size() << ", Active WUs: " << enabledWUs.size());
 
-  // Handle finish
-  if (config->getFinish() && !wuCount) return config->setPaused(true);
-
-  // Do not add WUs when finishing, if any WUs have not run yet or GPU resources
-  // have not yet been loaded.
-  if (config->getFinish() || hasUnrunWUs() || !app.getGPUs().isReady())
+  // Handle finish, don't add any new WUs
+  if (config->getFinish()) {
+    if (!wuCount) config->setPaused(true);
     return;
+  }
 
   // Add new WU if we don't already have too many and there are some resources
   const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
   if (wuCount < maxWUs && (remainingCPUs || remainingGPUs.size())) {
-    SmartPointer<Unit> unit =
-      new Unit(app, name, app.getNextWUID(), remainingCPUs, remainingGPUs);
-    app.getUnits()->add(unit);
+    app.getUnits()->add(
+      new Unit(app, name, app.getNextWUID(), remainingCPUs, remainingGPUs));
     LOG_INFO(1, "Added new work unit: cpus:" << remainingCPUs << " gpus:"
-             << String::join(remainingGPUs, ","));
+      << String::join(remainingGPUs, ","));
     triggerUpdate();
   }
 }

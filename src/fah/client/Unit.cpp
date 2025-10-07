@@ -113,7 +113,8 @@ namespace {
 
 
 Unit::Unit(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {
+    app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {
+  event->setPriority(6);  // Ensure event always runs after Group::update()
   triggerNext();
 }
 
@@ -152,9 +153,6 @@ Unit::Unit(App &app, const JSON::ValuePtr &data) : Unit(app) {
 
   // Check that we still have the required core
   if (getState() == UNIT_RUN) setState(UNIT_CORE);
-
-  // Start out paused, wait for Units to decide the resource allocation
-  insertBoolean("paused", true);
 }
 
 
@@ -199,11 +197,12 @@ void Unit::setPause(bool pause) {
 
 
 const char *Unit::getPauseReason() const {
-  if (getConfig().getPaused())    return "Paused";
-  if (group->waitForIdle())       return "Waiting for idle system";
-  if (group->waitOnBattery())     return "Pausing on battery";
-  if (getBoolean("paused", true)) return "Resources not available";
-  if (app.shouldQuit())           return "Shutting down";
+  if (getConfig().getPaused())     return "Paused";
+  if (group->waitForIdle())        return "Waiting for idle system";
+  if (group->waitOnBattery())      return "Pausing on battery";
+  if (group->waitOnGPU())          return "Waiting for GPU detection";
+  if (getBoolean("paused", false)) return "Resources not available";
+  if (app.shouldQuit())            return "Shutting down";
   return 0;
 }
 
@@ -578,7 +577,8 @@ void Unit::getCore() {
         else get("gpus")->clear();
 
         setState(UNIT_RUN);
-        triggerNext();
+        setPause(true); // Let Group start this WU when appropriate
+        group->triggerUpdate();
       }
     };
 
@@ -613,7 +613,7 @@ void Unit::run() {
   args.push_back("-lifeline");
   args.push_back(String(SystemUtilities::getPID()));
 
-  runningCPUs = getU32("cpus");
+  runningCPUs = getCPUs();
 
   auto &gpus = *get("gpus");
   if (gpus.size()) {
@@ -885,18 +885,18 @@ void Unit::monitorRun() {
 void Unit::clean(const string &result) {
   LOG_DEBUG(3, "Cleaning WU");
 
-  // Log WU
   if (!id.empty()) {
+    // Log WU
     insert("end_time", Time().toString());
     insert("result", result);
     TRY_CATCH_ERROR(app.logWU(*this));
+
+    // Remove from disk
+    TRY_CATCH_ERROR(SystemUtilities::rmdir(getDirectory(), true));
+
+    // Remove from DB
+    TRY_CATCH_ERROR(app.getDB("units").unset(id));
   }
-
-  // Remove from disk
-  TRY_CATCH_ERROR(SystemUtilities::rmdir(getDirectory(), true));
-
-  // Remove from DB
-  TRY_CATCH_ERROR(app.getDB("units").unset(id));
 
   bool downloaded = UNIT_DOWNLOAD < getState();
   setState(UNIT_DONE);
@@ -974,14 +974,14 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
   string sig64 = assign->getString("signature");
   assign = assign->get("data");
   app.checkBase64SHA256(cert, "", sig64,
-                        request->toString() + assign->toString(), "AS");
+    request->toString() + assign->toString(), "AS");
 
   // Check that this is the same request we sent
   if (idFromSig64(request->getString("signature")) != id)
     THROW("WS response does not match request");
 
   LOG_DEBUG(3, "Received assignment for " << assign->getU32("cpus")
-            << " cpus and " << get("gpus")->size() << " gpus");
+    << " cpus and " << get("gpus")->size() << " gpus");
 
   this->data = data;
   setState(UNIT_DOWNLOAD);
@@ -990,7 +990,7 @@ void Unit::assignResponse(const JSON::ValuePtr &data) {
 
 void Unit::writeRequest(JSON::Sink &sink) const {
   auto &sysInfo = SystemInfo::instance();
-  auto cpuInfo = CPUInfo::create();
+  auto cpuInfo  = CPUInfo::create();
   CPURegsX86 cpuRegsX86;
 
   sink.beginDict();

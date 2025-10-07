@@ -41,6 +41,7 @@
 namespace FAH {
   namespace Client {
     class App;
+    class CoreProcess;
 
     class Core :
       public CoreState::Enum,
@@ -62,6 +63,7 @@ namespace FAH {
 
     private:
       std::vector<progress_cb_t> progressCBs;
+      cb::SmartPointer<CoreProcess> process;
 
     public:
       Core(App &app, const cb::JSON::ValuePtr &data);
@@ -80,11 +82,13 @@ namespace FAH {
       void next();
 
     protected:
+      void failed();
       void ready();
       void load();
       void downloadResponse(const std::string &pkg);
       void download(const std::string &url);
       void response(cb::HTTP::Request &req);
+      void test();
     };
   }
 }
