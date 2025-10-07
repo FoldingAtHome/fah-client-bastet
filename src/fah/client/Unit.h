@@ -75,7 +75,6 @@ namespace FAH {
       cb::SmartPointer<cb::TailFileToLog> logCopier;
       unsigned bytesCopiedToLog = 0;
 
-      bool     success     = false;
       unsigned retries     = 0;
       double   wait        = 0;
       int      cs          = -1;

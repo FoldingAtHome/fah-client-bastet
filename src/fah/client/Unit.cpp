@@ -389,7 +389,6 @@ void Unit::dumpWU() {
 
   setWait(0); // Stop waiting
   retries = 0;
-  success = true; // Don't delay group retry
   cancelRequest(); // Terminate any active connections
 
   switch (getState()) {
@@ -809,8 +808,7 @@ void Unit::finalizeRun() {
   if (code == ExitCode::FINISHED_UNIT) setProgress(1, 1, true);
   processEnded();
 
-  success = code == ExitCode::FINISHED_UNIT;
-  bool ok = success || code == ExitCode::INTERRUPTED ||
+  bool ok = code == ExitCode::FINISHED_UNIT || code == ExitCode::INTERRUPTED ||
     code == ExitCode::CORE_RESTART;
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_ERROR,
       "Core returned " << code << " (" << (unsigned)code << ')');
@@ -944,7 +942,6 @@ void Unit::retry() {
       LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
       setWait(0);
       retries = 0;
-      success = false;
       return clean("retries");
     }
 
@@ -954,7 +951,6 @@ void Unit::retry() {
   } CATCH_ERROR;
 
   // Retry failed
-  success = false;
   switch (getState()) {
   case UNIT_DONE: return;
   case UNIT_DUMP: return clean("failed");
@@ -1154,7 +1150,8 @@ void Unit::download() {
 void Unit::uploadResponse(const JSON::ValuePtr &data) {
   LOG_INFO(1, "Credited");
   logCredit(data);
-  clean(success ? "credited" : "failed");
+  string status = data->selectString("results.status", "failed");
+  clean(status == "ok" ? "credited" : status);
 }
 
 

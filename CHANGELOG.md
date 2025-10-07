@@ -10,6 +10,8 @@ Folding@home Client Changelog
  - Don't adjust WU CPU counts while a new WU is downloading.
  - Test cores after download. re:#357
  - If a GPU is enabled but not yet detected, wait.
+ - Close all sockets in core subprocesses. re:#361
+ - Record correct WU status after restart. re:#352
 
 ## v8.5.1
  - Better error handling and size limits for vis file loading. #385 #376
