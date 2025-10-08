@@ -5,72 +5,76 @@ CLIENT_CONFIG=/etc/$NAME
 CLIENT_HOME=/var/lib/$NAME
 CLIENT_LOGS=/var/log/$NAME
 
-# Create directories
-install -d -m 755 -o $NAME -g $NAME $CLIENT_HOME $CLIENT_LOGS $CLIENT_CONFIG
+case "$1" in
+  configure)
+    # Create directories
+    install -d -m 755 -o $NAME -g $NAME $CLIENT_HOME $CLIENT_LOGS $CLIENT_CONFIG
 
-# Migrate v7 configuration
+    # Migrate v7 configuration
 
-# Remove obsolete symlink installed by previous v8 packages
-[ -L $CLIENT_HOME/config.xml ] && rm -f $CLIENT_HOME/config.xml || true
+    # Remove obsolete symlink installed by previous v8 packages
+    [ -L $CLIENT_HOME/config.xml ] && rm -f $CLIENT_HOME/config.xml || true
 
-if [ ! -e $CLIENT_CONFIG/config.xml ]; then
-  if [ -f /etc/fahclient/config.xml ]; then
-    cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
+    if [ ! -e $CLIENT_CONFIG/config.xml ]; then
+      if [ -f /etc/fahclient/config.xml ]; then
+        cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
+        echo
+        echo "v7 client configuration copied to $CLIENT_CONFIG/config.xml"
+        echo
+        echo "It's recommended to purge the old package to remove leftover files:"
+        echo
+        echo "  sudo apt purge fahclient"
+      elif [ -f $CLIENT_HOME/config.xml ]; then
+        mv -f $CLIENT_HOME/config.xml $CLIENT_CONFIG/
+      else
+        echo "<config/>" > $CLIENT_CONFIG/config.xml
+      fi
+
+      chown $NAME:$NAME $CLIENT_CONFIG/config.xml
+      chmod 0644 $CLIENT_CONFIG/config.xml
+
+    elif [ -f $CLIENT_HOME/config.xml ]; then
+      echo
+      echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
+    fi
+
+    systemctl daemon-reload || true
+
+    # Add/update state file, required for purge action in postrm
+    deb-systemd-helper update-state $NAME.service || true
+
+    # Only enable on initial install
+    if [ -z "$2" ]; then
+      systemctl -q enable $NAME || true
+      systemctl start $NAME || true
+    else
+      # Upgrade
+      # Reenable if fixing broken symlink
+      if dpkg --compare-versions "$2" lt 8.2.1; then
+        systemctl -q enable $NAME || true
+      fi
+
+      systemctl restart $NAME || true
+    fi
+
     echo
-    echo "v7 client configuration copied to $CLIENT_CONFIG/config.xml"
+    echo "The Folding@home client is now installed"
     echo
-    echo "It's recommended to purge the old package to remove leftover files:"
+    echo "File locations:"
     echo
-    echo "  sudo apt purge fahclient"
-  elif [ -f $CLIENT_HOME/config.xml ]; then
-    mv -f $CLIENT_HOME/config.xml $CLIENT_CONFIG/
-  else
-    echo "<config/>" > $CLIENT_CONFIG/config.xml
-  fi
-
-  chown $NAME:$NAME $CLIENT_CONFIG/config.xml
-  chmod 0644 $CLIENT_CONFIG/config.xml
-
-elif [ -f $CLIENT_HOME/config.xml ]; then
-  echo
-  echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
-fi
-
-systemctl daemon-reload || true
-
-# Add/update state file, required for purge action in postrm
-deb-systemd-helper update-state $NAME.service || true
-
-# Only enable on initial install
-if [ -z "$2" ]; then
-  systemctl -q enable $NAME || true
-  systemctl start $NAME || true
-else
-  # Upgrade
-  # Reenable if fixing broken symlink
-  if dpkg --compare-versions "$2" lt 8.2.1; then
-    systemctl -q enable $NAME || true
-  fi
-
-  systemctl restart $NAME || true
-fi
-
-echo
-echo "The Folding@home client is now installed"
-echo
-echo "File locations:"
-echo
-echo "  Logs: /var/log/$NAME"
-echo "  Data: /var/lib/$NAME"
-echo
-echo "Service commands:"
-echo
-echo "  systemctl status --no-pager -l $NAME"
-echo "  sudo systemctl start $NAME"
-echo "  sudo systemctl stop $NAME"
-echo "  sudo systemctl restart $NAME"
-echo
-echo "Access the web interface by going to:"
-echo
-echo "  %(PACKAGE_URL)s"
-echo
+    echo "  Logs: /var/log/$NAME"
+    echo "  Data: /var/lib/$NAME"
+    echo
+    echo "Service commands:"
+    echo
+    echo "  systemctl status --no-pager -l $NAME"
+    echo "  sudo systemctl start $NAME"
+    echo "  sudo systemctl stop $NAME"
+    echo "  sudo systemctl restart $NAME"
+    echo
+    echo "Access the web interface by going to:"
+    echo
+    echo "  %(PACKAGE_URL)s"
+    echo
+    ;;
+esac
