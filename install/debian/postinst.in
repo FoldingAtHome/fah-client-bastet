@@ -10,32 +10,33 @@ case "$1" in
     # Create directories
     install -d -m 755 -o $NAME -g $NAME $CLIENT_HOME $CLIENT_LOGS $CLIENT_CONFIG
 
-    # Migrate v7 configuration
-
     # Remove obsolete symlink installed by previous v8 packages
     [ -L $CLIENT_HOME/config.xml ] && rm -f $CLIENT_HOME/config.xml || true
 
-    if [ ! -e $CLIENT_CONFIG/config.xml ]; then
-      if [ -f /etc/fahclient/config.xml ]; then
-        cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
-        echo
-        echo "v7 client configuration copied to $CLIENT_CONFIG/config.xml"
-        echo
-        echo "It's recommended to purge the old package to remove leftover files:"
-        echo
-        echo "  sudo apt purge fahclient"
+    # Migrate v7 configuration on initial install
+    if [ -z "$2" ]; then
+      if [ ! -e $CLIENT_CONFIG/config.xml ]; then
+        if [ -f /etc/fahclient/config.xml ]; then
+          cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
+          echo
+          echo "v7 client configuration copied to $CLIENT_CONFIG/config.xml"
+          echo
+          echo "It's recommended to purge the old package to remove leftover files:"
+          echo
+          echo "  sudo apt purge fahclient"
+        elif [ -f $CLIENT_HOME/config.xml ]; then
+          mv -f $CLIENT_HOME/config.xml $CLIENT_CONFIG/
+        else
+          echo "<config/>" > $CLIENT_CONFIG/config.xml
+        fi
+
+        chown $NAME:$NAME $CLIENT_CONFIG/config.xml
+        chmod 0644 $CLIENT_CONFIG/config.xml
+
       elif [ -f $CLIENT_HOME/config.xml ]; then
-        mv -f $CLIENT_HOME/config.xml $CLIENT_CONFIG/
-      else
-        echo "<config/>" > $CLIENT_CONFIG/config.xml
+        echo
+        echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
       fi
-
-      chown $NAME:$NAME $CLIENT_CONFIG/config.xml
-      chmod 0644 $CLIENT_CONFIG/config.xml
-
-    elif [ -f $CLIENT_HOME/config.xml ]; then
-      echo
-      echo "Warning: $CLIENT_HOME/config.xml ignored, using $CLIENT_CONFIG/config.xml"
     fi
 
     systemctl daemon-reload || true
