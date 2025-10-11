@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.3
+ - Fix for websocket connection when ``web-root`` is enabled. @kbernhagen
+
 ## v8.5.2
  - Fix unit complete logic, re:#387
  - Poll for GPU render device instead of canGraphical.  #338 @marcosfrm

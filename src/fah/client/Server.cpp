@@ -58,6 +58,9 @@ void Server::init() {
 
   addMember(this, &Server::corsCB);
 
+  addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
+  addMember(HTTP_GET, "/api/websocket", this, &Server::handleWebsocket);
+
   // Web root
   if (options["web-root"].hasValue()) {
     string root = options["web-root"];
@@ -66,9 +69,6 @@ void Server::init() {
       addHandler("/.*", root + "/index.html");
     }
   }
-
-  addMember(HTTP_GET, "/ping", this, &Server::redirectPing);
-  addMember(HTTP_GET, "/api/websocket", this, &Server::handleWebsocket);
 
   // Init
   HTTP::Server::init(options);
