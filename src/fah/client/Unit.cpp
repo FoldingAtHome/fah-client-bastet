@@ -813,6 +813,9 @@ void Unit::finalizeRun() {
   LOG(CBANG_LOG_DOMAIN, ok ? LOG_INFO_LEVEL(1) : Logger::LEVEL_ERROR,
       "Core returned " << code << " (" << (unsigned)code << ')');
 
+  // Ignore failed core exits when shutting down
+  if (code == ExitCode::FAILED_1 && app.shouldQuit()) return;
+
   // WU not complete if core was restarted or interrupted
   if (code == ExitCode::INTERRUPTED)  return;
   if (code == ExitCode::CORE_RESTART) return retry();
