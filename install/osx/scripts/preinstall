@@ -2,10 +2,6 @@
 
 # fah-client-bastet preinstall
 
-# abort if only Safari seems installed
-SCRIPTS="$(dirname "$0")"
-"$SCRIPTS"/check-not-just-safari
-
 # Unload any launchd jobs
 OLD_LAUNCHD="/Library/LaunchDaemons/FAHClient.plist"
 OLD_LAUNCHD2="/Library/LaunchDaemons/edu.stanford.folding.fahclient.plist"

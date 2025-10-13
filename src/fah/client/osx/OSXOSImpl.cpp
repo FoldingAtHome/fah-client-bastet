@@ -99,12 +99,6 @@ OSXOSImpl::OSXOSImpl(App &app) : OS(app), consoleUser("unknown") {
 
 
 OSXOSImpl::~OSXOSImpl() {
-  if (displayWrangler) IOObjectRelease(displayWrangler);
-
-  if (displayNoteSource)
-    CFRunLoopRemoveSource(
-      CFRunLoopGetMain(), displayNoteSource, kCFRunLoopDefaultMode);
-
   deregisterForDisplayPowerNotifications();
   deregisterForConsoleUserNotifications();
 
@@ -122,19 +116,24 @@ OSXOSImpl &OSXOSImpl::instance() {
 
 
 void OSXOSImpl::initialize() {
-  if (!registerForDisplayPowerNotifications())
-    LOG_ERROR("Failed to register for display power changes");
-
-  if (!registerForConsoleUserNotifications())
-    LOG_ERROR("Failed to register for console user changes");
-
+  // this must be done early and only once
   registerForLaunchEvents(); // should never fail
 
   if (!registerForDarwinNotifications())
     LOG_ERROR("Failed to register for darwin notifications");
 
-  // finish init in main runloop, so we can't have stale values
-  dispatch_async(dispatch_get_main_queue(), ^{finishInit();});
+  // delay these registrations, some of which may fail if attempted too soon
+  // TODO: all of these need to reexecutable and retried on failure
+  dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC);
+  dispatch_after(when, dispatch_get_main_queue(), ^{
+    if (!registerForConsoleUserNotifications())
+      LOG_ERROR("Failed to register for console user changes");
+
+    if (!registerForDisplayPowerNotifications())
+      LOG_ERROR("Failed to register for display power changes");
+
+    finishInit();
+  });
 
   addHeartbeatTimerToRunLoop(CFRunLoopGetMain());
 }
@@ -290,9 +289,6 @@ int OSXOSImpl::getCurrentDisplayPower() {
           state = n;
       }
     }
-
-    IOObjectRelease(displayWrangler);
-    displayWrangler = 0;
   }
 
   if (maxstate != 4) {
@@ -315,6 +311,10 @@ int OSXOSImpl::getCurrentDisplayPower() {
 
 
 void OSXOSImpl::deregisterForDisplayPowerNotifications() {
+  if (displayNoteSource)
+    CFRunLoopRemoveSource(
+      CFRunLoopGetMain(), displayNoteSource, kCFRunLoopDefaultMode);
+
   if (displayNotePort) {
     IONotificationPortDestroy(displayNotePort);
     displayNotePort = 0;
@@ -324,13 +324,19 @@ void OSXOSImpl::deregisterForDisplayPowerNotifications() {
     IOObjectRelease(displayNotifier);
     displayNotifier = 0;
   }
+
+  if (displayWrangler) {
+    IOObjectRelease(displayWrangler);
+    displayWrangler = 0;
+  }
 }
 
 
 bool OSXOSImpl::registerForDisplayPowerNotifications() {
   displayPower    = kDisplayPowerOn; // usually true when client starts
-  displayWrangler = IOServiceGetMatchingService
-    (kIOMasterPortDefault, IOServiceNameMatching("IODisplayWrangler"));
+  if (!displayWrangler)
+    displayWrangler = IOServiceGetMatchingService
+      (kIOMasterPortDefault, IOServiceNameMatching("IODisplayWrangler"));
 
   if (!displayWrangler) return false;
 
