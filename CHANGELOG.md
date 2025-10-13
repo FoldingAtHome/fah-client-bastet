@@ -4,6 +4,7 @@ Folding@home Client Changelog
 ## v8.5.3
  - Fix for websocket connection when ``web-root`` is enabled. @kbernhagen
  - Ignore failed core exits when shutting down. #391
+ - Removed browser check in macOS installer.  @kbernhagen
 
 ## v8.5.2
  - Fix unit complete logic, re:#387
