@@ -13,8 +13,9 @@ case "$1" in
     # Remove obsolete symlink installed by previous v8 packages
     [ -L $CLIENT_HOME/config.xml ] && rm -f $CLIENT_HOME/config.xml || true
 
-    # Migrate v7 configuration on initial install
-    if [ -z "$2" ]; then
+    # Migrate v7 configuration on initial install or when updating from old
+    # versions which lacked /etc/fah-client/config.xml
+    if [ -z "$2" ] || dpkg --compare-versions "$2" lt 8.2.4; then
       if [ ! -e $CLIENT_CONFIG/config.xml ]; then
         if [ -f /etc/fahclient/config.xml ]; then
           cp --remove-destination /etc/fahclient/config.xml $CLIENT_CONFIG/
