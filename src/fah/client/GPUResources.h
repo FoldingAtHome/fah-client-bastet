@@ -55,8 +55,7 @@ namespace FAH {
       GPUResources(App &app);
       ~GPUResources();
 
-      bool isReady() const {return loaded && detected;}
-      void signalGPUReady();
+      void gpuAdded();
 
     protected:
       void load(const cb::JSON::Value &gpus);

@@ -94,8 +94,6 @@ bool Group::waitOnGPU() const {
   // Returns true if this group has any GPUs enabled which have not yet
   // been detected as active and supported.
 
-  if (app.getGPUs().isReady()) return false;
-
   auto supportedGPUs = config->getGPUs();
   auto &gpus = *config->get("gpus");
 

@@ -49,7 +49,6 @@ namespace FAH {
     private:
       App &app;
 
-      bool     gpuReady      = false;
       bool     idle          = false;
       uint64_t lastKeepAwake = 0;
 
@@ -71,7 +70,6 @@ namespace FAH {
       virtual const char *getName() const = 0;
       virtual const char * getCPU() const;
       virtual bool   isSystemIdle() const = 0;
-      virtual bool     isGPUReady() const {return true;}
       virtual void       dispatch();
 
       bool    isPaused() const {return paused;}
@@ -80,6 +78,7 @@ namespace FAH {
       bool isOnBattery() const {return onBattery;}
       void requestExit();
       void setState(state_t state);
+      void gpuAdded();
 
     protected:
       void update();

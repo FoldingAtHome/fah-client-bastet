@@ -28,38 +28,58 @@
 
 #include "LinOSImpl.h"
 
-#include <cbang/config.h>
+#include <fah/client/App.h>
+
 #include <cbang/os/PowerManagement.h>
 #include <cbang/log/Logger.h>
 
+#include <array>
+#include <cstdio>
+
+#include <sys/socket.h>
+#include <linux/netlink.h>
+#include <unistd.h>
 #include <sys/utsname.h>
-
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-device.h>
-#endif
-
 
 using namespace FAH::Client;
 using namespace std;
 using namespace cb;
 
 
-#ifdef HAVE_SYSTEMD
 namespace {
-  class SDDevEnum {
-    sd_device_enumerator *sdEnum = 0;
+  int open_uevent_netlink() {
+    sockaddr_nl sa {};
+    sa.nl_family = AF_NETLINK;
+    sa.nl_pid    = getpid();
+    sa.nl_groups = -1; // receive all broadcasted uevents
 
-  public:
-    SDDevEnum() {if (sd_device_enumerator_new(&sdEnum)) sdEnum = 0;}
-    ~SDDevEnum() {if (sdEnum) sd_device_enumerator_unref(sdEnum);}
+    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
+    if (sock < 0) return -1;
+    if (bind(sock, (sockaddr *)&sa, sizeof(sa)) < 0) {
+      close(sock);
+      return -1;
+    }
 
-    operator sd_device_enumerator *() const {return sdEnum;}
-
-    sd_device *first() {return sd_device_enumerator_get_device_first(sdEnum);}
-    sd_device *next()  {return sd_device_enumerator_get_device_next(sdEnum);}
-  };
+    return sock;
+  }
 }
-#endif
+
+
+LinOSImpl::LinOSImpl(App &app) : OS(app), sock(open_uevent_netlink()) {
+  if (sock == -1) LOG_WARNING("Failed to open udev netlink socket, "
+    "may not be able to detect GPUs");
+  else {
+    auto flags = Event::EventFlag::EVENT_READ | Event::EventFlag::EVENT_PERSIST;
+    event = app.getEventBase().newEvent
+      (sock, this, &LinOSImpl::ueventMsg, flags);
+    event->add();
+  }
+}
+
+
+LinOSImpl::~LinOSImpl() {
+  if (sock != -1) close(sock);
+}
 
 
 const char *LinOSImpl::getName() const {return "linux";}
@@ -83,23 +103,16 @@ bool LinOSImpl::isSystemIdle() const {
 }
 
 
-bool LinOSImpl::isGPUReady() const {
-#ifdef HAVE_SYSTEMD
-  SDDevEnum sdEnum;
+void LinOSImpl::ueventMsg() {
+  array<char, 4096> buf {};
+  auto len = recv(sock, buf.data(), buf.size() - 1, 0);
+  if (len < 0) return;
 
-  if (!sdEnum ||
-    sd_device_enumerator_add_match_subsystem(sdEnum, "drm", 1) < 0 ||
-    sd_device_enumerator_add_match_sysname(sdEnum, "renderD*") < 0)
-    return true;
+  string msg(buf.data(), len);
+  LOG_DEBUG(4, "UEVENT: " << String::escapeC(msg));
 
-  for (auto dev = sdEnum.first(); dev; dev = sdEnum.next())
-    // "platform" for Raspberry Pi
-    if (0 <= sd_device_get_parent_with_subsystem_devtype(dev, "pci", 0, 0) ||
-        0 <= sd_device_get_parent_with_subsystem_devtype(dev, "platform", 0, 0))
-      return true;
-
-  return false;
-#endif // HAVE_SYSTEMD
-
-  return true;
+  // Only interested in DRM "add" events
+  if (msg.find("ACTION=add")    != string::npos &&
+      msg.find("SUBSYSTEM=drm") != string::npos)
+    gpuAdded();
 }

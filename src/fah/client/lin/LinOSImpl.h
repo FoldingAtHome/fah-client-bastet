@@ -34,14 +34,20 @@
 namespace FAH {
   namespace Client {
     class LinOSImpl : public OS {
+      int sock = -1;
+      cb::SmartPointer<cb::Event::Event> event;
+
     public:
-      LinOSImpl(App &app) : OS(app) {}
+      LinOSImpl(App &app);
+      ~LinOSImpl();
 
       // From OS
       const char *getName()      const override;
       const char *getCPU()       const override;
       bool        isSystemIdle() const override;
-      bool        isGPUReady()   const override;
+
+    private:
+      void ueventMsg();
     };
   }
 }

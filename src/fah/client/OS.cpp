@@ -81,6 +81,7 @@ const char *OS::getCPU() const {
 void OS::dispatch() {app.getEventBase().dispatch();}
 void OS::requestExit() {app.requestExit();}
 void OS::setState(state_t state) {this->state = state; event->activate();}
+void OS::gpuAdded() {app.getGPUs().gpuAdded();}
 
 
 void OS::update() {
@@ -110,13 +111,6 @@ void OS::update() {
   // Keep system awake if not on battery
   if (!onBattery && app.keepAwake()) lastKeepAwake = Time::now();
   pm.allowSystemSleep(30 < Time::now() - lastKeepAwake);
-
-  // Signal when GPU is ready
-  if (!gpuReady && isGPUReady()) {
-    LOG_DEBUG(3, "GPU ready");
-    gpuReady = true;
-    app.getGPUs().signalGPUReady();
-  }
 
   // Update application info
   app.get("info")->insertBoolean("on_battery", onBattery);

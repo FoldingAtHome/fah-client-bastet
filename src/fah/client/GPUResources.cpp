@@ -85,7 +85,7 @@ GPUResources::GPUResources(App &app) :
 GPUResources::~GPUResources() {}
 
 
-void GPUResources::signalGPUReady() {
+void GPUResources::gpuAdded() {
   if (loaded) TRY_CATCH_ERROR(detect());
 }
 
@@ -93,8 +93,8 @@ void GPUResources::signalGPUReady() {
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
   loaded = true;
-  if (app.getOS().isGPUReady()) signalGPUReady();
   event->add(updateFreq);
+  detect();
 }
 
 
@@ -171,6 +171,7 @@ void GPUResources::detect() {
 
     res->set("cuda", cd);
   }
+#endif // __APPLE__
 
   // Enumerate HIP and match with OpenCL/CUDA
   auto hipGPUs = get_gpus<HIPLibrary>();
@@ -185,11 +186,11 @@ void GPUResources::detect() {
 
     res->set("hip", cd);
   }
-#endif // __APPLE__
 
   // Enumerate PCI bus
   std::set<string> found;
-  auto &info = PCIInfo::instance();
+  PCIInfo info; // Don't use singleton
+
   for (auto &dev: info) {
     const auto &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
     string id = "gpu:" + dev.getID();

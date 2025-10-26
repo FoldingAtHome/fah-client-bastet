@@ -5,6 +5,7 @@ Folding@home Client Changelog
  - Fix for websocket connection when ``web-root`` is enabled. @kbernhagen
  - Ignore failed core exits when shutting down. #391
  - Removed browser check in macOS installer.  @kbernhagen
+ - Listen to udev events on Linux and rescan when new GPU is added. #394
 
 ## v8.5.2
  - Fix unit complete logic, re:#387
