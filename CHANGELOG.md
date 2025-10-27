@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.4
+ - More specific udev scanning to avoid unnecessary rescans. re:#394
+
 ## v8.5.3
  - Fix for websocket connection when ``web-root`` is enabled. @kbernhagen
  - Ignore failed core exits when shutting down. #391

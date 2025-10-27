@@ -51,7 +51,7 @@ namespace {
     sockaddr_nl sa {};
     sa.nl_family = AF_NETLINK;
     sa.nl_pid    = getpid();
-    sa.nl_groups = -1; // receive all broadcasted uevents
+    sa.nl_groups = 2; // udev uevents
 
     int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
     if (sock < 0) return -1;
@@ -112,7 +112,8 @@ void LinOSImpl::ueventMsg() {
   LOG_DEBUG(4, "UEVENT: " << String::escapeC(msg));
 
   // Only interested in DRM "add" events
-  if (msg.find("ACTION=add")    != string::npos &&
-      msg.find("SUBSYSTEM=drm") != string::npos)
+  if (msg.find("ACTION=add")               != string::npos &&
+      msg.find("DEVNAME=/dev/dri/renderD") != string::npos &&
+      msg.find("SUBSYSTEM=drm")            != string::npos)
     gpuAdded();
 }
