@@ -94,6 +94,7 @@ namespace FAH {
       void setState(const cb::JSON::Value &msg);
 
       bool waitForIdle() const;
+      bool useIdleResources() const;
       bool waitOnBattery() const;
       bool waitOnGPU() const;
       bool keepAwake() const;
