@@ -1,4 +1,4 @@
-# Building the RPM package
+# Build the RPM package
 
 ## Install the Prerequisites
 
@@ -60,3 +60,31 @@ sudo zypper in ./fah-client-bastet/fah_client-<version>-1.x86_64.rpm
 Where `<version>` is the software version number. On openSUSE, ignore ("i") when `zypper` complains the package is not signed.
 
 Folding@home Client older than v8 will be automatically removed.
+
+# Create Folding@home account
+
+1. Navigate to https://beta.foldingathome.org/.
+2. Select Login.
+3. Select Register New Account and enter the followng information:
+  - Email: your email
+  - Passphrase: password
+  - Username: username
+  - Team: enter team to contribute to
+  - Passkey: use your existing passkey to tie your passkey to the account
+
+# Edit config.xml
+
+1. Edit /etc/fah-client/config.xml and add the following:
+
+```
+<config>
+  <account-token v="<your account token>"/>
+  <machine-name v="<a good display name for this machine>"/>
+</config>
+```
+
+2. Restart the service:
+```
+systemctl restart fah-client
+```
+
