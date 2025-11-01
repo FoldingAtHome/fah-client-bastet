@@ -64,12 +64,9 @@ namespace FAH {
       uint64_t getProjectKey(const std::set<std::string> &gpus) const;
       bool getBeta(const std::set<std::string> &gpus) const;
 
-      uint32_t getCPUs() const;
-      uint32_t getCPUs(bool isIdle) const;
-      std::set<std::string> getGPUs() const;
-      std::set<std::string> getGPUs(bool isIdle) const;
-      bool isGPUEnabled(const std::string &id) const;
-      bool isGPUEnabled(const std::string &id, bool isIdle) const;
+      uint32_t getCPUs(bool isIdle = false) const;
+      std::set<std::string> getGPUs(bool isIdle = false) const;
+      bool isGPUEnabled(const std::string &id, bool isIdle = false) const;
       bool isComputeDeviceEnabled(const std::string &type) const;
       void disableGPU(const std::string &id);
 

@@ -80,14 +80,6 @@ bool GPUResource::isComputeDeviceSupported(
 }
 
 
-bool GPUResource::isSupported(const Config &config) const {
-  return getBoolean("supported", false) && config.isGPUEnabled(getID()) &&
-    (isComputeDeviceSupported("cuda",   config) ||
-     isComputeDeviceSupported("hip",    config) ||
-     isComputeDeviceSupported("opencl", config));
-}
-
-
 bool GPUResource::isSupported(const Config &config, bool isIdle) const {
   return getBoolean("supported", false) && config.isGPUEnabled(getID(), isIdle) &&
     (isComputeDeviceSupported("cuda",   config) ||
