@@ -52,7 +52,7 @@ namespace FAH {
 
       bool isComputeDeviceSupported(
         const std::string &type, const Config &config) const;
-      bool isSupported(const Config &config) const;
+      bool isSupported(const Config &config, bool isIdle = false) const;
       void writeRequest(cb::JSON::Sink &sink, const Config &config) const;
     };
   }

@@ -85,6 +85,11 @@ bool Group::waitForIdle() const {
 }
 
 
+bool Group::useIdleResources() const {
+  return app.getOS().isSystemIdle() && config->getDifferentIdleResources();
+}
+
+
 bool Group::waitOnBattery() const {
   return !config->getOnBattery() && app.getOS().isOnBattery();
 }
@@ -96,9 +101,14 @@ bool Group::waitOnGPU() const {
 
   auto supportedGPUs = config->getGPUs();
   auto &gpus = *config->get("gpus");
+  auto &gpusIdle = *config->get("gpus_idle");
 
   for (auto &id: gpus.keys())
     if (config->isGPUEnabled(id) && !supportedGPUs.count(id))
+      return true;
+
+  for (auto &id: gpusIdle.keys())
+    if (config->isGPUEnabled(id, true) && !supportedGPUs.count(id))
       return true;
 
   return false;
@@ -215,12 +225,17 @@ void Group::update() {
 
   // No further action if waiting
   if (config->getPaused() || waitForIdle() || waitOnBattery() || waitOnGPU() ||
-      hasUnrunWUs() || Time::now() < waitUntil)
-    return event->add(0.25); // Check again later
+  hasUnrunWUs() || Time::now() < waitUntil)
+ return event->add(0.25); // Check again later
 
-  // Allocate resources
-  unsigned         remainingCPUs = config->getCPUs();
-  std::set<string> remainingGPUs = config->getGPUs();
+  // Determine which resource configuration to use:
+  // - If different_idle_resources is enabled, use idle resources when idle, else use active
+  // - If on_idle is enabled (without different_idle_resources), always use idle resources
+  //   but only run when system is idle
+  bool useIdleRes = useIdleResources();
+  
+  unsigned         remainingCPUs = config->getCPUs(useIdleRes);
+  std::set<string> remainingGPUs = config->getGPUs(useIdleRes);
   std::set<string> enabledWUs;
 
   // Allocate GPUs with minimum CPU requirements
@@ -290,7 +305,8 @@ void Group::update() {
   }
 
   // Add new WU if we don't already have too many and there are some resources
-  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
+  const unsigned maxWUs = config->getGPUs(useIdleRes).size() + 
+                          config->getCPUs(useIdleRes) / 64 + 3;
   if (wuCount < maxWUs && (remainingCPUs || remainingGPUs.size())) {
     app.getUnits()->add(
       new Unit(app, name, app.getNextWUID(), remainingCPUs, remainingGPUs));

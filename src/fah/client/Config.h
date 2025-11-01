@@ -52,6 +52,7 @@ namespace FAH {
       void setState(const cb::JSON::Value &msg);
 
       bool getOnIdle() const;
+      bool getDifferentIdleResources() const;
       bool getOnBattery() const;
       bool getKeepAwake() const;
       void setPaused(bool paused);
@@ -63,9 +64,9 @@ namespace FAH {
       uint64_t getProjectKey(const std::set<std::string> &gpus) const;
       bool getBeta(const std::set<std::string> &gpus) const;
 
-      uint32_t getCPUs() const;
-      std::set<std::string> getGPUs() const;
-      bool isGPUEnabled(const std::string &id) const;
+      uint32_t getCPUs(bool isIdle = false) const;
+      std::set<std::string> getGPUs(bool isIdle = false) const;
+      bool isGPUEnabled(const std::string &id, bool isIdle = false) const;
       bool isComputeDeviceEnabled(const std::string &type) const;
       void disableGPU(const std::string &id);
 

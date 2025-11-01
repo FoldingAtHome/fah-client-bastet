@@ -114,4 +114,5 @@ void OS::update() {
 
   // Update application info
   app.get("info")->insertBoolean("on_battery", onBattery);
+  app.get("info")->insertBoolean("system_idle", idle);
 }
