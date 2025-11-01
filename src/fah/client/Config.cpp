@@ -124,6 +124,21 @@ uint32_t Config::getCPUs() const {
 }
 
 
+uint32_t Config::getCPUs(bool isIdle) const {
+  uint32_t maxCPUs = SystemInfo::instance().getCPUCount();
+  uint32_t cpus;
+  
+  if (isIdle) {
+    // Try cpus_idle first, fallback to cpus if not present
+    cpus = has("cpus_idle") ? getU32("cpus_idle") : getU32("cpus");
+  } else {
+    cpus = getU32("cpus");
+  }
+  
+  return maxCPUs < cpus ? maxCPUs : cpus;
+}
+
+
 std::set<string> Config::getGPUs() const {
   std::set<string> gpus;
 
@@ -136,8 +151,33 @@ std::set<string> Config::getGPUs() const {
 }
 
 
+std::set<string> Config::getGPUs(bool isIdle) const {
+  std::set<string> gpus;
+
+  for (auto &v: app.getGPUs()) {
+    auto &gpu = *v.cast<GPUResource>();
+    if (gpu.isSupported(*this, isIdle)) gpus.insert(gpu.getID());
+  }
+
+  return gpus;
+}
+
+
 bool Config::isGPUEnabled(const string &id) const {
   auto &gpus = *get("gpus");
+  if (!gpus.has(id)) return false;
+  return gpus.get(id)->getBoolean("enabled", false);
+}
+
+
+bool Config::isGPUEnabled(const string &id, bool isIdle) const {
+  // Fallback to regular gpus config if gpus_idle doesn't exist
+  if (isIdle && !has("gpus_idle")) {
+    return isGPUEnabled(id);  // Use the non-idle version
+  }
+  
+  const string gpuKey = isIdle ? "gpus_idle" : "gpus";
+  auto &gpus = *get(gpuKey);
   if (!gpus.has(id)) return false;
   return gpus.get(id)->getBoolean("enabled", false);
 }

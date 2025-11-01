@@ -96,9 +96,14 @@ bool Group::waitOnGPU() const {
 
   auto supportedGPUs = config->getGPUs();
   auto &gpus = *config->get("gpus");
+  auto &gpusIdle = *config->get("gpus_idle");
 
   for (auto &id: gpus.keys())
     if (config->isGPUEnabled(id) && !supportedGPUs.count(id))
+      return true;
+
+  for (auto &id: gpusIdle.keys())
+    if (config->isGPUEnabled(id, true) && !supportedGPUs.count(id))
       return true;
 
   return false;
@@ -218,9 +223,10 @@ void Group::update() {
       hasUnrunWUs() || Time::now() < waitUntil)
     return event->add(0.25); // Check again later
 
-  // Allocate resources
-  unsigned         remainingCPUs = config->getCPUs();
-  std::set<string> remainingGPUs = config->getGPUs();
+  // Allocate resources based on idle state
+  bool             isIdle        = app.getOS().isSystemIdle();
+  unsigned         remainingCPUs = config->getCPUs(isIdle);
+  std::set<string> remainingGPUs = config->getGPUs(isIdle);
   std::set<string> enabledWUs;
 
   // Allocate GPUs with minimum CPU requirements
@@ -290,7 +296,8 @@ void Group::update() {
   }
 
   // Add new WU if we don't already have too many and there are some resources
-  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
+  // Calculate max WUs based on current mode's resources (using isIdle state)
+  const unsigned maxWUs = config->getGPUs(isIdle).size() + config->getCPUs(isIdle) / 64 + 3;
   if (wuCount < maxWUs && (remainingCPUs || remainingGPUs.size())) {
     app.getUnits()->add(
       new Unit(app, name, app.getNextWUID(), remainingCPUs, remainingGPUs));

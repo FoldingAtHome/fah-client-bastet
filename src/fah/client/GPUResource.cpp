@@ -88,6 +88,14 @@ bool GPUResource::isSupported(const Config &config) const {
 }
 
 
+bool GPUResource::isSupported(const Config &config, bool isIdle) const {
+  return getBoolean("supported", false) && config.isGPUEnabled(getID(), isIdle) &&
+    (isComputeDeviceSupported("cuda",   config) ||
+     isComputeDeviceSupported("hip",    config) ||
+     isComputeDeviceSupported("opencl", config));
+}
+
+
 void GPUResource::writeRequest(JSON::Sink &sink, const Config &config) const {
   sink.beginDict();
 

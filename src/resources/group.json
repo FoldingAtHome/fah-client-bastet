@@ -9,5 +9,7 @@
   "hip":       true,
   "key":        0,
   "cpus":       0,
-  "gpus":       {}
+  "cpus_idle":  0,
+  "gpus":       {},
+  "gpus_idle":  {}
 }
