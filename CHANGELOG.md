@@ -3,6 +3,8 @@ Folding@home Client Changelog
 
 ## v8.5.4
  - More specific udev scanning to avoid unnecessary rescans. re:#394
+ - Fix for WU failing to start after client restart.
+ - Fix for repeated ``Websocket not active`` error. re:#400
 
 ## v8.5.3
  - Fix for websocket connection when ``web-root`` is enabled. @kbernhagen
