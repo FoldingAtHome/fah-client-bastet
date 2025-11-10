@@ -256,10 +256,10 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
     if (hWnd) KillTimer(hWnd, ID_UPDATE_TIMER);
     OS::requestExit();
     PostQuitMessage(0);
-    hWnd = 0;
+    this->hWnd = 0;
     return 0;
 
-  case WM_QUERYENDSESSION: return 1; // Agree to shutdown
+  case WM_QUERYENDSESSION: return 1; // Agree to shutdowns
 
   case WM_ENDSESSION:
     if (!lParam) return 0;  // Shutdown was cancelled
