@@ -98,7 +98,7 @@ namespace FAH {
       bool waitOnGPU() const;
       bool keepAwake() const;
       bool isActive() const;
-      bool hasUnrunWUs() const;
+      bool isAssigning() const;
       void triggerUpdate();
       void shutdown(std::function<void ()> cb);
       void clearErrors();

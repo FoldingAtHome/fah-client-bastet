@@ -110,8 +110,7 @@ namespace FAH {
 
       UnitState getState() const;
       bool atRunState() const;
-      bool hasRun() const;
-
+      bool isAssigning() const;
       bool isWaiting() const;
       bool isPaused() const;
       void setPause(bool pause);

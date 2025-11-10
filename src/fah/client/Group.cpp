@@ -116,9 +116,9 @@ bool Group::isActive() const {
 }
 
 
-bool Group::hasUnrunWUs() const {
+bool Group::isAssigning() const {
   for (auto unit: units())
-    if (!unit->hasRun()) return true;
+    if (unit->isAssigning()) return true;
 
   return false;
 }
@@ -215,7 +215,7 @@ void Group::update() {
 
   // No further action if waiting
   if (config->getPaused() || waitForIdle() || waitOnBattery() || waitOnGPU() ||
-      hasUnrunWUs() || Time::now() < waitUntil)
+      isAssigning() || Time::now() < waitUntil)
     return event->add(0.25); // Check again later
 
   // Allocate resources

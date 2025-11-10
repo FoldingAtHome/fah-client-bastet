@@ -185,9 +185,9 @@ bool Unit::atRunState() const {
 }
 
 
-bool Unit::hasRun()    const {return getRunTime() || UNIT_RUN <= getState();}
-bool Unit::isWaiting() const {return wait && Time::now() < wait;}
-bool Unit::isPaused()  const {return getPauseReason();}
+bool Unit::isAssigning() const {return getState() == UNIT_ASSIGN;}
+bool Unit::isWaiting()   const {return wait && Time::now() < wait;}
+bool Unit::isPaused()    const {return getPauseReason();}
 
 
 void Unit::setPause(bool pause) {
