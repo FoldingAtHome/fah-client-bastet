@@ -119,11 +119,17 @@ void Remote::logWU(const Unit &wu) {
 
 
 void Remote::sendChanges(const JSON::ValuePtr &changes) {
-  send(changes);
+  try {
+    send(changes);
 
-  // Check for viz frame changes: ["units", <unit index>, "frames", #]
-  if (changes->size() == 4 && changes->getString(0) == "units" &&
-      changes->getString(2) == "frames") sendViz();
+    // Check for viz frame changes: ["units", <unit index>, "frames", #]
+    if (changes->size() == 4 && changes->getString(0) == "units" &&
+        changes->getString(2) == "frames") sendViz();
+
+  } catch (const Exception &e) {
+    close();
+    LOG_WARNING("Lost connection to remote: " << e);
+  }
 }
 
 
