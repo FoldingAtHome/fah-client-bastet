@@ -122,19 +122,21 @@ void GPUResources::response(HTTP::Request &req) {
 
 void GPUResources::update() {
   // Try to load cached gpus.json
-  const string filename = "gpus.json";
+  auto filename = "gpus.json"s;
 
   if (SystemUtilities::exists(filename)) {
     bool fail = true;
 
     try {
+      LOG_INFO(2, "Loading " << filename);
       load(*JSON::Reader::parseFile(filename));
       fail = false;
     } CATCH_ERROR;
 
     auto modTime = SystemUtilities::getModificationTime(filename);
     if (!fail && Time::now() < modTime + updateFreq) return;
-  }
+
+  } else LOG_INFO(2, "No previous " << filename);
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
