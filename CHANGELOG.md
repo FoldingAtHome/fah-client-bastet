@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.5
+ - Return to less specific udev scanning re:#394
+
 ## v8.5.4
  - More specific udev scanning to avoid unnecessary rescans. re:#394
  - Fix for WU failing to start after client restart.
