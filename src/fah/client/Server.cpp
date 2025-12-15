@@ -89,7 +89,7 @@ bool Server::corsCB(HTTP::Request &req) {
   if (req.inHas("Origin")) {
     string origin = req.inGet("Origin");
 
-    if (!allowed(origin)) THROWX("Access denied by Origin", HTTP_UNAUTHORIZED);
+    if (!allowed(origin)) THROWX("Access denied by Origin: " << origin, HTTP_UNAUTHORIZED);
 
     req.outSet("Access-Control-Allow-Origin", origin);
     req.outSet("Access-Control-Allow-Methods", "POST,PUT,GET,OPTIONS,DELETE");
