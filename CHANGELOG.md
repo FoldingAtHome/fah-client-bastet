@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.6
+ - Failing ``config.xml`` load logs error but is now non-fatal.
+
 ## v8.5.5
  - Return to less specific udev scanning re:#394
 

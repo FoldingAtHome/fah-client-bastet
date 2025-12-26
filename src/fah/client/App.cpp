@@ -538,7 +538,7 @@ void App::run() {
 
 void App::requestExit() {
   auto &groups = *getGroups();
-  SmartPointer<unsigned> count = new unsigned(groups.size());
+  auto count   = SmartPtr(new unsigned(groups.size()));
 
   auto cb = [this, count]() {if (!--*count) base.loopExit();};
 
@@ -546,6 +546,11 @@ void App::requestExit() {
     groups.getGroup(name).shutdown(cb);
 
   Application::requestExit();
+}
+
+
+void App::openConfig(const string &filename) {
+  TRY_CATCH_ERROR(Application::openConfig(filename));
 }
 
 

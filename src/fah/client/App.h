@@ -165,6 +165,7 @@ namespace FAH {
       int init(int argc, char *argv[]) override;
       void run() override;
       void requestExit() override;
+      void openConfig(const std::string &filename) override;
 
     protected:
       // From cb::JSON::Value
