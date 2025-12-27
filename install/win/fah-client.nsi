@@ -170,6 +170,8 @@ install_files:
   !endif
   File "${CLIENT_HOME}\HideConsole.exe"
   File /oname=${CLIENT_ICON} "${CLIENT_HOME}\images\fahlogo.ico"
+  File /oname=fahctl.py      "${CLIENT_HOME}\scripts\fahctl"
+  File "${CLIENT_HOME}\scripts\fahctl.bat"
   File /oname=README.txt     "${CLIENT_HOME}\README.md"
   File /oname=License.txt    "${CLIENT_HOME}\LICENSE"
   File /oname=ChangeLog.txt  "${CLIENT_HOME}\CHANGELOG.md"
@@ -302,6 +304,8 @@ Section -un.Program
   Delete "$INSTDIR\FAHClient.exe"
   Delete "$INSTDIR\FAHClient.ico"
   Delete "$INSTDIR\HideConsole.exe"
+  Delete "$INSTDIR\fahctl.py"
+  Delete "$INSTDIR\fahctl.bat"
   Delete "$INSTDIR\Homepage.url"
   Delete "$INSTDIR\License.txt"
   Delete "$INSTDIR\README.txt"
