@@ -189,7 +189,6 @@ if 'package' in COMMAND_LINE_TARGETS:
         rpm_obsoletes      = 'FAHClient, fahclient',
         rpm_suggests       = 'python3-websocket-client',
         rpm_provides       = 'user(fah-client), group(fah-client)',
-        rpm_build_requires = 'systemd-rpm-macros',
         rpm_requires       = 'polkit, expat',
         rpm_pre_requires   = 'systemd, procps, (shadow-utils or shadow)',
         rpm_post_requires  = 'systemd, coreutils',
