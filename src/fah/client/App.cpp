@@ -502,6 +502,7 @@ void App::run() {
   // Open DB
   LOG_INFO(1, "Opening Database");
   db.open("client.db");
+  db.execute("PRAGMA journal_mode=WAL");
   db.execute("PRAGMA locking_mode=EXCLUSIVE");
   db.execute("PRAGMA synchronous=NORMAL");
   db.execute("PRAGMA auto_vacuum=FULL");
