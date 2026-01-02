@@ -931,7 +931,7 @@ void Unit::retry() {
       if (csList.size()) {
         if (cs <  (int)csList.size()) cs++;
         if (cs == (int)csList.size()) cs = -1;
-        return next();
+        else return next(); // Try all CS before counting a retry
       }
     }
 
