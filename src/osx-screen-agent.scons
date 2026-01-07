@@ -1,0 +1,27 @@
+Import('*')
+
+env = env.Clone()
+env.Replace(LIBS = [])
+env.Replace(LIBPATH = [])
+env.Replace(CPPPATH = [])
+env.Replace(FRAMEWORKS = ['CoreFoundation'])
+
+try:
+  env['LINKFLAGS'].remove('-stdlib=libc++')
+except: pass
+
+if not (env.GetOption('clean') or env.get('debug')):
+  try:
+    env.AppendUnique(CCFLAGS = ['-Os'])
+    env['CCFLAGS'].remove('-O3')
+    env['CCFLAGS'].remove('-funroll-loops')
+  except: pass
+
+version = env.get('PACKAGE_VERSION')
+if version: env.CBDefine('VERSION=' + version)
+
+src = Glob('fah/screen-agent/*.c')
+
+tool = env.Program('#/bin/fah-screen-agent', src)
+
+Return('tool')
