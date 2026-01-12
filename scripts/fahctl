@@ -13,8 +13,17 @@ from urllib.parse import urlparse
 
 try:
   from websocket import create_connection
-except Exception as e:
-  print('Missing python3-websocket library', file = sys.stderr)
+except ImportError:
+  print('Missing python3 websocket library', file = sys.stderr)
+  if sys.platform == 'win32':
+    print('Try: pip install websocket-client', file = sys.stderr)
+  elif sys.platform == 'darwin':
+    print('Try: sudo pip3 install websocket-client', file = sys.stderr)
+  else:
+    print('On Debian, try: sudo apt install python3-websocket',
+      file = sys.stderr)
+    print('On Fedora, try: sudo dnf install python3-websocket-client',
+      file = sys.stderr)
   sys.exit(1)
 
 
