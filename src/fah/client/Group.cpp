@@ -98,7 +98,8 @@ bool Group::waitOnGPU() const {
   auto &gpus = *config->get("gpus");
 
   for (auto &id: gpus.keys())
-    if (config->isGPUEnabled(id) && !supportedGPUs.count(id))
+    if (config->isGPUEnabled(id) && !app.getGPUs().isInvalidGPU(id) &&
+        !supportedGPUs.count(id))
       return true;
 
   return false;

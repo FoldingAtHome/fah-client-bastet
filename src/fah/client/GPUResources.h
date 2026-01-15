@@ -47,6 +47,7 @@ namespace FAH {
       bool detected = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail = 0;
+      std::set<std::string> validGPUs;
 
       cb::Event::EventPtr event;
       cb::HTTP::Client::RequestPtr pr;
@@ -54,6 +55,8 @@ namespace FAH {
     public:
       GPUResources(App &app);
       ~GPUResources();
+
+      bool isInvalidGPU(const std::string &id) const;
 
       void gpuAdded();
 

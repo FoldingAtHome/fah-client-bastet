@@ -1,6 +1,9 @@
 Folding@home Client Changelog
 =============================
 
+## v8.5.7
+ - Don't wait for previously enabled GPUs if they are no longer valid.
+
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.
  - Install ``fahctl`` python script on Windows. @kbernhagen

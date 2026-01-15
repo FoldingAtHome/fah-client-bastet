@@ -85,6 +85,14 @@ GPUResources::GPUResources(App &app) :
 GPUResources::~GPUResources() {}
 
 
+bool GPUResources::isInvalidGPU(const string &id) const {
+  // Return true for GPUs that either don't exist on this machine or have a
+  // 0 GPU type or species.  All GPUs are considered potentially valid before
+  // the first hardware enumeration.
+  return detected && validGPUs.find(id) == validGPUs.end();
+}
+
+
 void GPUResources::gpuAdded() {
   if (loaded) TRY_CATCH_ERROR(detect());
 }
@@ -191,6 +199,7 @@ void GPUResources::detect() {
 
   // Enumerate PCI bus
   std::set<string> found;
+  std::set<string> valid;
   PCIInfo info; // Don't use singleton
 
   for (auto &dev: info) {
@@ -202,6 +211,8 @@ void GPUResources::detect() {
     if (it != resources.end()) res = it->second;
     else if (!gpu.getType()) continue; // Ignore non-GPUs
     else resources[id] = res = new GPUResource(id);
+
+    if (gpu.getSpecies()) valid.insert(id);
 
     // NOTE, It's possible the device was found by OpenCL/CUDA/HIP but the
     // driver did not report PCI info.
@@ -227,7 +238,8 @@ void GPUResources::detect() {
     }
   }
 
-  detected = true;
+  detected  = true;
+  validGPUs = valid;
   if (changed) {
     LOG_INFO(3, "gpus = " << *this);
     app.triggerUpdate();
