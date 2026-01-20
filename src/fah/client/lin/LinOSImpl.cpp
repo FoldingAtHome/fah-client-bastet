@@ -31,58 +31,12 @@
 #include <fah/client/App.h>
 
 #include <cbang/os/PowerManagement.h>
-#include <cbang/log/Logger.h>
 
-#include <array>
-#include <cstdio>
-
-#include <sys/socket.h>
-#include <linux/netlink.h>
-#include <unistd.h>
 #include <sys/utsname.h>
 
 using namespace FAH::Client;
 using namespace std;
 using namespace cb;
-
-
-namespace {
-  int open_uevent_netlink() {
-    sockaddr_nl sa {};
-    sa.nl_family = AF_NETLINK;
-    sa.nl_pid    = getpid();
-    sa.nl_groups = -1; // receive all broadcasted uevents
-
-    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
-    if (sock < 0) return -1;
-    if (bind(sock, (sockaddr *)&sa, sizeof(sa)) < 0) {
-      close(sock);
-      return -1;
-    }
-
-    return sock;
-  }
-}
-
-
-LinOSImpl::LinOSImpl(App &app) : OS(app), sock(open_uevent_netlink()) {
-  if (sock == -1) LOG_WARNING("Failed to open udev netlink socket, "
-    "may not be able to detect GPUs");
-  else {
-    auto flags = Event::EventFlag::EVENT_READ | Event::EventFlag::EVENT_PERSIST;
-    event = app.getEventBase().newEvent
-      (sock, this, &LinOSImpl::ueventMsg, flags);
-    event->add();
-  }
-}
-
-
-LinOSImpl::~LinOSImpl() {
-  if (sock != -1) close(sock);
-}
-
-
-const char *LinOSImpl::getName() const {return "linux";}
 
 
 const char *LinOSImpl::getCPU() const {
@@ -100,19 +54,4 @@ const char *LinOSImpl::getCPU() const {
 
 bool LinOSImpl::isSystemIdle() const {
   return 15 < PowerManagement::instance().getIdleSeconds();
-}
-
-
-void LinOSImpl::ueventMsg() {
-  array<char, 4096> buf {};
-  auto len = recv(sock, buf.data(), buf.size() - 1, 0);
-  if (len < 0) return;
-
-  string msg(buf.data(), len);
-  LOG_DEBUG(4, "UEVENT: " << String::escapeC(msg));
-
-  // Only interested in DRM "add" events
-  if (msg.find("ACTION=add")    != string::npos &&
-      msg.find("SUBSYSTEM=drm") != string::npos)
-    gpuAdded();
 }

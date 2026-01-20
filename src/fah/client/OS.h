@@ -78,7 +78,6 @@ namespace FAH {
       bool isOnBattery() const {return onBattery;}
       void requestExit();
       void setState(state_t state);
-      void gpuAdded();
 
     protected:
       void update();

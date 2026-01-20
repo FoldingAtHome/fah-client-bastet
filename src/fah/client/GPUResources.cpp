@@ -35,7 +35,6 @@
 
 #include <cbang/String.h>
 #include <cbang/Catch.h>
-#include <cbang/event/Event.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/json/Reader.h>
 #include <cbang/time/Time.h>
@@ -77,31 +76,26 @@ namespace {
 
 
 GPUResources::GPUResources(App &app) :
-  app(app), event(app.getEventBase().newEvent(this, &GPUResources::update, 0)) {
-  event->activate();
+  app(app),
+  updateEvent(app.getEventBase().newEvent(this, &GPUResources::update, 0)),
+  detectEvent(app.getEventBase().newEvent(this, &GPUResources::detect, 0)) {
+  updateEvent->activate();
 }
 
 
 GPUResources::~GPUResources() {}
 
 
-bool GPUResources::isInvalidGPU(const string &id) const {
-  // Return true for GPUs that either don't exist on this machine or have a
-  // 0 GPU type or species.  All GPUs are considered potentially valid before
-  // the first hardware enumeration.
-  return detected && validGPUs.find(id) == validGPUs.end();
-}
-
-
-void GPUResources::gpuAdded() {
-  if (loaded) TRY_CATCH_ERROR(detect());
+bool GPUResources::waitOnGPU(const string &id) const {
+  return !detected ||
+    (unconfiguredGPUs.count(id) && app.getUptime() < maxWaitTime);
 }
 
 
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
   loaded = true;
-  event->add(updateFreq);
+  updateEvent->add(updateFreq);
   detect();
 }
 
@@ -124,7 +118,7 @@ void GPUResources::response(HTTP::Request &req) {
   unsigned secs = lastGPUsFail ? 2 * (Time::now() - lastGPUsFail) : 5;
   lastGPUsFail = Time::now();
   if (Time::SEC_PER_DAY < secs) secs = Time::SEC_PER_DAY;
-  event->add(secs);
+  updateEvent->add(secs);
 }
 
 
@@ -198,7 +192,6 @@ void GPUResources::detect() {
   }
 
   // Enumerate PCI bus
-  std::set<string> found;
   std::set<string> valid;
   PCIInfo info; // Don't use singleton
 
@@ -238,8 +231,15 @@ void GPUResources::detect() {
     }
   }
 
-  detected  = true;
-  validGPUs = valid;
+  // Track unconfigured GPUs
+  unconfiguredGPUs.clear();
+  for (auto &id: valid)
+    if (!has(id)) unconfiguredGPUs.insert(id);
+
+  if (unconfiguredGPUs.size() && app.getUptime() < maxWaitTime)
+    detectEvent->add(5); // Try again later
+
+  detected = true;
   if (changed) {
     LOG_INFO(3, "gpus = " << *this);
     app.triggerUpdate();

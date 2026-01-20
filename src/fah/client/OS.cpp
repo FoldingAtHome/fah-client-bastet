@@ -81,7 +81,6 @@ const char *OS::getCPU() const {
 void OS::dispatch() {app.getEventBase().dispatch();}
 void OS::requestExit() {app.requestExit();}
 void OS::setState(state_t state) {this->state = state; event->activate();}
-void OS::gpuAdded() {app.getGPUs().gpuAdded();}
 
 
 void OS::update() {

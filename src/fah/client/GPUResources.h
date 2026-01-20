@@ -47,18 +47,18 @@ namespace FAH {
       bool detected = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail = 0;
-      std::set<std::string> validGPUs;
+      std::set<std::string> unconfiguredGPUs;
+      const unsigned maxWaitTime = 5 * 60 * 60;
 
-      cb::Event::EventPtr event;
+      cb::Event::EventPtr updateEvent;
+      cb::Event::EventPtr detectEvent;
       cb::HTTP::Client::RequestPtr pr;
 
     public:
       GPUResources(App &app);
       ~GPUResources();
 
-      bool isInvalidGPU(const std::string &id) const;
-
-      void gpuAdded();
+      bool waitOnGPU(const std::string &id) const;
 
     protected:
       void load(const cb::JSON::Value &gpus);

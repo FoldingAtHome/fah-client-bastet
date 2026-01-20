@@ -3,6 +3,7 @@ Folding@home Client Changelog
 
 ## v8.5.7
  - Don't wait for previously enabled GPUs if they are no longer valid.
+ - Try to configure supported GPUs for up to 5 mins after client start.
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.
