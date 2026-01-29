@@ -50,7 +50,7 @@ namespace FAH {namespace Client {extern const DirectoryResource resource0;}}
 
 Group::Group(App &app, const string &name) :
   app(app), name(name),
-  event(app.getEventBase().newEvent(this, &Group::update, 0)) {
+  event(app.getEventBase().newEvent([this] {update();}, 0)) {
   auto &r       = FAH::Client::resource0.get("group.json");
   auto defaults = JSON::Reader::parse(r);
   config        = new Config(app, defaults);

@@ -50,8 +50,8 @@ using namespace std;
 
 Core::Core(App &app, const JSON::ValuePtr &data) :
   app(app), data(data),
-  nextEvent(app.getEventBase().newEvent(this, &Core::next, 0)),
-  readyEvent(app.getEventBase().newEvent(this, &Core::ready, 0)) {
+  nextEvent (app.getEventBase().newEvent([this] {next();},  0)),
+  readyEvent(app.getEventBase().newEvent([this] {ready();}, 0)) {
   nextEvent->activate();
 }
 

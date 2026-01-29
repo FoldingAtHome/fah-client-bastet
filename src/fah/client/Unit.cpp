@@ -113,7 +113,7 @@ namespace {
 
 
 Unit::Unit(App &app) :
-    app(app), event(app.getEventBase().newEvent(this, &Unit::next, 0)) {
+    app(app), event(app.getEventBase().newEvent([this] {next();}, 0)) {
   event->setPriority(6);  // Ensure event always runs after Group::update()
   triggerNext();
 }
@@ -884,7 +884,7 @@ void Unit::monitorRun() {
 
 
 void Unit::clean(const string &result) {
-  LOG_DEBUG(3, "Cleaning WU");
+  LOG_DEBUG(3, "Cleaning WU: " << result);
 
   if (!id.empty()) {
     // Log WU

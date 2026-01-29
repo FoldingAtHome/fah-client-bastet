@@ -77,8 +77,8 @@ namespace {
 
 GPUResources::GPUResources(App &app) :
   app(app),
-  updateEvent(app.getEventBase().newEvent(this, &GPUResources::update, 0)),
-  detectEvent(app.getEventBase().newEvent(this, &GPUResources::detect, 0)) {
+  updateEvent(app.getEventBase().newEvent([this] {update();}, 0)),
+  detectEvent(app.getEventBase().newEvent([this] {detect();}, 0)) {
   updateEvent->activate();
 }
 

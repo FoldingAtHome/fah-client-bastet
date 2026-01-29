@@ -50,7 +50,7 @@ using namespace std;
 
 OS::OS(App &app) : app(app), paused(false), active(false), failure(false),
   onBattery(false), state(STATE_NULL),
-  event(app.getEventBase().newEvent(this, &OS::update)) {event->add(2);}
+  event(app.getEventBase().newEvent([this] {update();})) {event->add(2);}
 
 
 OS::~OS() {}

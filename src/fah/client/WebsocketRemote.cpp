@@ -54,8 +54,7 @@ void WebsocketRemote::close() {getConnection()->close();}
 
 
 void WebsocketRemote::onOpen() {
-  pingEvent = getApp().getEventBase()
-    .newEvent(this, &WebsocketRemote::sendPing, 0);
+  pingEvent = getApp().getEventBase().newEvent([this] {sendPing();}, 0);
   Remote::onOpen();
 }
 

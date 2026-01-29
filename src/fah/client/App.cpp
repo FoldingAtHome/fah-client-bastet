@@ -100,7 +100,7 @@ App::App() :
   account(new Account(*this)), gpus(new GPUResources(*this)),
   cores(new Cores(*this)), logTracker(new LogTracker(base)) {
 
-  saveEvent = base.newEvent(this, &App::saveGlobalConfig, 0);
+  saveEvent = base.newEvent([this] {saveGlobalConfig();}, 0);
 
   Logger::instance().initEvents(base);
 
@@ -185,8 +185,9 @@ App::App() :
   options["log-rotate-period" ].setDefault(Time::SEC_PER_DAY);
 
   // Handle exit signal
-  ( sigintEvent = base.newSignal(SIGINT,  this, &App::signalEvent))->add();
-  (sigtermEvent = base.newSignal(SIGTERM, this, &App::signalEvent))->add();
+  auto exitCB = [this] {requestExit();};
+  ( sigintEvent = base.newSignal(SIGINT,  exitCB))->add();
+  (sigtermEvent = base.newSignal(SIGTERM, exitCB))->add();
 
   // Network timeout
   client.setReadTimeout(300);
@@ -568,9 +569,6 @@ void App::notify(const list<JSON::ValuePtr> &change) {
   for (auto &remote: remotes)
     remote->sendChanges(changes);
 }
-
-
-void App::signalEvent(Event::Event &, int, unsigned) {requestExit();}
 
 
 void App::saveGlobalConfig() {

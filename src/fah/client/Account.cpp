@@ -60,7 +60,7 @@ Account::Account(App &app) : app(app) {
     "Must be between 1 and 64 characters and cannot include any of <>;&'\""));
   options.popCategory();
 
-  updateEvent = app.getEventBase().newEvent(this, &Account::update, 0);
+  updateEvent = app.getEventBase().newEvent([this] {update();}, 0);
   updateEvent->activate();
 }
 

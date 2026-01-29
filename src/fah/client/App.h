@@ -171,8 +171,6 @@ namespace FAH {
       // From cb::JSON::Value
       void notify(const std::list<cb::JSON::ValuePtr> &change) override;
 
-      void signalEvent(cb::Event::Event &e, int signal, unsigned flags);
-
       void saveGlobalConfig();
     };
   }

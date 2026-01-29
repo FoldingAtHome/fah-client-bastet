@@ -37,7 +37,7 @@ using namespace FAH::Client;
 
 
 LogTracker::LogTracker(Event::Base &base) :
-  event(base.newEvent(this, &LogTracker::update, 0)) {}
+  event(base.newEvent([this] {update();}, 0)) {}
 
 
 void LogTracker::add(const cb::SmartPointer<Listener> &listener,
