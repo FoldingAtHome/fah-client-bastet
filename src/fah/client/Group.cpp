@@ -289,7 +289,8 @@ void Group::update() {
   }
 
   // Add new WU if we don't already have too many and there are some resources
-  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 + 3;
+  const unsigned maxWUs = config->getGPUs().size() + config->getCPUs() / 64 +
+    app.getOptions()["max-uploads"].toInteger();
   if (wuCount < maxWUs && (remainingCPUs || remainingGPUs.size())) {
     app.getUnits()->add(
       new Unit(app, name, app.getNextWUID(), remainingCPUs, remainingGPUs));
