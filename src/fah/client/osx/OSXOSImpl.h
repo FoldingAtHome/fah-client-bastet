@@ -47,8 +47,6 @@ namespace FAH {
       static OSXOSImpl *singleton;
 
       std::atomic<bool> systemIsIdle = false;
-      bool screensaverIsActive       = false;
-      bool screenIsLocked            = false;
       bool loginwindowIsActive       = false;
 
       io_service_t displayWrangler = 0;
@@ -61,6 +59,12 @@ namespace FAH {
       std::string consoleUser;
 
       int displayPower           = 0;
+
+      // these are notification received bools; both are needed
+      bool screenIdle    = false;
+      bool screenNotIdle = false;
+      dispatch_time_t screenIdleExpiry    = 0;
+      dispatch_time_t screenNotIdleExpiry = 0;
 
     public:
       OSXOSImpl(App &app);
@@ -82,12 +86,16 @@ namespace FAH {
       void displayPowerChanged
       (void *context, io_service_t service, natural_t mtype, void *marg);
       void finishInit();
+      void noteScreenIdle();
+      void noteScreenNotIdle();
 
     protected:
       void initialize();
       void addHeartbeatTimerToRunLoop(CFRunLoopRef loop);
       void deregisterForConsoleUserNotifications();
       bool registerForConsoleUserNotifications();
+      bool gotScreenIdleRecently();
+      bool gotScreenNotIdleRecently();
       bool registerForDarwinNotifications();
       void deregisterForDisplayPowerNotifications();
       bool registerForDisplayPowerNotifications();

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>Label</key>
+	<string>org.foldingathome.fah-screen-agent</string>
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
+	<key>LowPriorityIO</key>
+	<true/>
+	<key>Program</key>
+	<string>/usr/local/bin/fah-screen-agent</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/dev/null</string>
+	<key>Umask</key>
+	<integer>18</integer>
+</dict>
+</plist>

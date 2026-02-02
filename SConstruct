@@ -67,12 +67,15 @@ if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
                               duplicate = 0)
     Default(hide_console)
 
+tools = SConscript('src/tools.scons', variant_dir = 'build', duplicate = 0)
+Default(tools)
+Depends(tools, client)
 # Clean
-Clean(client, ['build', 'config.log'])
+Clean(client, ['bin', 'build', 'config.log'])
 
 # Dist
 docs = ['README.md', 'CHANGELOG.md', 'LICENSE']
-distfiles = docs + [client, 'images/fahlogo.png']
+distfiles = docs + client + tools + ['images/fahlogo.png']
 if env['PLATFORM'] == 'posix':
     distfiles.append('install/lin/fah-client.service')
 if hide_console is not None: distfiles.append(hide_console)
@@ -115,7 +118,7 @@ if 'package' in COMMAND_LINE_TARGETS:
             home =        '.', # abs path or relative to PWD
             pkg_scripts = 'build/install/osx/scripts', # relative to home
             root =        './build/pkg/root', # abs path or relative to PWD
-            sign_tools =  ['usr/local/bin/fah-client'], # relative to root
+            sign_tools =  ['usr/local/bin/fah-*'], # relative to root
             must_close_apps = [
                 'org.foldingathome.fahviewer',
                 'org.foldingathome.fahcontrol',
@@ -123,18 +126,24 @@ if 'package' in COMMAND_LINE_TARGETS:
                 'edu.stanford.folding.fahcontrol',
             ],
             pkg_files = [
-                [str(client[0]), 'usr/local/bin/', 0o755],
                 ['scripts/fahctl', 'usr/local/bin/', 0o755],
                 ['build/install/osx/fahclient.url',
                  'Applications/Folding@home/Folding@home.url', 0o644],
                 ['build/install/osx/uninstall.url',
                  'Applications/Folding@home/uninstall.url', 0o644],
+                ['build/install/osx/fah-screen-agent.plist',
+                 'Library/LaunchAgents/' +
+                 'org.foldingathome.fah-screen-agent.plist', 0o644],
                 ['build/install/osx/launchd.plist',
                  'Library/LaunchDaemons/' +
                  'org.foldingathome.fahclient.plist', 0o644]
             ],
             pre_sign_callback = seticon,
         )]
+
+        pkg_files = pkg_components[0]['pkg_files']
+        for tool in client + tools:
+            pkg_files += [[str(tool), 'usr/local/bin/', 0o755]]
 
         # min pkg target macos 10.13
         pkg_target = env.get('osx_min_ver', '10.13')
