@@ -76,6 +76,38 @@ using namespace std;
 namespace {
   static const uint64_t maxViewerBytes = 2.5e7;
 
+  template <typename Conn>
+  static auto peerEndpointStr(const Conn& c, int)
+      -> decltype(c->getSocket().getPeerAddress().toString(), std::string()) {
+      return c->getSocket().getPeerAddress().toString();
+  }
+
+  template <typename Conn>
+  static auto peerEndpointStr(const Conn& c, long)
+      -> decltype(c->getPeerAddress().toString(), std::string()) {
+      return c->getPeerAddress().toString();
+  }
+
+  template <typename Conn>
+  static std::string peerEndpointStr(const Conn&, ...) { return std::string(); }
+
+  template <typename Conn>
+  static void logOutboundEndpoint(const std::string& prefix,
+      const Conn& conn, const char* what, const URI* targetUri = nullptr) {
+      try {
+          if (targetUri) {
+              LOG_INFO(1, prefix << " Outbound connect (" << what << "): target="
+                  << targetUri->toString());
+          }
+
+          if (!conn) return;
+
+          std::string ep = peerEndpointStr(conn, 0);
+          if (!ep.empty())
+          LOG_INFO(1, prefix << " Outbound connect (" << what << "): peer=" << ep);
+      }
+      catch (...) {}
+  }
 
   string idFromSig(const string &sig) {
     if (sig.empty()) return "";
@@ -1076,6 +1108,8 @@ void Unit::assign() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
+  logOutboundEndpoint(getLogPrefix(), pr->getConnection(), "assign", &uri);
+
   pr->getRequest()->send([&] (JSON::Sink &sink) {
     sink.beginDict();
     sink.insert("data", *data);
@@ -1139,9 +1173,12 @@ void Unit::download() {
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
+  URI uri = getWSURL("/assign");
+
   pr = app.getClient()
-    .call(getWSURL("/assign"), HTTP::Method::HTTP_POST, this,
-          &Unit::response);
+      .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
+
+  logOutboundEndpoint(getLogPrefix(), pr->getConnection(), "download", &uri);
 
   pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   clearProgress();
@@ -1179,6 +1216,8 @@ void Unit::upload() {
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
+  logOutboundEndpoint(getLogPrefix(), pr->getConnection(), "upload", &uri);
+
   pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   clearProgress();
   pr->getConnection()->getWriteProgress().setCallback(progressCB, 1);
@@ -1200,9 +1239,12 @@ void Unit::dump() {
   setResults("dumped", "");
   LOG_DEBUG(5, *data);
 
+  URI uri = getWSURL("/results");
+
   pr = app.getClient()
-    .call(getWSURL("/results"), HTTP::Method::HTTP_POST, this,
-          &Unit::response);
+      .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
+
+  logOutboundEndpoint(getLogPrefix(), pr->getConnection(), "dump", &uri);
 
   pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   pr->send();
@@ -1210,7 +1252,9 @@ void Unit::dump() {
 
 
 void Unit::response(HTTP::Request &req) {
-  pr.release(); // Deref request object
+  // Log the remote endpoint (IP:port) we actually connected to.
+    logOutboundEndpoint(getLogPrefix(), req.getConnection(), "response");
+    pr.release(); // Deref request object
 
   try {
     if (req.logResponseErrors()) {
