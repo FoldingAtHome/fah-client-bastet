@@ -66,3 +66,4 @@ config.log
 /.vs/slnx.sqlite-journal
 /.vs/tasks.vs.json
 /changes.patch
+/.vs
