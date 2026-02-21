@@ -62,3 +62,7 @@ config.log
 
 .vscode
 *.code-workspace
+/.vs/slnx.sqlite
+/.vs/slnx.sqlite-journal
+/.vs/tasks.vs.json
+/changes.patch
