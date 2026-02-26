@@ -210,13 +210,12 @@ void Core::download(const string &url) {
   LOG_INFO(1, "Downloading " << url);
 
   // Monitor download progress
-  Progress::callback_t progressCB =
-    [this] (const Progress &p) {
-      for (auto &cb: progressCBs)
-        cb(p.getTotal(), p.getSize());
-    };
+  auto progressCB = [this] (const Progress &p) {
+    for (auto &cb: progressCBs)
+      cb(p.getTotal(), p.getSize());
+  };
 
-  HTTP::Client::callback_t cb = [this] (HTTP::Request &req) {response(req);};
+  auto cb = [this] (HTTP::Request &req) {response(req);};
   pr = app.getClient().call(url, HTTP_GET, WeakCall(this, cb));
   auto &progress = pr->getConnection()->getReadProgress();
   progress.setCallback(WeakCall(this, progressCB), 1);

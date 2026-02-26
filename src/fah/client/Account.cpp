@@ -201,7 +201,7 @@ void Account::reset() {
 
 
 void Account::info() {
-  HTTP::Client::callback_t cb = [this] (HTTP::Request &req) mutable {
+  auto cb = [this] (HTTP::Request &req) mutable {
     pr.release();
 
     try {
@@ -256,18 +256,17 @@ void Account::link() {
   auto &db = app.getDB("config");
   string requestedToken = db.getString("requested-token", "");
 
-  HTTP::Client::callback_t cb =
-    [this, requestedToken] (HTTP::Request &req) {
-      pr.release();
-      if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
-      else if (req.logResponseErrors()) retry();
+  auto cb = [this, requestedToken] (HTTP::Request &req) {
+    pr.release();
+    if (req.getResponseCode() == HTTP_NOT_FOUND) reset();
+    else if (req.logResponseErrors()) retry();
 
-      else {
-        LOG_INFO(1, "Account linked");
-        app.getDB("config").set("account-token", requestedToken);
-        setState(STATE_INFO);
-      }
-    };
+    else {
+      LOG_INFO(1, "Account linked");
+      app.getDB("config").set("account-token", requestedToken);
+      setState(STATE_INFO);
+    }
+  };
 
   string api = app.getOptions()["api-server"].toString();
   URI uri(api + "/machine/" + app.getID());

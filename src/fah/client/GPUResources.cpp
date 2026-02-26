@@ -142,7 +142,7 @@ void GPUResources::update() {
 
   // Download GPUs JSON
   URI uri = "https://api.foldingathome.org/gpus";
-  HTTP::Client::callback_t cb = [this] (HTTP::Request &req) {response(req);};
+  auto cb = [this] (HTTP::Request &req) {response(req);};
   pr = app.getClient().call(uri, HTTP::Method::HTTP_GET, WeakCall(this, cb));
   pr->send();
 }
