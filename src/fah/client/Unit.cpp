@@ -171,7 +171,7 @@ void Unit::setGroup(const SmartPointer<Group> &group) {
 const Config &Unit::getConfig() const {return group->getConfig();}
 
 
-const string &Unit::getClientID() const {
+string Unit::getClientID() const {
   return data->selectString("request.data.id", "");
 }
 
