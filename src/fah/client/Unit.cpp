@@ -1065,13 +1065,13 @@ void Unit::assign() {
   id = idFromSig(signature);
   insert("id", id);
 
-  LOG_INFO(1, "Requesting WU assignment for user "
-    << app.getConfig()->getUsername() << " team "
-    << app.getConfig()->getTeam());
-  LOG_DEBUG(3, *data);
-
   // TODO validate peer certificate
   URI uri("https", app.getNextAS(), 0, "/api/assign");
+
+  LOG_INFO(1, "Requesting WU assignment for user "
+    << app.getConfig()->getUsername() << " team "
+    << app.getConfig()->getTeam() << " from " << uri);
+  LOG_DEBUG(3, *data);
 
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
@@ -1133,15 +1133,15 @@ void Unit::downloadResponse(const JSON::ValuePtr &data) {
 void Unit::download() {
   if (pr.isSet()) return; // Already downloading
 
-  LOG_INFO(1, "Downloading WU");
+  auto uri = getWSURL("/assign");
+  LOG_INFO(1, "Downloading WU from " << uri);
 
   // Monitor download progress
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
 
   pr = app.getClient()
-    .call(getWSURL("/assign"), HTTP::Method::HTTP_POST, this,
-          &Unit::response);
+    .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
   pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   clearProgress();
@@ -1161,8 +1161,6 @@ void Unit::uploadResponse(const JSON::ValuePtr &data) {
 void Unit::upload() {
   if (pr.isSet()) return; // Already uploading
 
-  LOG_INFO(1, "Uploading WU results");
-
   // Monitor upload progress
   auto progressCB =
     [this] (const Progress &p) {setProgress(p.getTotal(), p.getSize());};
@@ -1175,6 +1173,8 @@ void Unit::upload() {
     string host = csList.getString(cs);
     uri = URI("https", host, 0, "/api/results");
   }
+
+  LOG_INFO(1, "Uploading WU results to " << uri);
 
   pr = app.getClient()
     .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
@@ -1196,13 +1196,14 @@ void Unit::dumpResponse(const JSON::ValuePtr &data) {
 void Unit::dump() {
   if (pr.isSet()) return; // Already dumping
 
-  LOG_INFO(1, "Sending dump report");
   setResults("dumped", "");
+
+  auto uri = getWSURL("/results");
+  LOG_INFO(1, "Sending dump report to " << uri);
   LOG_DEBUG(5, *data);
 
   pr = app.getClient()
-    .call(getWSURL("/results"), HTTP::Method::HTTP_POST, this,
-          &Unit::response);
+    .call(uri, HTTP::Method::HTTP_POST, this, &Unit::response);
 
   pr->getRequest()->send([&] (JSON::Sink &sink) {data->write(sink);});
   pr->send();
