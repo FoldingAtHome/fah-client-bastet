@@ -48,7 +48,7 @@ namespace FAH {
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail = 0;
       std::set<std::string> unconfiguredGPUs;
-      const unsigned maxWaitTime = 5 * 60 * 60;
+      const unsigned maxWaitTime = 5 * 60;
 
       cb::Event::EventPtr updateEvent;
       cb::Event::EventPtr detectEvent;
