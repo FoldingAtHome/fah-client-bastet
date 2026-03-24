@@ -99,8 +99,6 @@ namespace FAH {
       App();
       ~App();
 
-      static bool _hasFeature(int feature);
-
       cb::Event::Base  &getEventBase() {return base;}
       cb::HTTP::Client &getClient()    {return client;}
       cb::KeyPair      &getKey()       {return key;}

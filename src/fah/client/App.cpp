@@ -95,7 +95,7 @@ namespace {
 
 
 App::App() :
-  Application("Folding@home Client", App::_hasFeature), base(true, 10),
+  Application("Folding@home Client"), base(true, 10),
   client(base, new SSLContext), server(new Server(*this)),
   account(new Account(*this)), gpus(new GPUResources(*this)),
   cores(new Cores(*this)), logTracker(new LogTracker(base)) {
@@ -219,15 +219,6 @@ App::App() :
 App::~App() {
   Logger::instance().removeListener(logTracker);
   clear(); // Deallocate objects in ObservableDict before Event::Base
-}
-
-
-bool App::_hasFeature(int feature) {
-  switch (feature) {
-  case FEATURE_INFO: return true;
-  case FEATURE_SIGNAL_HANDLER: return false;
-  default: return Application::_hasFeature(feature);
-  }
 }
 
 
