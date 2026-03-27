@@ -39,21 +39,20 @@ using namespace FAH::Client;
 WebsocketRemote::WebsocketRemote(App &app) : Remote(app) {}
 
 
-string WebsocketRemote::getName() const {
-  return getConnection()->getPeerAddr().toString(false);
-}
-
-
 void WebsocketRemote::send(const cb::JSON::ValuePtr &msg) {
   pingEvent->add(15);
   if (isActive()) WS::JSONWebsocket::send(*msg);
 }
 
 
-void WebsocketRemote::close() {getConnection()->close();}
+void WebsocketRemote::close() {
+  auto conn = getConnection().toStrongPtr();
+  if (conn.isSet()) conn->close();
+}
 
 
 void WebsocketRemote::onOpen() {
+  name      = getConnection()->getPeerAddr().toString(false);
   pingEvent = getApp().getEventBase().newEvent([this] {sendPing();}, 0);
   Remote::onOpen();
 }
@@ -61,7 +60,7 @@ void WebsocketRemote::onOpen() {
 
 void WebsocketRemote::onShutdown() {
   WS::Websocket::onShutdown();
-  if (getConnection().isSet()) getConnection()->close();
+  close();
   if (pingEvent.isSet()) pingEvent->del();
   Remote::onClose();
 }

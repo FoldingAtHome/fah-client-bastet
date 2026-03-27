@@ -104,7 +104,7 @@ string Config::getUsername() const {
 
 
 string Config::getPasskey() const {return getString("passkey", "");}
-uint32_t Config::getTeam() const {return getU32("team", 0);}
+uint32_t Config::getTeam()  const {return getU32("team", 0);}
 
 
 uint64_t Config::getProjectKey(const std::set<string> &gpus) const {

@@ -36,13 +36,14 @@
 namespace FAH {
   namespace Client {
     class WebsocketRemote : public Remote, public cb::WS::JSONWebsocket {
+      std::string name = "unconnected";
       cb::SmartPointer<cb::Event::Event> pingEvent;
 
     public:
       WebsocketRemote(App &app);
 
       // From Remote
-      std::string getName() const override;
+      std::string getName() const override {return name;}
       void send(const cb::JSON::ValuePtr &msg) override;
       void close() override;
 
