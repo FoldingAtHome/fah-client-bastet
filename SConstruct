@@ -1,8 +1,12 @@
 # Setup
 import os
 import json
+import sys
+# Route `scons test` through the repo-local runner instead of cbang's default
+# harness so Phase 0 can bootstrap without extra Python test dependencies.
 if 'test' in COMMAND_LINE_TARGETS and 'TEST_COMMAND' not in ARGUMENTS:
-    ARGUMENTS['TEST_COMMAND'] = 'python3 tests/run_phase0_tests.py'
+    os.environ['SCONS_EXECUTABLE'] = sys.argv[0]
+    ARGUMENTS['TEST_COMMAND'] = sys.executable + ' tests/run_phase0_tests.py'
 env = Environment(ENV = os.environ)
 try:
     env.Tool('config', toolpath = [os.environ.get('CBANG_HOME')])

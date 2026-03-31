@@ -4,6 +4,8 @@ Import('*')
 
 env.Append(CPPPATH = ['#/src'])
 
+# Keep Phase 0 narrow: compile a small binary around self-contained backend
+# logic before introducing a larger test framework or runtime-heavy fixtures.
 test_bin = env.Program(
     '#/build/tests/fah-client-tests',
     [
@@ -18,6 +20,8 @@ def run_tests(target, source, env):
     return subprocess.call([str(source[0])])
 
 
+# Preserve `scons test` as the public entry point while still allowing the
+# binary to be built directly in CI or local development.
 test_run = env.Command(
     '#/build/tests/test.stamp',
     test_bin,

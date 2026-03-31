@@ -72,6 +72,8 @@ namespace {
 
 
   void testPasskeyConstraint() {
+    // This is a good Phase 0 target because it exercises project-owned
+    // validation logic without requiring network, filesystem, or process setup.
     PasskeyConstraint constraint;
 
     constraint.validate(cb::JSON::String(""));
@@ -92,6 +94,8 @@ namespace {
 
 
   void testExitCode() {
+    // The generated enum helpers are simple but correctness-critical glue for
+    // process-exit handling elsewhere in the client.
     expect(ExitCode::parse("FINISHED_UNIT") == ExitCode::FINISHED_UNIT,
            "ExitCode should parse FINISHED_UNIT");
     expect(ExitCode::parse("WU_STALLED") == ExitCode::WU_STALLED,
