@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: "0 8 * * *"
+
+jobs:
+  build-and-test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fah-client-bastet
+        uses: actions/checkout@v4
+
+      - name: Checkout cbang
+        uses: actions/checkout@v4
+        with:
+          repository: cauldrondevelopmentllc/cbang
+          path: ../cbang
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            fakeroot \
+            git \
+            libbz2-dev \
+            liblz4-dev \
+            libssl-dev \
+            libsystemd-dev \
+            npm \
+            scons \
+            zlib1g-dev
+
+      - name: Build cbang
+        run: scons -C ../cbang
+
+      - name: Build client
+        run: CBANG_HOME=$GITHUB_WORKSPACE/../cbang scons
+
+      - name: Run tests
+        run: CBANG_HOME=$GITHUB_WORKSPACE/../cbang scons test

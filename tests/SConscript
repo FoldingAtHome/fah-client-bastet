@@ -1,0 +1,29 @@
+import subprocess
+
+Import('*')
+
+env.Append(CPPPATH = ['#/src'])
+
+test_bin = env.Program(
+    '#/build/tests/fah-client-tests',
+    [
+        '#/tests/phase0_tests.cpp',
+        '#/src/fah/client/PasskeyConstraint.cpp',
+        '#/src/fah/client/ExitCode.cpp',
+    ],
+)
+
+
+def run_tests(target, source, env):
+    return subprocess.call([str(source[0])])
+
+
+test_run = env.Command(
+    '#/build/tests/test.stamp',
+    test_bin,
+    env.Action(run_tests, 'Running $SOURCE'),
+)
+AlwaysBuild(test_run)
+env.Alias('test', test_run)
+
+Return('test_bin')

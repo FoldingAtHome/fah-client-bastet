@@ -1,6 +1,8 @@
 # Setup
 import os
 import json
+if 'test' in COMMAND_LINE_TARGETS and 'TEST_COMMAND' not in ARGUMENTS:
+    ARGUMENTS['TEST_COMMAND'] = 'python3 tests/run_phase0_tests.py'
 env = Environment(ENV = os.environ)
 try:
     env.Tool('config', toolpath = [os.environ.get('CBANG_HOME')])
@@ -59,6 +61,10 @@ conf.Finish()
 Export('env')
 client = SConscript('src/client.scons', variant_dir = 'build', duplicate = 0)
 Default(client)
+
+# Tests
+tests = SConscript('tests/SConscript', variant_dir = 'build/tests',
+                   duplicate = 0)
 
 # HideConsole
 hide_console = None
