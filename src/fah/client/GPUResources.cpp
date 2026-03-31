@@ -67,7 +67,7 @@ namespace {
           devices.push_back(dev);
       }
     } catch (const Exception &e) {
-      LOG_DEBUG(3, LIB::getName() << " not supported: " << e.getMessage());
+      LOG_INFO(1, LIB::getName() << " not supported: " << e.getMessage());
     }
 
     return devices;

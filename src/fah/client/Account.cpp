@@ -69,7 +69,13 @@ string Account::getMachName() const {
   string machName = app.getDB("config").getString("machine-name", "");
 
   if (machName.empty())
-    try {machName = SystemInfo::instance().getHostname();} catch (...) {}
+    try {
+      machName = SystemInfo::instance().getHostname();
+    } catch (const Exception &e) {
+      LOG_DEBUG(3, "Failed to get hostname: " << e.getMessage());
+    } catch (...) {
+      LOG_DEBUG(3, "Failed to get hostname");
+    }
 
   return machName.empty() ? "machine-#" : machName;
 }
