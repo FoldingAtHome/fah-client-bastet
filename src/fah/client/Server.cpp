@@ -122,8 +122,13 @@ bool Server::redirectPing(HTTP::Request &req) {
 
   if (uri.has("callback")) {
     string callback = uri.get("callback");
+
+    // Sanitize callback to valid JS identifiers to prevent XSS injection
+    if (!Regex("[a-zA-Z_][a-zA-Z0-9_.]*").match(callback))
+      THROWX("Invalid JSONP callback", HTTP_BAD_REQUEST);
+
     string payload  = callback + "({\"redirect\":\"" + app.getURL() + "\"})";
-    req.setContentType("application/json");
+    req.setContentType("application/javascript"); // JSONP is executable JS
     req.reply(payload);
     return true;
   }
