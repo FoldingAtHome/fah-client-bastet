@@ -12,6 +12,7 @@ test_bin = env.Program(
         '#/tests/phase0_tests.cpp',
         '#/src/fah/client/PasskeyConstraint.cpp',
         '#/src/fah/client/ExitCode.cpp',
+        '#/src/fah/client/UnitRetryPolicy.cpp',
     ],
 )
 

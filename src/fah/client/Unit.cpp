@@ -38,6 +38,7 @@
 #include "Cores.h"
 #include "Config.h"
 #include "ExitCode.h"
+#include "UnitRetryPolicy.h"
 
 #include <cbang/Catch.h>
 
@@ -935,18 +936,16 @@ void Unit::retry() {
       }
     }
 
-    if (++retries < 10 || getState() == UNIT_ASSIGN ||
-        (retries <= 50 && UNIT_UPLOAD <= getState())) {
-      double delay = std::pow(2, std::min(9U, retries));
-      setWait(delay);
-      LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
-
-    } else {
+    auto decision = UnitRetryPolicy::evaluate(getState(), ++retries);
+    if (decision.fail) {
       LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
       setWait(0);
       retries = 0;
       return clean("retries");
     }
+
+    setWait(decision.delay);
+    LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(decision.delay));
 
     insert("retries", retries);
     return;

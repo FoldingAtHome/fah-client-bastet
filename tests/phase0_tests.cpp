@@ -28,6 +28,7 @@
 
 #include "fah/client/PasskeyConstraint.h"
 #include "fah/client/ExitCode.h"
+#include "fah/client/UnitRetryPolicy.h"
 
 #include <cbang/Exception.h>
 #include <cbang/json/String.h>
@@ -106,12 +107,37 @@ namespace {
     expect(!ExitCode::isValid((ExitCode::enum_t)42),
            "ExitCode value 42 should be invalid");
   }
+
+
+  void testUnitRetryPolicy() {
+    // This is the first extracted policy seam from Unit.cpp. It is pure logic
+    // and captures retry thresholds that have direct user-visible behavior.
+    auto assign = UnitRetryPolicy::evaluate(UnitState::UNIT_ASSIGN, 25);
+    expect(!assign.fail, "Assignment retries should stay retryable past 10");
+    expect(assign.delay == 512, "Assignment retry delay should cap at 512s");
+
+    auto run = UnitRetryPolicy::evaluate(UnitState::UNIT_RUN, 9);
+    expect(!run.fail, "Run retries below 10 should keep retrying");
+    expect(run.delay == 512, "Ninth retry should use the capped delay");
+
+    auto runFail = UnitRetryPolicy::evaluate(UnitState::UNIT_RUN, 10);
+    expect(runFail.fail, "Run retries at 10 should fail the WU");
+    expect(runFail.delay == 0, "Failure decisions should not carry a delay");
+
+    auto upload = UnitRetryPolicy::evaluate(UnitState::UNIT_UPLOAD, 50);
+    expect(!upload.fail, "Upload retries should allow a larger ceiling");
+    expect(upload.delay == 512, "Upload retry delay should also cap at 512s");
+
+    auto uploadFail = UnitRetryPolicy::evaluate(UnitState::UNIT_UPLOAD, 51);
+    expect(uploadFail.fail, "Upload retries above 50 should fail the WU");
+  }
 }
 
 
 int main() {
   testPasskeyConstraint();
   testExitCode();
+  testUnitRetryPolicy();
 
   if (failures) {
     std::cerr << failures << " test assertion(s) failed" << std::endl;
