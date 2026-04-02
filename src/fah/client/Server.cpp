@@ -128,7 +128,7 @@ bool Server::redirectPing(HTTP::Request &req) {
       THROWX("Invalid JSONP callback", HTTP_BAD_REQUEST);
 
     string payload  = callback + "({\"redirect\":\"" + app.getURL() + "\"})";
-    req.setContentType("application/javascript"); // JSONP is executable JS
+    req.setContentType("application/javascript");
     req.reply(payload);
     return true;
   }
