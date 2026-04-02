@@ -72,6 +72,13 @@ scons -C fah-client-bastet -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 3. Build and test locally.
 4. Submit a pull request with a clear description of what changed and why.
 
+### AI-Assisted Contributions
+
+AI coding tools can be helpful for writing code and documentation, but the
+submitter is responsible for the result. Pull requests containing code or
+documentation that the author does not understand and has not proofread
+will not be accepted.
+
 ### Commit Messages
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/):
