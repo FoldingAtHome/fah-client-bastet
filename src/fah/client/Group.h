@@ -44,10 +44,9 @@ namespace FAH {
       cb::SmartPointer<Config> config;
 
       cb::Event::EventPtr event;
-      uint32_t lostWUs        = 0;
-      uint32_t failures       = 0;
-      uint64_t waitUntil      = 0;
-      uint64_t lastIdleLog    = 0;
+      uint32_t lostWUs    = 0;
+      uint32_t failures   = 0;
+      uint64_t waitUntil  = 0;
 
       std::function<void ()> shutdownCB;
 

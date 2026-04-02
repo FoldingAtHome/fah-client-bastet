@@ -214,21 +214,8 @@ void Group::update() {
 
   // No further action if waiting
   if (config->getPaused() || waitForIdle() || waitOnBattery() || waitOnGPU() ||
-      isAssigning() || Time::now() < waitUntil) {
-    if (Time::now() - lastIdleLog >= 300) {
-      lastIdleLog = Time::now();
-
-      if (config->getPaused())    LOG_INFO(1, "Paused");
-      else if (waitForIdle())     LOG_INFO(1, "Waiting for system idle");
-      else if (waitOnBattery())   LOG_INFO(1, "Waiting, on battery power");
-      else if (waitOnGPU())       LOG_INFO(1, "Waiting for GPU detection");
-      else if (isAssigning())     LOG_INFO(1, "Waiting for work assignment");
-      else if (Time::now() < waitUntil)
-        LOG_INFO(1, "Waiting until " << Time(waitUntil).toString());
-    }
-
+      isAssigning() || Time::now() < waitUntil)
     return event->add(0.25); // Check again later
-  }
 
   // Allocate resources
   unsigned         remainingCPUs = config->getCPUs();
