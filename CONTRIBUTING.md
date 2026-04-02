@@ -95,8 +95,10 @@ refactor(unit): extract retry policy into standalone function
 
 ## Code Guidelines
 
-- C++ with the [cbang](https://github.com/cauldrondevelopmentllc/cbang)
-  framework. Use `cb::SmartPointer<T>` rather than `std::shared_ptr`.
+This project follows the
+[C! coding style guide](https://github.com/cauldrondevelopmentllc/cbang/blob/master/CODING_STYLE.md).
+Additional project-specific rules:
+
 - All code lives in the `FAH::Client` namespace.
 - GPL-3.0 license header required on every source file.
 - Platform-specific code goes in `src/fah/client/lin/`, `osx/`, or `win/`.

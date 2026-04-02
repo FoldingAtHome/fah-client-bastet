@@ -70,6 +70,9 @@ Platform implementations live in subdirectories and are conditionally compiled v
 
 ## Code Conventions
 
+Follow coding style guidelines found here: 
+[C! coding style guide](https://github.com/cauldrondevelopmentllc/cbang/blob/master/CODING_STYLE.md).
+
 - Uses `cb::SmartPointer<T>` (from cbang) rather than `std::shared_ptr`.
 - Observable pattern via `cb::JSON::ObservableDict` — config/state changes propagate through JSON notifications.
 - RAII throughout; event-driven control flow via `cb::Event::Base`.
