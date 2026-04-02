@@ -691,9 +691,7 @@ void Unit::readViewerData() {
   try {
     if (topology.isNull()) readViewerTop();
     return readViewerFrame();
-  } catch (const Exception &e) {
-    LOG_DEBUG(3, "Visualization read error: " << e.getMessage());
-  }
+  } CATCH_DEBUG(3);
 
   if (5 < ++viewerFail) {
     if (topology.isNull()) {
