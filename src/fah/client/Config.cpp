@@ -154,26 +154,16 @@ void Config::disableGPU(const string &id) {
 }
 
 
-namespace {
-  string obfuscateValue(const string &s) {
-    if (s.length() <= 4) return string(s.length(), '*');
-    return string(s.length() - 4, '*') + s.substr(s.length() - 4);
-  }
-}
-
-
 JSON::Value::iterator Config::insert(
   const string &key, const JSON::ValuePtr &value) {
   if (!defaults->has(key)) {
-    LOG_WARNING("Ignoring unsupported config key '" << key
-                << "' with value '" << obfuscateValue(value->toString()) << "'");
+    LOG_WARNING("Ignoring unsupported config key '" << key << "'");
     return end();
   }
 
   if (defaults->get(key)->getType() != value->getType()) {
     LOG_WARNING("Ignoring config key '" << key << "' with wrong type "
-                << value->getType() << ", value '"
-                << obfuscateValue(value->toString()) << "'");
+                << value->getType());
     return end();
   }
 
