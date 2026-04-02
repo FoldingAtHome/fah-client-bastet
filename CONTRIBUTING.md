@@ -1,31 +1,29 @@
 # Contributing to Folding@home Client
 
-hank you for your interest in contributing to Folding@home. Every improvement
-to the client helps turn volunteer compute into completed science -- whether
-that's a bug fix, a documentation update, or testing on your hardware.
+This guide is for human contributors.
+AI coding agents should refer to [AGENTS.md](AGENTS.md) instead.
 
-This guide is for human contributors. AI coding agents should refer to
-[AGENTS.md](AGENTS.md) instead.
+Thank you for your interest in contributing to Folding@home.
+Every improvement to the client helps turn volunteer compute into completed science —
+whether that's a bug fix, a documentation update, or testing on your hardware.
 
 ## Ways to Contribute
 
 ### Code
 
 Fix bugs, improve diagnostics, add platform support, or help with packaging.
-Browse for or create an issue here:
-<https://github.com/FoldingAtHome/fah-client-bastet/issues>.
 
 ### Testing
 
-Run pre-release builds and report issues. See [TESTING.md](TESTING.md) for the
-tester guide, including how to run the client without the frontend and how to
-file useful bug reports. Bleeding-edge builds are available at
-<https://master.foldingathome.org/builds/fah-client/>
+Run pre-release builds and report issues.
+See [TESTING.md](TESTING.md) for the tester guide,
+including how to run the client without the frontend and how to file useful bug reports.
+Bleeding-edge builds are available at <https://master.foldingathome.org/builds/fah-client/>.
 
 ### Documentation
 
-Improve READMEs, installation guides, or inline code comments. Clear docs
-reduce support burden and help new contributors onboard faster.
+Improve READMEs, installation guides, or inline code comments.
+Clear docs reduce support burden and help new contributors onboard faster.
 
 ### Bug Reports
 
@@ -36,13 +34,14 @@ File issues on the correct repository:
 
 A good bug report includes:
 
-- A descriptive title (e.g., "GPU not detected on AMD RX 7900 with ROCm 6.1"
-  rather than "GPU doesn't work")
+- A descriptive title
+  (e.g., "GPU not detected on AMD RX 7900 with ROCm 6.1" rather than "GPU doesn't work")
 - Your OS, hardware, and client version
 - What you expected vs. what happened
 - Steps to reproduce
-- Relevant log output (logs are in `/var/log/fah-client` when running as a
-  service, or `log.txt` in the working directory otherwise)
+- Relevant log output
+  (logs are in `/var/log/fah-client` when running as a service,
+  or `log.txt` in the working directory otherwise)
 
 ## Getting Started
 
@@ -52,7 +51,8 @@ Quick start:
 
 ```bash
 # Install prerequisites (Debian/Ubuntu)
-sudo apt install scons git npm build-essential libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
+sudo apt install scons git npm build-essential \
+  libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
 
 # On macOS: brew install scons openssl@3 lz4
 # and set: export OPENSSL_HOME=$(brew --prefix openssl@3)
@@ -68,16 +68,17 @@ scons -C fah-client-bastet -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 ### Submit a Change
 
 1. Fork the repository and create a branch from `master`.
-2. Make your changes. Ensure every source file has the GPL-3.0 license header.
+2. Make your changes.
+   Ensure every source file has the GPL-3.0 license header.
 3. Build and test locally.
 4. Submit a pull request with a clear description of what changed and why.
 
 ### AI-Assisted Contributions
 
-AI coding tools can be helpful for writing code and documentation, but the
-submitter is responsible for the result. Pull requests containing code or
-documentation that the author does not understand and has not proofread
-will not be accepted.
+AI coding tools can be helpful for writing code and documentation,
+but the submitter is responsible for the result.
+Pull requests containing code or documentation that the author does not understand
+and has not proofread will not be accepted.
 
 ### Commit Messages
 
@@ -89,8 +90,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 <optional body>
 ```
 
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`,
-`perf`, `style`.
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`.
 
 Examples:
 
@@ -102,8 +102,7 @@ refactor(unit): extract retry policy into standalone function
 
 ## Code Guidelines
 
-This project follows the
-[C! coding style guide](https://github.com/cauldrondevelopmentllc/cbang/blob/master/CODING_STYLE.md).
+This project follows the [C! coding style guide](https://github.com/cauldrondevelopmentllc/cbang/blob/master/CODING_STYLE.md).
 Additional project-specific rules:
 
 - All code lives in the `FAH::Client` namespace.
