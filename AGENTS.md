@@ -14,33 +14,50 @@ the frontend lives in a separate repository ([fah-web-client-bastet](https://git
 The project uses **SCons** (Python-based build system) and depends on the **cbang** C++ library,
 which must be built first and pointed to via `CBANG_HOME`.
 
+### Linux
+
 ```bash
-# Prerequisites (Debian/Ubuntu)
 sudo apt install scons git npm build-essential fakeroot \
   libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
 
-# Prerequisites (macOS with Homebrew)
-brew install scons openssl@3 lz4
-
-# Build cbang first (sibling directory)
 export CBANG_HOME=$PWD/../cbang
-# On macOS (Homebrew), OpenSSL is not in the default search path:
-export OPENSSL_HOME=$(brew --prefix openssl@3)
 scons -C $CBANG_HOME
-
-# Build the client
 scons
-
-# Build a distribution package (.deb, .rpm, .pkg, or .exe depending on platform)
-scons package
 ```
 
-**Note:** On macOS with Homebrew (especially Apple Silicon),
-`OPENSSL_HOME` must be set as an environment variable for both the cbang and client builds.
-The cbang build system uses `OPENSSL_HOME` to locate headers and libraries.
+### macOS (Homebrew — local development only)
+
+Homebrew is the fastest way to get a local dev build running,
+but it produces dynamically linked binaries
+that are not suitable for distribution.
+
+```bash
+brew install scons openssl@3 lz4
+export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+export CBANG_HOME=$PWD/../cbang
+export OPENSSL_HOME=$(brew --prefix openssl@3)
+scons -C $CBANG_HOME
+scons
+```
+
+`OPENSSL_HOME` must be set for both the cbang and client builds.
+The cbang build system uses it to locate headers and libraries.
 If cbang is built without it,
 OpenSSL support will be silently omitted,
 causing compile errors in the client.
+
+### macOS (static builds for distribution)
+
+Release builds require OpenSSL built from source with static linking.
+See [fah-dev-macos](https://github.com/kbernhagen/fah-dev-macos)
+for the full setup, which produces universal (arm64 + x86_64) binaries
+with all dependencies statically linked.
+
+### Packaging
+
+```bash
+scons package  # .deb, .rpm, .pkg, or .exe depending on platform
+```
 
 There is no automated test suite —
 testing is manual/integration-based (see TESTING.md).
@@ -94,6 +111,8 @@ Platform implementations live in subdirectories and are conditionally compiled v
 - Build output goes to `build/` directory.
   The resulting binary is `fah-client` at the project root.
 - `wrap_glibc` option wraps certain glibc symbols for backward compatibility on older Linux.
+- `mostly_static = 1` — SCons option used for release builds to statically link dependencies.
+- `force_local = 'bzip2'` — SCons option that builds a bundled bzip2 instead of using the system library.
 
 ## Code Conventions
 

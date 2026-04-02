@@ -47,23 +47,42 @@ A good bug report includes:
 
 ### Build the Client
 
-Quick start:
+#### Linux
 
 ```bash
-# Install prerequisites (Debian/Ubuntu)
 sudo apt install scons git npm build-essential \
   libssl-dev zlib1g-dev libbz2-dev liblz4-dev libsystemd-dev
 
-# On macOS: brew install scons openssl@3 lz4
-# and set: export OPENSSL_HOME=$(brew --prefix openssl@3)
-
-# Clone and build
 git clone https://github.com/cauldrondevelopmentllc/cbang
 git clone https://github.com/FoldingAtHome/fah-client-bastet
 export CBANG_HOME=$PWD/cbang
 scons -C cbang -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 scons -C fah-client-bastet -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 ```
+
+#### macOS (Homebrew — local development only)
+
+Homebrew is the fastest way to get a local dev build running,
+but it produces dynamically linked binaries that are not suitable for distribution.
+
+```bash
+brew install scons openssl@3 lz4
+
+git clone https://github.com/cauldrondevelopmentllc/cbang
+git clone https://github.com/FoldingAtHome/fah-client-bastet
+export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+export CBANG_HOME=$PWD/cbang
+export OPENSSL_HOME=$(brew --prefix openssl@3)
+scons -C cbang -j$(sysctl -n hw.ncpu)
+scons -C fah-client-bastet -j$(sysctl -n hw.ncpu)
+```
+
+#### macOS (static builds for distribution)
+
+Release builds require OpenSSL built from source with static linking.
+See [fah-dev-macos](https://github.com/kbernhagen/fah-dev-macos)
+for the full setup, which produces universal (arm64 + x86_64) binaries
+with all dependencies statically linked.
 
 ### Submit a Change
 
