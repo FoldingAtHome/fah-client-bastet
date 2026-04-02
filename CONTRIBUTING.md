@@ -1,23 +1,26 @@
 # Contributing to Folding@home Client
 
-Thank you for your interest in contributing to Folding@home. Every improvement
+hank you for your interest in contributing to Folding@home. Every improvement
 to the client helps turn volunteer compute into completed science -- whether
 that's a bug fix, a documentation update, or testing on your hardware.
+
+This guide is for human contributors. AI coding agents should refer to
+[AGENTS.md](AGENTS.md) instead.
 
 ## Ways to Contribute
 
 ### Code
 
 Fix bugs, improve diagnostics, add platform support, or help with packaging.
-See the [Architecture section in AGENTS.md](AGENTS.md#architecture) for an
-overview of the codebase.
+Browse for or create an issue here:
+<https://github.com/FoldingAtHome/fah-client-bastet/issues>.
 
 ### Testing
 
 Run pre-release builds and report issues. See [TESTING.md](TESTING.md) for the
 tester guide, including how to run the client without the frontend and how to
 file useful bug reports. Bleeding-edge builds are available at
-https://master.foldingathome.org/builds/fah-client/
+<https://master.foldingathome.org/builds/fah-client/>
 
 ### Documentation
 
@@ -45,8 +48,7 @@ A good bug report includes:
 
 ### Build the Client
 
-See [AGENTS.md](AGENTS.md#build-commands) for full build instructions. The
-short version:
+Quick start:
 
 ```bash
 # Install prerequisites (Debian/Ubuntu)
@@ -74,7 +76,7 @@ scons -C fah-client-bastet -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 <type>(<optional scope>): <description>
 
 <optional body>
@@ -85,7 +87,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`,
 
 Examples:
 
-```
+```text
 fix(gpu): detect AMD GPUs using HIP when OpenCL is unavailable
 docs: add macOS build instructions to AGENTS.md
 refactor(unit): extract retry policy into standalone function
