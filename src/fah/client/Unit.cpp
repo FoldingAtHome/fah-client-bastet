@@ -38,6 +38,7 @@
 #include "Cores.h"
 #include "Config.h"
 #include "ExitCode.h"
+#include "LogTracker.h"
 
 #include <cbang/Catch.h>
 
@@ -1052,6 +1053,13 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   }
 
   sink.endDict(); // resources
+
+  // Log health counts
+  sink.insertDict("log");
+  sink.insert("errors",   app.getLogTracker().getErrorCount());
+  sink.insert("warnings", app.getLogTracker().getWarningCount());
+  sink.endDict();
+
   sink.endDict();
 }
 

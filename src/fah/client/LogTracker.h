@@ -61,8 +61,14 @@ namespace FAH {
       unsigned last  = 0;
       uint64_t index = 0;
 
+      uint64_t errorCount   = 0;
+      uint64_t warningCount = 0;
+
     public:
       LogTracker(cb::Event::Base &base);
+
+      uint64_t getErrorCount()   const {return errorCount;}
+      uint64_t getWarningCount() const {return warningCount;}
 
       void add(const cb::SmartPointer<Listener> &listener, uint64_t last);
       void remove(const cb::SmartPointer<Listener> &listener);
@@ -70,6 +76,7 @@ namespace FAH {
     protected:
       // From cb::LogLineListener
       void writeln(const char *s) override;
+      void writeln(const char *s, int level) override;
 
       void update();
       void adv(unsigned &ptr);

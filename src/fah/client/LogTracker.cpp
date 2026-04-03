@@ -73,6 +73,15 @@ void LogTracker::writeln(const char *s) {
 }
 
 
+void LogTracker::writeln(const char *s, int level) {
+  int masked = level & cb::Logger::LEVEL_MASK;
+  if (masked == cb::Logger::LEVEL_ERROR)   errorCount++;
+  if (masked == cb::Logger::LEVEL_WARNING) warningCount++;
+
+  writeln(s);
+}
+
+
 void LogTracker::update() {
   uint64_t lastIndex = 0;
   auto newLines = SmartPtr(new JSON::List);
