@@ -691,7 +691,7 @@ void Unit::readViewerData() {
   try {
     if (topology.isNull()) readViewerTop();
     return readViewerFrame();
-  } CATCH_WARNING;
+  } CATCH_DEBUG(3);
 
   if (5 < ++viewerFail) {
     if (topology.isNull()) {
@@ -942,7 +942,7 @@ void Unit::retry() {
       LOG_INFO(1, "Retry #" << retries << " in " << TimeInterval(delay));
 
     } else {
-      LOG_INFO(1, "Too many retries (" << (retries - 1) << "), failing WU");
+      LOG_WARNING("Too many retries (" << (retries - 1) << "), failing WU");
       setWait(0);
       retries = 0;
       return clean("retries");
