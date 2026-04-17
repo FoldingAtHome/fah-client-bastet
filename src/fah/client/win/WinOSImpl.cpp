@@ -133,6 +133,15 @@ WinOSImpl &WinOSImpl::instance() {
   return *singleton;
 }
 
+void WinOSImpl::recreateTrayIcon() {
+  // Remove possible old icon
+  Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+
+  // Add it
+  notifyIconData.hWnd = hWnd;
+  if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
+    THROW("Failed to register systray icon: " << SysError());
+}
 
 void WinOSImpl::init() {
   // We want to get shutdown before the cores
@@ -186,14 +195,9 @@ void WinOSImpl::init() {
     notifyIconData.guidItem = guid;
     notifyIconData.uFlags |= NIF_GUID;
   }
-
-  // Remove possible old icon
-  Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-
-  // Add it
-  notifyIconData.hWnd = hWnd;
-  if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
-    THROW("Failed to register systray icon: " << SysError());
+  
+  // Create tray icon, removing if pre-existing
+  recreateTrayIcon();
 
   // Register for PM away mode events
   RegisterPowerSettingNotification(
@@ -301,6 +305,15 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_TIMER:
     if (wParam == ID_UPDATE_TIMER) updateIcon();
     break;
+
+  default:
+    {
+      // Recreate tray icon if taskbar is re-created
+      const WinOSImpl & winOSImpl = WinOSImpl::instance();
+      if (message == winOSImpl.taskbarCreatedMsg && winOSImpl.systrayEnabled)
+        winOSImpl.recreateTrayIcon();
+      break;
+    }
   }
 
   return DefWindowProc(hWnd, message, wParam, lParam);

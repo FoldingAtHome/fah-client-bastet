@@ -62,6 +62,9 @@ namespace FAH {
 
       std::atomic<bool> inAwayMode = false;
       std::atomic<bool> displayOff = false;
+	  
+	  // TaskbarCreated WndProc message, sent when explorer.exe (re)creates taskbar
+	  UINT taskbarCreatedMsg = 0;
 
     public:
       WinOSImpl(App &app);
