@@ -187,13 +187,7 @@ void WinOSImpl::init() {
     notifyIconData.uFlags |= NIF_GUID;
   }
 
-  // Remove possible old icon
-  Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
-
-  // Add it
-  notifyIconData.hWnd = hWnd;
-  if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
-    THROW("Failed to register systray icon: " << SysError());
+  loadTrayIcon();
 
   // Register for PM away mode events
   RegisterPowerSettingNotification(
@@ -251,6 +245,12 @@ void WinOSImpl::run() {
 LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
                               LPARAM lParam) {
   switch (message) {
+  case WM_CREATE:
+    // See: https://learn.microsoft.com/en-gb/windows/win32/shell/taskbar
+    //  #taskbar-creation-notification
+    taskbarCreatedMsg = RegisterWindowMessage(TEXT("TaskbarCreated"));
+    break;
+
   case WM_DESTROY:
     Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
     if (hWnd) KillTimer(hWnd, ID_UPDATE_TIMER);
@@ -301,9 +301,24 @@ LRESULT WinOSImpl::windowProc(HWND hWnd, UINT message, WPARAM wParam,
   case WM_TIMER:
     if (wParam == ID_UPDATE_TIMER) updateIcon();
     break;
+
+  default:
+    if (message == taskbarCreatedMsg) loadTrayIcon();
+    break;
   }
 
   return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+
+void WinOSImpl::loadTrayIcon() {
+  // Remove possible old icon
+  Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+
+  // Add it
+  notifyIconData.hWnd = hWnd;
+  if (!Shell_NotifyIcon(NIM_ADD, &notifyIconData))
+    THROW("Failed to register systray icon: " << SysError());
 }
 
 

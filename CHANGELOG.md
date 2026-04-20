@@ -6,6 +6,7 @@ Folding@home Client Changelog
  - Try to configure supported GPUs for up to 5 mins after client start.
  - Fix unit clock skew detection. @Br3ach
  - Log outgoing URLs. @Br3ach
+ - Restart tray icon on Windows when tray restarts.  @SortaCore re:#437
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.

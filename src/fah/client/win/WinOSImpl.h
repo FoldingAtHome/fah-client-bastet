@@ -59,6 +59,7 @@ namespace FAH {
       NOTIFYICONDATA notifyIconData;
 
       int iconCurrent = 0;
+      UINT taskbarCreatedMsg = 0;
 
       std::atomic<bool> inAwayMode = false;
       std::atomic<bool> displayOff = false;
@@ -83,6 +84,7 @@ namespace FAH {
       LRESULT windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     protected:
+      void loadTrayIcon();
       void openWebControl();
       void showAbout(HWND hWnd);
       void updateIcon();
