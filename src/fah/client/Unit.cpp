@@ -1014,7 +1014,7 @@ void Unit::writeRequest(JSON::Sink &sink) const {
   sink.insertDict("os");
   sink.insert("version", sysInfo.getOSVersion().toString());
   sink.insert("type",    app.selectString("info.os"));
-  sink.insert("memory",  sysInfo.getFreeMemory());
+  sink.insert("memory",  sysInfo.getUsableMemory());
   sink.endDict();
 
   // Project

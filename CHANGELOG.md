@@ -12,6 +12,7 @@ Folding@home Client Changelog
  - Failing ``config.xml`` load logs error but is now non-fatal.
  - Install ``fahctl`` python script on Windows. @kbernhagen
  - Count an upload retry and delay after failing to upload to all WS and CS.
+ - Report usable memory rather than just free memory. re:#123
 
 ## v8.5.5
  - Return to less specific udev scanning re:#394
