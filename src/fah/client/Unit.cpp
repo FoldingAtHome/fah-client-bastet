@@ -101,6 +101,15 @@ namespace {
   }
 
 
+  string getGPUPlatform(const GPUResource &gpu, const Config &config) {
+    if (gpu.isComputeDeviceSupported("cuda",   config)) return "cuda";
+    if (gpu.isComputeDeviceSupported("hip",    config)) return "hip";
+    if (gpu.isComputeDeviceSupported("opencl", config)) return "opencl";
+
+    THROW("GPU has no enabled compute device");
+  }
+
+
   bool existsAndOlderThan(const string &path, unsigned secs) {
     return SystemUtilities::exists(path) &&
       secs < Time::now() - SystemUtilities::getModificationTime(path);
@@ -626,18 +635,17 @@ void Unit::run() {
     }
 
     // GPU platform
-    bool withCUDA = gpu.isComputeDeviceSupported("cuda", getConfig());
-    bool withHIP  = gpu.isComputeDeviceSupported("hip",  getConfig());
+    string gpuPlatform = getGPUPlatform(gpu, getConfig());
     args.push_back("-gpu-platform");
-    args.push_back(withCUDA ? "cuda" : "opencl");
+    args.push_back(gpuPlatform);
 
     // Old GPU options
     args.push_back("-gpu-vendor");
     args.push_back(gpu.getString("type"));
 
     addGPUArgs(args, gpu, "opencl");
-    if (withCUDA) addGPUArgs(args, gpu, "cuda");
-    if (withHIP)  addGPUArgs(args, gpu, "hip");
+    addGPUArgs(args, gpu, "cuda");
+    addGPUArgs(args, gpu, "hip");
 
     if (gpu.has("opencl")) {
       args.push_back("-gpu");
