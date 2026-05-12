@@ -65,7 +65,7 @@ namespace FAH {
       public cb::Application,
       public cb::Event::Enum,
       public cb::JSON::ObservableDict {
-
+    protected:
       cb::Event::Base     base;
       cb::HTTP::Client    client;
       cb::KeyPair         key;
@@ -166,6 +166,8 @@ namespace FAH {
       void openConfig(const std::string &filename) override;
 
     protected:
+      void setup();
+
       // From cb::JSON::Value
       void notify(const std::list<cb::JSON::ValuePtr> &change) override;
 

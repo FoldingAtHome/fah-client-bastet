@@ -485,31 +485,10 @@ int App::init(int argc, char *argv[]) {
 
 
 void App::run() {
-  // Libevent debugging
-  if (options["debug-libevent"].toBoolean()) Event::Event::enableDebugLogging();
+  setup();
 
-  // Load root certs
-  client.getSSLContext()->loadSystemRootCerts();
-
-  // Open DB
-  LOG_INFO(1, "Opening Database");
-  db.open("client.db");
-  db.execute("PRAGMA journal_mode=WAL");
-  db.execute("PRAGMA locking_mode=EXCLUSIVE");
-  db.execute("PRAGMA synchronous=NORMAL");
-  db.execute("PRAGMA auto_vacuum=FULL");
-
-  // Check that we have AS
-  if (options["assignment-servers"].toStrings().empty())
-    THROW("No assignment servers");
-
-  // Initialize
-  upgradeDB();
-  loadConfig();
-  insert("groups", new Groups(*this));
   server->init();
   account->init();
-  insert("units", new Units(*this));
 
   // Open Web interface
   if (options["open-web-control"].toBoolean())
@@ -544,6 +523,33 @@ void App::requestExit() {
 
 void App::openConfig(const string &filename) {
   TRY_CATCH_ERROR(Application::openConfig(filename));
+}
+
+
+void App::setup() {
+  // Libevent debugging
+  if (options["debug-libevent"].toBoolean()) Event::Event::enableDebugLogging();
+
+  // Load root certs
+  client.getSSLContext()->loadSystemRootCerts();
+
+  // Open DB
+  LOG_INFO(1, "Opening Database");
+  db.open("client.db");
+  db.execute("PRAGMA journal_mode=WAL");
+  db.execute("PRAGMA locking_mode=EXCLUSIVE");
+  db.execute("PRAGMA synchronous=NORMAL");
+  db.execute("PRAGMA auto_vacuum=FULL");
+
+  // Check that we have AS
+  if (options["assignment-servers"].toStrings().empty())
+    THROW("No assignment servers");
+
+  // Initialize
+  upgradeDB();
+  loadConfig();
+  insert("groups", new Groups(*this));
+  insert("units", new Units(*this));
 }
 
 
