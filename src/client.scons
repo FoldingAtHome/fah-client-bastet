@@ -6,32 +6,37 @@ env.Append(CPPPATH = ['#/src'])
 
 subdirs = ['']
 
-# Source
-src = ['client.cpp']
+# Library sources (everything except the main entry).
+lib_src = []
 for dir in subdirs:
-    src += Glob('fah/client/' + dir + '/*.cpp')
+    lib_src += Glob('fah/client/' + dir + '/*.cpp')
 
-if env['wrap_glibc']: src.append('fah/client/glibc.c')
+if env['wrap_glibc']: lib_src.append('fah/client/glibc.c')
 
 # Resources
 res = env.Resources('resources.cpp', ['#/src/resources'])
 resLib = env.Library('fahclient-resources', res)
 Precious(resLib)
-src += resLib
 
+# Platform-specific sources
 if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-    src += [env.RES('fah/client/win/SysTray.rc')]
-    src += Glob('fah/client/win/*.cpp')
+    lib_src += [env.RES('fah/client/win/SysTray.rc')]
+    lib_src += Glob('fah/client/win/*.cpp')
 
-elif env['PLATFORM'] == 'darwin': src += Glob('fah/client/osx/*.cpp')
-else: src += Glob('fah/client/lin/*.cpp')
+elif env['PLATFORM'] == 'darwin': lib_src += Glob('fah/client/osx/*.cpp')
+else:                             lib_src += Glob('fah/client/lin/*.cpp')
 
 # Build Info
 info = env.BuildInfo('build_info.cpp', [])
 AlwaysBuild(info)
-src += [info]
+lib_src += [info]
 
-# FAHClient
-client = env.Program('#/fah-client', src)
+# fah-client library: all of the app code, linked into the binary below
+# and reusable by test binaries.
+clientLib = env.Library('fahclient', lib_src)
+Precious(clientLib)
+
+# fah-client binary: the main entry linked against the library.
+client = env.Program('#/fah-client', ['client.cpp', clientLib, resLib])
 
 Return('client')
