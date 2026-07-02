@@ -1,0 +1,6 @@
+state=CORE
+id=abc
+wu=5
+group=
+cpus=4
+run_time=0

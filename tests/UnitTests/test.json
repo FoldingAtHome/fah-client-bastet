@@ -1,0 +1,4 @@
+{
+  "command": "%(suite-dir)s/unitLoad",
+  "args": "--log-to-screen=false"
+}

@@ -1,0 +1,10 @@
+{
+  "state": {
+    "number": 5,
+    "cpus":   4,
+    "state":  "RUN",
+    "id":     "abc",
+    "group":  ""
+  },
+  "data": {}
+}

@@ -1,0 +1,44 @@
+# fah-client test suite.  Tests are written as small C++ programs that
+# link against the fah-client library and use cbang's testHarness for
+# orchestration.  See tests/TESTING.md.
+
+import os
+
+env = Environment(ENV = os.environ)
+
+try:
+    env.Tool('config', toolpath = [os.environ.get('CBANG_HOME')])
+except Exception as e:
+    raise Exception('CBANG_HOME not set?\n' + str(e))
+
+env.CBLoadTools('compiler cbang')
+
+conf = env.CBConfigure()
+
+if not env.GetOption('clean'):
+    conf.CBConfig('compiler')
+    conf.CBConfig('cbang')
+    env.CBDefine('USING_CBANG')
+
+conf.Finish()
+
+# Include the parent source tree and find the libraries built there.
+# Prepend the local libs so they appear before cbang on the link line.
+env.Append (CPPPATH = ['#/../src'])
+env.Append (LIBPATH = ['#/../build'])
+env.Prepend(LIBS    = ['fahclient', 'fahclient-resources'])
+
+# Tests
+Export('env')
+tests = []
+for test in Glob('*Tests'):
+    script = str(test) + '/SConscript'
+    if not os.path.exists(script): continue
+    tests.append(SConscript(script))
+
+testHarness = os.environ['CBANG_HOME'] + '/tests/testHarness'
+test = Command('test', '', testHarness)
+Depends(test, tests)
+
+Default(tests)
+Clean(tests, test)

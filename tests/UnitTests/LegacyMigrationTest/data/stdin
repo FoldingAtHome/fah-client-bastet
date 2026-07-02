@@ -1,0 +1,11 @@
+{
+  "state": {
+    "number":   7,
+    "cpus":     2,
+    "state":    "UPLOAD",
+    "id":       "leg",
+    "group":    "",
+    "run-time": 1234
+  },
+  "data": {}
+}

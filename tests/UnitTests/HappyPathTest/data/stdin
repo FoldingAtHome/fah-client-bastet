@@ -1,0 +1,138 @@
+{
+  "data": {
+    "assignment": {
+      "certificate": "-----BEGIN CERTIFICATE-----\nMIIGzzCCBLegAwIBAgIJAMUHNT4HVJ7yMA0GCSqGSIb3DQEBCwUAMIG/MQswCQYD\nVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTERMA8GA1UEBwwIU3RhbmZvcmQx\nFTATBgNVBAoMDEZvbGRpbmdAaG9tZTEVMBMGA1UECwwMRm9sZGluZ0Bob21lMSsw\nKQYDVQQDDCJGb2xkaW5nQGhvbWUgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MS0wKwYJ\nKoZIhvcNAQkBFh5qb3NlcGhAY2F1bGRyb25kZXZlbG9wbWVudC5jb20wIBcNMTgx\nMjI3MjIxNjEyWhgPMjExODEyMDMyMjE2MTJaMFIxCzAJBgNVBAYTAlVTMRMwEQYD\nVQQIDApDYWxpZm9ybmlhMRUwEwYDVQQKDAxGb2xkaW5nQGhvbWUxFzAVBgNVBAMM\nDjY1LjI1NC4xMTAuMjQ1MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA\nqVWyB+3qd1gwOSQylM8Ln6Oc7cReXLXqSap0xXAoaeHRy+Dm400NDKiEP9jYfoKv\nsZrB1hfviMYYOcr+qZF/7ZkAe2J7tKNXnrl7Ros3Tfi8Kb/T2orG/Q4Zrd5B6aHB\nhEyQ+62dL+guNDEf1AMR8tWR647wSRasti5CEpg9du06vAV3SjR73+U58rT29hF/\nRCTL0oZ4Ak+YfSjbESY0qvwZww52l/Dw3mcREfoti2klB1UbxpCqHdXbN/mSztf/\nH6If5VQNAVFVFUCsxW4oT+x1AprPvUe65jVAtIOcXX1Q/zPhwkzKlkrvXoyvKaOV\neu1eLzEeo8l1OvB1Hmvc0C/rvL0JXgZCC+5PEfLtZuMlL3HmTy9+0xsQaoMEx2bB\nNnFu5MwxgiaXsJ7njlZmkT845CNCifRrg6qMCgt+qbVLNx/lh3ON8WHckCrPx55Q\nwQxDOM3eRrq7FH8e571rV+p7qnDsfFwO74oQjhWTz6Rd4+U60q7hSv1SIH98tCwm\nrccnPXQliVIgaraxT/poxCMcsDMb3MLhia1YAx88K3W+qh6iTO9g9BBK5lCYqugh\nTS5KEvN4PPEhhMN9yHad4c9uvmBbzmfAkWl5L///XmFeb3gky8ciRlgr37BuIeDj\nc8IaZJzmfxyGYVKlq/9dRA8U9KwmwXjPPJAi2cewmEsCAwEAAaOCATYwggEyMB0G\nA1UdDgQWBBSngT4xJyyQBVvuvyqIE8YtSxB9KzCB9AYDVR0jBIHsMIHpgBRbimcr\nO6OhuXGQrffbabXUIYqQS6GBxaSBwjCBvzELMAkGA1UEBhMCVVMxEzARBgNVBAgM\nCkNhbGlmb3JuaWExETAPBgNVBAcMCFN0YW5mb3JkMRUwEwYDVQQKDAxGb2xkaW5n\nQGhvbWUxFTATBgNVBAsMDEZvbGRpbmdAaG9tZTErMCkGA1UEAwwiRm9sZGluZ0Bo\nb21lIENlcnRpZmljYXRlIEF1dGhvcml0eTEtMCsGCSqGSIb3DQEJARYeam9zZXBo\nQGNhdWxkcm9uZGV2ZWxvcG1lbnQuY29tggkA6tHDBwXaWcwwDAYDVR0TBAUwAwEB\n/zAMBgYqAwRGQEgEAkFTMA0GCSqGSIb3DQEBCwUAA4ICAQByfWXIPSV1zUijd4w9\na+7L7+TQrVuVYKiVGJ5iowp2bsSYHSCJ7wkvURLNMlcQj2aFQWMZyRYF7NAa4ud4\na7b01huVSJuWJUIjUwlWoQu3NEhGFdACWsGuVeGS8aeWVnmZG92XFrcYpdflq4Zd\n0WU2olrlJdr6/jeGO6YkAiq+A0TNuJ7VxkrK42hoUM7x1f+lfa/1j7zTBw1kyw1Y\ntu0l4ewnqXqWowg5880Lt2UOjZAUfhXnyMox2zy39V8evdeYi+IkPkVd1TUwcKBa\notdYzVEx2IwMUE45Vf7xvWX8G/rV4cspMQVCDwQCJQUo2c0TzSsmhxrauq8BpJMn\nrxRBzQLh0jigA1W5xF5judbWwQ9QtGuXZKWh7hFO2HY7d4BrqB1JHr1JSo0qAI6T\nlhnLMwUO75vpDQReNfGrum53yItdKmJEogK8plZGYHvKrhc4uHnQUQUzdMsqqoJy\nWP8aVAfQO7KT+NZnFhbh38L7wX7/wFEf74LLgETA1p7NCGU8gGGXSrfOLvdwbwZS\noqbC9U1scYoE7wn7njNchqzK4c6pOHDj05IhLZRusaWZIGmOWTkM4X6L0skzgMlr\nFmLe0bH9l5BPoneAxEfzqC00DWui+XaDjSoCDbAz0JpswuwpW2LqoPN+8r2K2COd\nwL3JIJmiwpOFCDnOVjL63JHIBA==\n-----END CERTIFICATE-----\n",
+      "data": {
+        "core": {
+          "sha256": "3d884be3ca31939957978528fd188a7b68f22da593b90f6168ed797202812fea",
+          "type": "0xaa",
+          "url": "https://cores2.foldingathome.org/gromacs-core-aa/debian-10-64bit/cpu-avx2_256-release/fahcore-aa-debian-10-64bit-cpu-avx2_256-release-0.0.5.tar.bz2"
+        },
+        "cpus": 2,
+        "credit": 1,
+        "deadline": 86400,
+        "max_cpus": 64,
+        "min_cpus": 1,
+        "port": 443,
+        "project": 11938,
+        "time": "2026-05-12T16:16:09Z",
+        "timeout": 43200,
+        "ws": "ec2-18-220-40-152.us-east-2.compute.amazonaws.com"
+      },
+      "signature": "otn2BwgvjA8r4QD4zczbtmfMOiYzgtR1tZGZCYfniGZI9xWm76b8lDJ+YPllyPsPmmWY2y4b4uvaC5dfTDfUuWZMUb1ipPezdu++ivY/ZGULA9bM4663IFlkw1CpZyGRoxDdslLsAT7pDrx29ZKNsLX5HMqnCenBSGlxzpIs87POvEARdM9SMFVVyChEe+DtlRZ+3Ea0Rlq73IyIhY0LQphGbka0AMw7zGR95/4RY9MfKzFm8r1GIabnXxj7ykpaaFqwiYQL2TeFsOyLJpsuGqjo1/vdO0kkKeu0M93ipOZNg4hFseRbTzw1pum3PxkgjkH5QsdohiEJkRg58/3DLGbBOaAh5tk4OHcMU4v3yIUsB5c6UVaNrL6/hwyzecdHT8srKX5YpduNm9vXx+CGIeL19D0Zd4hrpus29B9NZJ4q3+DrW9CiRhJfoRbLzENyf/z+gQv56YFuWxxnoJqrHqzkC8pOYDcU1+2nt0C5M8+45mbtJuqkfNmcC+Jtl85nI8t5mryHRSNpn1iO0HTV1cT6z5bKmuGsB7ayuH3HY6E56w5z+GI1LCgEw8EafUhpEXhWYBdvw+CSSNYRvlytn+7AhQW1GURQ6qn0MzjFZA6bNGIA0VZPl4oCtxpjCXTRo22Qm4p6yvtVXRcj2RZE2pbDp9sMVvSzyec5EBDv7NM="
+    },
+    "request": {
+      "data": {
+        "id": "djVlRkbPcXQ15bR2VhV0Mg9hJjbY+bn7BPVupyBXWuA=",
+        "os": {
+          "memory": 112980594688,
+          "type": "linux",
+          "version": "6.12"
+        },
+        "passkey": "",
+        "project": {
+          "beta": false,
+          "cause": "any",
+          "key": 94569082
+        },
+        "resources": {
+          "cpu": {
+            "80000001": 8485406217078045695,
+            "cpu": "amd64",
+            "cpus": 2,
+            "extended": 18021666158057385,
+            "family": 25,
+            "features": 9149117666224241663,
+            "model": 33,
+            "signature": 10620690,
+            "stepping": 2,
+            "vendor": "AuthenticAMD"
+          }
+        },
+        "team": 0,
+        "time": "2026-05-12T16:16:08Z",
+        "user": "Anonymous",
+        "version": "8.5.7",
+        "wu": 31
+      },
+      "pub-key": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArVFKzw17UMvXZP064GQt\nESLuxswoYMfh/tn9rAomc4ViyQjoRycegQY6/OyisIl3rpm36ESrRV1HD8qAfz43\n/JGQcbAh0OD3NPr7hqaOMSSnilpEX62rK40p28u/DmWlfrlI+lqlOso0+vYaVd9f\ngcJiTMRLZu+iLAzB5bScF49RMm+pHgQO1NYnYrkXh8OzsS4ZDEp5SWvAMaFhrjcC\n9sPyswX+/y+zHfeMcMMredvgrutaS+iWeMf7rN+RoD5TfX15fusKEuOFEE/i+T7O\nd8OOsGpI7bVuELsqwMNDhXwNHPbYpbd+sIkER443Oqk5YzXtNqZJjJEixl5on3en\nx4lnqdwTCPNzUcwCtczOG/YBjCANQcVwTwL8a/nzTkQLpzqr/sEFMY781N6fGqA5\n8t0pE5zNu6EME7A+rffzHXGl4G/BjyQx44ALAkGOifsxTI6e0Yju5SAkVcKO47hk\nraUQ9wHTeW06bnRqlad2VOJWN2QVrVB3JR+5dlIJjXpa8hB546288t34tVw6823g\n2D5CPpDVKkYpidFHbfvnFiFdEqJHy/DZe3dPrdiLJgvzF5rYk+b1pFpOXnHTg7ri\nsNGGRO8kgkp1jFIZ1rYhlx1EmgJwFGnWsyxDIJp53DiAfUhj7coGIAIW+0qaBGNm\n8eKJh4/zukxaQcCSlZTelTsCAwEAAQ==\n-----END PUBLIC KEY-----\n",
+      "signature": "ct1Rmo2WEbq9fEBmHZjHy8wInfc/PBrTGGVPHjvrtrKBKHFdkPZXNwkKgV8e8wlWDDlQrO8S5Z9fR33hsq3a7waSodETELHazsiF5rukF8FXelSLszgd6T893wQm0bYX7oBa7A50gxwcV/D9E/6WmUlyr0xKbC0aAqBUhL4eIQE8PyVJk3ixly7zHcq5mPkW3JBKOgla3nI1804chTmVL6HG/O387Qps9COe3stBwdbkiF4ewMdPnrEQpd9IKrBb8mYkG1DOsSYCuWHzXm2LbUweGO0gTustaqBWgVAoZtp5yFuqr96ri0DiQRhuvSnBB87MowSxuzUkc56CcME2baNUdzo9FTTWbRw5DYPJaWiqnhp+YtDPHrvqveTdWj65Hw8Dd75eb5zgzxl++i31MzqcEiQXn9NQoYsUT3hvg21/njdDEf+dFdAamLlAbfJQZepBpVuLkCuhgB4+oHzvsVUtn7OAh9zD04QGx07A+VinM3YgNh/2Rv7ehaZm1qrl444dFB7twso7nmVtLbLi9IqROpfQxrDX9VJoBdcAhxeGbMvA7NOIt/+EPdl3klYCxaL6yx4+xlI6MBb3t3Re2zSP1KoZI9KJgfkTTb5Wi+Z1Wt9jFvPenCroX/FN1S7UR/NkwEYeemc4D6NHSzpfuRJjNNDVZ1A9Pin5qntjFHQ="
+    },
+    "results": {
+      "sha256": "OmaAq5y4WdDRnnRUOT5ETRA6lDXKmMcazSBFTUhI6GI=",
+      "signature": "flvCG+wAX+UlgqQWkz0SVnOk0KAY5pGm5r8zWU9bL8xCS2Y352pX1XyhFejscyLKqe2XEc4xHPHT83rm1gA/3wHE42UF1AKrZFXgUmH4s1nD8qCpG5TQ0shoJYvIO5aMV/QSKK6hlEDjafl4TKwKAhph8CHtJdqc9Zr/y11dzlvvE9uQsJwp3HIyvCl/WamDaNrHRsRJ0IuWZhTGTAZymkLKD4p+arz3J+WTTAdZiXEEokbTX4a9vs94ZpOShQxE6Thv8/cM3sA8hn7rHzb6IMFH/zBqiOf1TJ+XNGJGTC496RHR1LX86t6QsKlbbN81cR9015fqWOqZbK5p7/K03GCqDljAIfihIg4rFN+CJyqfLtfn8Kn9ZVyzjj8J8is/QMsbb0FpsGuTOEXX2FixaksN8YiahQdtkXcaBp4IRfI0ZmYIFs3ZwzdfK7vDOymilyG3/KUZBErHopJKUsHc9ScVAJcZlTuYtHNrrHWT4jGBsY3Tgzrz8MFlPYsGSJp8szxCuX7qzCv2QrOMyVzgtUF8XtyCg7TH0gtqjYFvgk39Y5n5vuIs6Vx74Yyve9TKP5t7eqSHPKQ9eY46OjnNo9HZz2yMdjU/q6zaF7CYjaSLK6Nm88Bwul7CjgFQlq9u5PdQwYquz4GwkGXDjp9mpJczUAk6/FaUrdSa7FzVWFU=",
+      "status": "ok"
+    },
+    "wu": {
+      "certificate": "-----BEGIN CERTIFICATE-----\n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\n-----END CERTIFICATE-----\n",
+      "data": {
+        "clone": 0,
+        "compression": "none",
+        "cs": [
+          "highland3.seas.upenn.edu",
+          "ds03.scs.illinois.edu",
+          "ds01.scs.illinois.edu",
+          "vav24.fah.temple.edu",
+          "highland4.seas.upenn.edu",
+          "highland2.seas.upenn.edu"
+        ],
+        "gen": 1175,
+        "run": 3,
+        "server": 316418200,
+        "sha256": "AF40suUzCyg1i2cQUsbZ35Rw07zxykNSXD0pDXZa24A=",
+        "time": "2026-05-12T16:16:09Z"
+      },
+      "intermediate": "-----BEGIN CERTIFICATE-----\nMIIGzzCCBLegAwIBAgIJAMUHNT4HVJ7yMA0GCSqGSIb3DQEBCwUAMIG/MQswCQYD\nVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTERMA8GA1UEBwwIU3RhbmZvcmQx\nFTATBgNVBAoMDEZvbGRpbmdAaG9tZTEVMBMGA1UECwwMRm9sZGluZ0Bob21lMSsw\nKQYDVQQDDCJGb2xkaW5nQGhvbWUgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MS0wKwYJ\nKoZIhvcNAQkBFh5qb3NlcGhAY2F1bGRyb25kZXZlbG9wbWVudC5jb20wIBcNMTgx\nMjI3MjIxNjEyWhgPMjExODEyMDMyMjE2MTJaMFIxCzAJBgNVBAYTAlVTMRMwEQYD\nVQQIDApDYWxpZm9ybmlhMRUwEwYDVQQKDAxGb2xkaW5nQGhvbWUxFzAVBgNVBAMM\nDjY1LjI1NC4xMTAuMjQ1MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA\nqVWyB+3qd1gwOSQylM8Ln6Oc7cReXLXqSap0xXAoaeHRy+Dm400NDKiEP9jYfoKv\nsZrB1hfviMYYOcr+qZF/7ZkAe2J7tKNXnrl7Ros3Tfi8Kb/T2orG/Q4Zrd5B6aHB\nhEyQ+62dL+guNDEf1AMR8tWR647wSRasti5CEpg9du06vAV3SjR73+U58rT29hF/\nRCTL0oZ4Ak+YfSjbESY0qvwZww52l/Dw3mcREfoti2klB1UbxpCqHdXbN/mSztf/\nH6If5VQNAVFVFUCsxW4oT+x1AprPvUe65jVAtIOcXX1Q/zPhwkzKlkrvXoyvKaOV\neu1eLzEeo8l1OvB1Hmvc0C/rvL0JXgZCC+5PEfLtZuMlL3HmTy9+0xsQaoMEx2bB\nNnFu5MwxgiaXsJ7njlZmkT845CNCifRrg6qMCgt+qbVLNx/lh3ON8WHckCrPx55Q\nwQxDOM3eRrq7FH8e571rV+p7qnDsfFwO74oQjhWTz6Rd4+U60q7hSv1SIH98tCwm\nrccnPXQliVIgaraxT/poxCMcsDMb3MLhia1YAx88K3W+qh6iTO9g9BBK5lCYqugh\nTS5KEvN4PPEhhMN9yHad4c9uvmBbzmfAkWl5L///XmFeb3gky8ciRlgr37BuIeDj\nc8IaZJzmfxyGYVKlq/9dRA8U9KwmwXjPPJAi2cewmEsCAwEAAaOCATYwggEyMB0G\nA1UdDgQWBBSngT4xJyyQBVvuvyqIE8YtSxB9KzCB9AYDVR0jBIHsMIHpgBRbimcr\nO6OhuXGQrffbabXUIYqQS6GBxaSBwjCBvzELMAkGA1UEBhMCVVMxEzARBgNVBAgM\nCkNhbGlmb3JuaWExETAPBgNVBAcMCFN0YW5mb3JkMRUwEwYDVQQKDAxGb2xkaW5n\nQGhvbWUxFTATBgNVBAsMDEZvbGRpbmdAaG9tZTErMCkGA1UEAwwiRm9sZGluZ0Bo\nb21lIENlcnRpZmljYXRlIEF1dGhvcml0eTEtMCsGCSqGSIb3DQEJARYeam9zZXBo\nQGNhdWxkcm9uZGV2ZWxvcG1lbnQuY29tggkA6tHDBwXaWcwwDAYDVR0TBAUwAwEB\n/zAMBgYqAwRGQEgEAkFTMA0GCSqGSIb3DQEBCwUAA4ICAQByfWXIPSV1zUijd4w9\na+7L7+TQrVuVYKiVGJ5iowp2bsSYHSCJ7wkvURLNMlcQj2aFQWMZyRYF7NAa4ud4\na7b01huVSJuWJUIjUwlWoQu3NEhGFdACWsGuVeGS8aeWVnmZG92XFrcYpdflq4Zd\n0WU2olrlJdr6/jeGO6YkAiq+A0TNuJ7VxkrK42hoUM7x1f+lfa/1j7zTBw1kyw1Y\ntu0l4ewnqXqWowg5880Lt2UOjZAUfhXnyMox2zy39V8evdeYi+IkPkVd1TUwcKBa\notdYzVEx2IwMUE45Vf7xvWX8G/rV4cspMQVCDwQCJQUo2c0TzSsmhxrauq8BpJMn\nrxRBzQLh0jigA1W5xF5judbWwQ9QtGuXZKWh7hFO2HY7d4BrqB1JHr1JSo0qAI6T\nlhnLMwUO75vpDQReNfGrum53yItdKmJEogK8plZGYHvKrhc4uHnQUQUzdMsqqoJy\nWP8aVAfQO7KT+NZnFhbh38L7wX7/wFEf74LLgETA1p7NCGU8gGGXSrfOLvdwbwZS\noqbC9U1scYoE7wn7njNchqzK4c6pOHDj05IhLZRusaWZIGmOWTkM4X6L0skzgMlr\nFmLe0bH9l5BPoneAxEfzqC00DWui+XaDjSoCDbAz0JpswuwpW2LqoPN+8r2K2COd\nwL3JIJmiwpOFCDnOVjL63JHIBA==\n-----END CERTIFICATE-----\n",
+      "signature": "LLYjg0AySRsHi02giIkqGzezU6xsrRDHS/ahKjKMLoiCwpgLCeCXd4rrw3WDFSArWP1Y9WZAjjntvVyPyplohYXRJqq1i5KU9V2GOJm9L77P9VrIdgXRnSCEfZtDDRrOWOPlvsLn/kGPcKg3OLJ3rnD+t1SJ5uxgk8HD8Mr2CMXwgHIClkC+Im91vFrbqVZ1QOVtN1BG6W0Bz6UYx7c7rSBfB4+plOtXvKDDmNmsqf6tYIxNYQgpMuuOeVbPwC0IoGvtKekvpaXRz95W6u8IBMA7mtXpQEw9ybnA4ZlLq3Pcxj3beJYVocUwoyrvtg20x6ZyqsGbfvl454HujU66ZioOm2cdJsny260w1Q6BAbS3uXf3jYym5bTZagkgAeD1hl7kdMutnCBysSXES/VBVonl8bdVKmXXpofKBsMUyYyxFYMx23bdsx4HzW5e38fKfhhTHwaoez87J5IrPyMWZXF3V4lLvD9CXW1bCPJwS9htUeGjfYG+7v8mvBBOPuTmULs0P7AoQaZkp3HEnJ3NkFeuFFVRcWNyFwsqRCA0lOTlf3jzvXLiAv0gri5jQPmG8SgAUyJ3DfrY1bdKweeDegGLpEfv57dvtSYZwtuMeDWHAHaMkfVduOwv/o2fLtCKpxmQB0nr7hTa3+uaETZ/Yc+3crpZuDiEiA8K4w287VY="
+    }
+  },
+  "state": {
+    "assignment": {
+      "core": {
+        "sha256": "3d884be3ca31939957978528fd188a7b68f22da593b90f6168ed797202812fea",
+        "type": "0xaa",
+        "url": "https://cores2.foldingathome.org/gromacs-core-aa/debian-10-64bit/cpu-avx2_256-release/fahcore-aa-debian-10-64bit-cpu-avx2_256-release-0.0.5.tar.bz2"
+      },
+      "cpus": 2,
+      "credit": 1,
+      "deadline": 86400,
+      "max_cpus": 64,
+      "min_cpus": 1,
+      "port": 443,
+      "project": 11938,
+      "time": "2026-05-12T16:16:09Z",
+      "timeout": 43200,
+      "ws": "ec2-18-220-40-152.us-east-2.compute.amazonaws.com"
+    },
+    "cpus": 2,
+    "eta": "0s",
+    "gpus": [],
+    "group": "",
+    "id": "7P6X1eMbCEa83LEFHyGyM7otTi4rgFQAUydn54LXiWY",
+    "number": 31,
+    "pause_reason": "Shutting down",
+    "paused": false,
+    "ppd": 9763200,
+    "progress": 0,
+    "run_time": 2,
+    "state": "UPLOAD",
+    "wu": {
+      "clone": 0,
+      "compression": "none",
+      "cs": [
+        "highland3.seas.upenn.edu",
+        "ds03.scs.illinois.edu",
+        "ds01.scs.illinois.edu",
+        "vav24.fah.temple.edu",
+        "highland4.seas.upenn.edu",
+        "highland2.seas.upenn.edu"
+      ],
+      "gen": 1175,
+      "run": 3,
+      "server": 316418200,
+      "sha256": "AF40suUzCyg1i2cQUsbZ35Rw07zxykNSXD0pDXZa24A=",
+      "time": "2026-05-12T16:16:09Z"
+    },
+    "wu_progress": 1
+  }
+}
