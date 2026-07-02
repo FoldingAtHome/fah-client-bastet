@@ -55,6 +55,7 @@ namespace FAH {
 
       state_t state = STATE_IDLE;
 
+      cb::SmartPointer<cb::HTTP::Conn> con;
       cb::JSON::ValuePtr data;
 
       cb::KeyPair accountKey;
