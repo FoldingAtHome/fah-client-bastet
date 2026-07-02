@@ -20,6 +20,9 @@ if not env.GetOption('clean'):
     conf.CBConfig('cbang')
     env.CBDefine('USING_CBANG')
 
+    # Windows Systray
+    if env['PLATFORM'] == 'win32': conf.CBRequireLib('shell32')
+
 conf.Finish()
 
 # Include the parent source tree and find the libraries built there.
