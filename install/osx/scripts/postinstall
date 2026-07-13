@@ -11,6 +11,7 @@ chmod -R u+rwX,go-w "$RUN_DIR"
 chown -R nobody:nobody "$RUN_DIR"
 
 PLIST=/Library/LaunchDaemons/org.foldingathome.fahclient.plist
+AGENT_PLIST="/Library/LaunchAgents/org.foldingathome.fah-screen-agent.plist"
 
 OS_MAJOR="`sw_vers -productVersion | cut -f1 -d.`"
 if [ "$OS_MAJOR" -ge 15 ]; then
@@ -45,8 +46,19 @@ fi
 "$SCRIPTS"/organize-credits.sh &
 
 # Start service
-chmod 0644 "$PLIST"
+chmod 0644 "$PLIST" "$AGENT_PLIST"
 launchctl load -w "$PLIST"
 
 # start, in case RunAtLoad is false
 launchctl start org.foldingathome.fahclient || true
+
+# restart any running agents in other sessions
+# note that this does not reload their launchd jobs
+killall -HUP fah-screen-agent || true
+
+# start agent in user's gui session
+conuser=$(/usr/bin/stat -f "%Su" /dev/console) || conuser="root"
+conuid=$(/usr/bin/id -u "$conuser") || conuid=0
+if [[ $conuid != 0 ]]; then
+  launchctl bootstrap gui/$conuid "$AGENT_PLIST" || true
+fi
