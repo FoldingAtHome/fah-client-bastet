@@ -62,3 +62,6 @@ config.log
 
 .vscode
 *.code-workspace
+
+# AppImage build output
+/out/
