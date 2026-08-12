@@ -53,7 +53,7 @@ Units::Units(App &app) {
 
         if (unit->getClientID() == clientID) {add(unit); count++;}
         else LOG_ERROR("WU with client ID " << unit->getClientID()
-                       << " does not belong client " << clientID);
+                       << " does not belong to client " << clientID);
       } CATCH_ERROR;
     }, 1000);
 
