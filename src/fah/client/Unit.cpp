@@ -75,6 +75,7 @@ using namespace std;
 
 namespace {
   static const uint64_t maxViewerBytes = 2.5e7;
+  static const double   csRetryDelay   = 5; // Seconds between CS attempts
 
 
   string idFromSig(const string &sig) {
@@ -931,7 +932,12 @@ void Unit::retry() {
       if (csList.size()) {
         if (cs <  (int)csList.size()) cs++;
         if (cs == (int)csList.size()) cs = -1;
-        else return next(); // Try all CS before counting a retry
+        else {
+          // Try all CS before counting a retry, but back off between them
+          setWait(csRetryDelay);
+          LOG_INFO(1, "Trying next CS in " << TimeInterval(csRetryDelay));
+          return;
+        }
       }
     }
 
