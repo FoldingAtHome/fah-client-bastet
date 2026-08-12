@@ -7,6 +7,7 @@ Folding@home Client Changelog
  - Fix unit clock skew detection. @Br3ach
  - Log outgoing URLs. @Br3ach
  - Restart tray icon on Windows when tray restarts.  @SortaCore re:#437
+ - Use PCI domain when detecting GPUs.  re:#346
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.
