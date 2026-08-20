@@ -39,6 +39,9 @@ namespace FAH {
     class App;
     class Unit;
 
+    // Limit inbound messages and request bodies from frontends and the node
+    const unsigned maxInputSize = 1 << 20;
+
     class Remote : public LogTracker::Listener, public virtual cb::RefCounted {
       App &app;
 

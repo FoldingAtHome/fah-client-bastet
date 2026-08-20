@@ -12,6 +12,14 @@ Folding@home Client Changelog
  - Restart tray icon on Windows when tray restarts.  @SortaCore re:#437
  - Use PCI domain when detecting GPUs.  re:#346
  - Fix upload retry issue.  re:#447
+ - Verify server certificates and hostnames on all outgoing TLS connections.
+ - Deny IPv6 clients by default, address ranges never span address families.
+ - Ignore remote config and state changes with an invalid or future time.
+ - Restrict ``client.db`` file permissions, it holds the client's private key.
+ - Validate machine names set by a remote.
+ - Limit the size of messages and requests from remotes and the node.
+ - Validate the length of encrypted message IVs from the node.
+ - Close a node session that is replaced by a new session with the same ID.
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.

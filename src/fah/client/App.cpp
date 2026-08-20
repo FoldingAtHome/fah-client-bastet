@@ -83,6 +83,9 @@ namespace FAH {
 
 
 namespace {
+  const uint64_t maxChangeSkew = 65 * 60; // Allowed remote clock skew in secs
+
+
   unsigned getDefaultCPUs() {
     unsigned count  = SystemInfo::instance().getCPUCount();
     unsigned pcount = SystemInfo::instance().getPerformanceCPUCount();
@@ -172,8 +175,8 @@ App::App() :
 
   options.popCategory();
 
-  options["allow"].setDefault("127.0.0.1");
-  options["deny" ].setDefault("0/0");
+  options["allow"].setDefault("127.0.0.1 ::1");
+  options["deny" ].setDefault("0/0 ::/0"); // Ranges are per address family
 
   // Configure log
   options["verbosity"         ].setDefault(3);
@@ -381,8 +384,21 @@ bool App::validateChange(const JSON::Value &msg) {
   string key  = "change-time-" + cmd;
   auto &db    = getDB("config");
 
-  if (db.has(key) && Time::parse(time) <= Time::parse(db.getString(key)))
-    return false; // outdated
+  uint64_t t = 0;
+  TRY_CATCH_DEBUG(3, t = Time::parse(time));
+
+  // Never save an invalid or future time, it would block all later changes
+  if (!t || Time::now() + maxChangeSkew < t) {
+    LOG_WARNING("Ignoring " << cmd << " change with invalid time '" << time
+                << "'");
+    return false;
+  }
+
+  // Tolerate an invalid saved time, it may be from an older client
+  uint64_t last = 0;
+  if (db.has(key)) TRY_CATCH_DEBUG(3, last = Time::parse(db.getString(key)));
+
+  if (t <= last) return false; // outdated
 
   // Save change time
   db.set(key, time);
@@ -536,6 +552,13 @@ void App::setup() {
   // Open DB
   LOG_INFO(1, "Opening Database");
   db.open("client.db");
+
+  // The DB holds the client's private key, account token and passkey.  SQLite
+  // gives the WAL and SHM files the same permissions as the DB.
+  for (auto path: {"client.db", "client.db-wal", "client.db-shm"})
+    if (SystemUtilities::exists(path))
+      TRY_CATCH_WARNING(SystemUtilities::chmod(path, 0600));
+
   db.execute("PRAGMA journal_mode=WAL");
   db.execute("PRAGMA locking_mode=EXCLUSIVE");
   db.execute("PRAGMA synchronous=NORMAL");

@@ -36,7 +36,9 @@ using namespace cb;
 using namespace FAH::Client;
 
 
-WebsocketRemote::WebsocketRemote(App &app) : Remote(app) {}
+WebsocketRemote::WebsocketRemote(App &app) : Remote(app) {
+  setMaxMessageSize(maxInputSize);
+}
 
 
 void WebsocketRemote::send(const cb::JSON::ValuePtr &msg) {

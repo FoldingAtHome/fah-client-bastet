@@ -46,6 +46,8 @@ Server::Server(App &app) :
   HTTP::Server(app.getEventBase()), app(app) {
   addOptions(app.getOptions());
   app.getOptions()["http-addresses"].setDefault("127.0.0.1:7396");
+  app.getOptions()["http-max-body-size"   ].setDefault(maxInputSize);
+  app.getOptions()["http-max-headers-size"].setDefault(maxInputSize);
   setPortPriority(3);
 }
 

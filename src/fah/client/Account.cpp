@@ -51,14 +51,24 @@ using namespace cb;
 using namespace std;
 
 
+namespace {
+  const unsigned ivSize = 16; // AES block size
+
+  const string machNameRE   = "[^<>;&'\\\"]{1,64}";
+  const string machNameHelp =
+    "Must be between 1 and 64 characters and cannot include any of <>;&'\"";
+}
+
+
 Account::Account(App &app) : app(app) {
   auto &options = app.getOptions();
   options.pushCategory("Account");
   options.add("account-token", "Folding@home account token.");
   options.add("machine-name", "Name used to identify this machine.",
-    new RegexConstraint(Regex("[^<>;&'\\\"]{1,64}"),
-    "Must be between 1 and 64 characters and cannot include any of <>;&'\""));
+    new RegexConstraint(Regex(machNameRE), machNameHelp));
   options.popCategory();
+
+  setMaxMessageSize(maxInputSize);
 
   updateEvent = app.getEventBase().newEvent([this] {update();}, 0);
   updateEvent->activate();
@@ -99,6 +109,10 @@ void Account::init() {
 
 
 void Account::link(const string &token, const string &machName) {
+  // Remotes bypass the ``machine-name`` option constraint
+  if (!Regex(machNameRE).match(machName))
+    THROW("Invalid machine name.  " << machNameHelp);
+
   auto &db = app.getDB("config");
 
   db.set("requested-token", token);
@@ -134,7 +148,7 @@ void Account::restart() {
 
 void Account::sendEncrypted(const JSON::Value &_msg, const string &sid) {
   string payload = _msg.toString(0, false);
-  string iv = Random::instance().string(16);
+  string iv = Random::instance().string(ivSize);
   Cipher cipher("aes-256-cbc", true, sessionKey.data(), iv.data());
   JSON::Dict msg;
 
@@ -306,6 +320,8 @@ void Account::onEncrypted(const JSON::ValuePtr &_msg) {
   string iv      = Base64().decode(_msg->getString("iv"));
   string payload = Base64().decode(_msg->getString("payload"));
 
+  if (iv.length() != ivSize) THROW("Invalid IV length " << iv.length());
+
   // Check that this is a unique IV.  Also prevents replay attacks.
   if (!ivs.insert(iv).second) THROW("IV cannot be used more than once");
 
@@ -328,6 +344,10 @@ void Account::onEncrypted(const JSON::ValuePtr &_msg) {
     remote->onMessage(msg->get("content"));
 
   } else if (type == "session-open") {
+    // Close any session being replaced, it would never be removed otherwise
+    auto it = nodes.find(sid);
+    if (it != nodes.end()) it->second->close();
+
     // Open the session
     auto remote = SmartPtr(new NodeRemote(app, *this, sid));
     app.add(remote);
