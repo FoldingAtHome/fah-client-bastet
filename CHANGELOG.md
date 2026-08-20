@@ -2,6 +2,9 @@ Folding@home Client Changelog
 =============================
 
 ## v8.5.7
+ - Require ``https`` for allowed ``foldingathome.org`` origins.
+ - Fix unescaped dots in the default allowed loopback origin expression.
+ - Only allow loopback origins on ports listed in ``http-addresses``.
  - Don't wait for previously enabled GPUs if they are no longer valid.
  - Try to configure supported GPUs for up to 5 mins after client start.
  - Fix unit clock skew detection. @Br3ach

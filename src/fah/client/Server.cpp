@@ -31,7 +31,10 @@
 #include "WebsocketRemote.h"
 
 #include <cbang/Info.h>
+#include <cbang/event/Port.h>
 #include <cbang/log/Logger.h>
+#include <cbang/net/SockAddr.h>
+#include <cbang/net/URI.h>
 #include <cbang/os/SystemUtilities.h>
 
 using namespace FAH::Client;
@@ -80,6 +83,47 @@ void Server::init() {
 bool Server::allowed(const string &origin) const {
   for (auto re: allowedOrigins)
     if (re.match(origin)) return true;
+
+  return allowedLoopback(origin);
+}
+
+
+// Allow loopback origins, but only on addresses this server actually listens
+// on.  Otherwise any local app serving a page on any other loopback address or
+// port could control the client.
+bool Server::allowedLoopback(const string &origin) const {
+  try {
+    URI uri(origin);
+
+    bool secure = uri.getScheme() == "https";
+    if (!secure && uri.getScheme() != "http") return false;
+
+    string host = uri.getHost();
+    bool   name = host == "localhost";
+
+    // Which loopback address ``localhost`` resolves to is up to the browser
+    SockAddr addr;
+    if (!name) {
+      // Strip IPv6 brackets
+      if (2 < host.size() && host.front() == '[' && host.back() == ']')
+        host = host.substr(1, host.size() - 2);
+
+      addr = SockAddr::parse(host);
+      if (!addr.isLoopback()) return false;
+    }
+
+    for (auto &port: getPorts()) {
+      auto &a = port->getAddr();
+
+      if (port->isSecure() != secure || a.getPort() != uri.getPort()) continue;
+
+      // A wildcard bind listens on the loopback addresses too
+      if (a.isZero()) return true;
+      if (name ? a.isLoopback() : a.toString(false) == addr.toString(false))
+        return true;
+    }
+
+  } catch (const Exception &) {} // Malformed Origin
 
   return false;
 }

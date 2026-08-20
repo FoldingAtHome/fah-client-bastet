@@ -124,10 +124,10 @@ App::App() :
     )->setType(Option::TYPE_STRINGS);
   auto opt = options.add(
     "allowed-origin-exprs", "Same as ``allow-origins`` but accepts regular "
-    "expressions.");
+    "expressions.  Loopback origins are always allowed, but only on the ports "
+    "listed in ``http-addresses``.");
   opt->setType(Option::TYPE_STRINGS);
-  opt->setDefault(".*\\.foldingathome\\.org "
-    "http://((127.0.0.1)|(localhost))(:\\d+)?");
+  opt->setDefault("https://([^./]+\\.)*foldingathome\\.org");
   options.add("web-root", "Path to files to be served by the client's Web "
               "server")->setDefault("fah-web-control/dist");
   options.add("on-idle", "Folding only when idle.")->setDefault(false);

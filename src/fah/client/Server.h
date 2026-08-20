@@ -51,6 +51,7 @@ namespace FAH {
       void init();
 
       bool allowed(const std::string &origin) const;
+      bool allowedLoopback(const std::string &origin) const;
 
       // From cb::HTTP::Server
       using cb::HTTP::Server::init;
