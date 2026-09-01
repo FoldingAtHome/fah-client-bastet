@@ -1065,6 +1065,12 @@ void Unit::writeRequest(JSON::Sink &sink) const {
 void Unit::assign() {
   if (pr.isSet()) return; // Already assigning
 
+  // Never request an assignment without resources
+  if (!getCPUs() && !hasGPUs()) {
+    LOG_WARNING("Refusing WU assignment request with no resources");
+    return clean("aborted");
+  }
+
   data = JSON::build([this] (JSON::Sink &sink) {writeRequest(sink);});
   string signature = app.getKey().signSHA256(data->toString());
 

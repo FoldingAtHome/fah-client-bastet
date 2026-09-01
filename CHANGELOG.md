@@ -20,6 +20,7 @@ Folding@home Client Changelog
  - Limit the size of messages and requests from remotes and the node.
  - Validate the length of encrypted message IVs from the node.
  - Close a node session that is replaced by a new session with the same ID.
+ - Don't request an assignment for a WU with no CPUs or GPUs.
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.
