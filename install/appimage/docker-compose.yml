@@ -1,0 +1,14 @@
+services:
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fah-client-appimage-builder
+    environment:
+      # HOSTUID: 1000   # override auto-detected host uid/gid
+      # HOSTGID: 1000
+      VERSION: ${VERSION:-snapshot}
+      WORKSPACE: /workspace
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
