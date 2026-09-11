@@ -33,6 +33,7 @@
 #include "Groups.h"
 #include "Units.h"
 #include "Cores.h"
+#include "CoreProcess.h"
 #include "Config.h"
 #include "OS.h"
 #include "Remote.h"
@@ -86,9 +87,26 @@ namespace {
   const uint64_t maxChangeSkew = 65 * 60; // Allowed remote clock skew in secs
 
 
+  unsigned getReportedCPUs() {
+
+
+    unsigned count  = SystemInfo::instance().getCPUCount();
+
+
+    unsigned pcount = CoreProcess::getPerformanceCPUCount();
+
+
+    return pcount && pcount < count ? pcount : count;
+
+
+  }
+
+
+
+
   unsigned getDefaultCPUs() {
     unsigned count  = SystemInfo::instance().getCPUCount();
-    unsigned pcount = SystemInfo::instance().getPerformanceCPUCount();
+    unsigned pcount = CoreProcess::getPerformanceCPUCount();
 
     if (1 < count) count--; // Reserve one CPU by default
 
@@ -109,6 +127,7 @@ App::App() :
 
   // Info
   Client::BuildInfo::addBuildInfo(getName().c_str());
+  Info::instance().add("System", "CPUs", String(getReportedCPUs()));
   string url = Info::instance().get(getName(), "URL");
 
   // Configure commandline
@@ -430,7 +449,7 @@ void App::loadConfig() {
   d->insert("os_version",  sysInfo.getOSVersion().toString());
   d->insert("cpu",         os->getCPU());
   d->insert("cpu_brand",   CPUInfo::create()->getBrand());
-  d->insert("cpus",        sysInfo.getCPUCount());
+  d->insert("cpus", getReportedCPUs());
   d->insert("gpus",        gpus);
   d->insert("mach_name",   account->getMachName());
   try {

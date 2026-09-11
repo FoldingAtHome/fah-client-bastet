@@ -673,7 +673,14 @@ void Unit::run() {
 
   // Run
   auto process = SmartPtr(new CoreProcess(core->getPath()));
-  process->exec(args);
+  // Preserve CPU configs larger than the P-core pool.
+  unsigned cpuBudget = 0;
+  if (!gpus.size())
+    for (auto &name: app.getGroups()->keys()) {
+      auto &config = app.getGroups()->getGroup(name).getConfig();
+      if (!config.getPaused()) cpuBudget += config.getCPUs();
+    }
+  process->exec(args, cpuBudget);
   processStarted(process);
   startLogCopy(logFile); // Redirect core output to log
   triggerNext();

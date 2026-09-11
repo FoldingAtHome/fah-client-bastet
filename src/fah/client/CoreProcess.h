@@ -40,6 +40,8 @@ namespace FAH {
       bool     killedByClient = false;
 
     public:
+      static uint32_t getPerformanceCPUCount();
+
       CoreProcess(const std::string &path);
 
       // True once the core has been asked to stop, until it exits
@@ -48,7 +50,7 @@ namespace FAH {
       // True if we killed the core because it failed to shutdown gracefully
       bool getKilledByClient() const {return killedByClient;}
 
-      void exec(const std::vector<std::string> &args);
+      void exec(const std::vector<std::string> &args, unsigned cpuBudget = 0);
       void stop();
     };
   }
