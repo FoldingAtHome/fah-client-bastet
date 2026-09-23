@@ -42,11 +42,41 @@
 #include <cbang/hw/OpenCLLibrary.h>
 #include <cbang/hw/CUDALibrary.h>
 #include <cbang/hw/HIPLibrary.h>
+#include <cbang/hw/GPUVendor.h>
 #include <cbang/util/WeakCallback.h>
+
+#ifdef __APPLE__
+#include <IOKit/IOKitLib.h>
+#endif
 
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
+
+
+#ifdef __APPLE__
+static uint16_t getAppleGPUDeviceID() {
+  io_service_t dev = IOServiceGetMatchingService(
+    MACH_PORT_NULL, IOServiceMatching("IOAccelerator"));
+  if (!dev) return 0;
+
+  CFTypeRef name = IORegistryEntryCreateCFProperty(
+    dev, CFSTR("IONameMatched"), kCFAllocatorDefault, 0);
+  IOObjectRelease(dev);
+
+  char buf[16] = "";
+  if (name && CFGetTypeID(name) == CFStringGetTypeID())
+    CFStringGetCString(
+      (CFStringRef)name, buf, sizeof(buf), kCFStringEncodingASCII);
+  if (name) CFRelease(name);
+
+  uint16_t id = 0;
+  if (strlen(buf) == 9 && String::startsWith(buf, "gpu,t"))
+    String::parseU16(string("0x") + (buf + 5), id, true);
+
+  return id;
+}
+#endif
 
 
 namespace {
@@ -219,6 +249,23 @@ void GPUResources::detect() {
     if (!res->hasString("description") && !gpu.getDescription().empty())
       res->insert("description", gpu.getDescription());
   }
+
+#ifdef __APPLE__
+  uint16_t appleID = getAppleGPUDeviceID();
+  const auto &appleGPU = gpuIndex.find(GPUVendor::VENDOR_APPLE, appleID);
+  unsigned soc = 0;
+
+  for (auto &cd: openclGPUs) {
+    if (cd.isPCIValid() || cd.vendorID != GPUVendor::VENDOR_APPLE) continue;
+
+    string id = "gpu:soc:" + String(soc++);
+    auto res = resources[id] = new GPUResource(id);
+    res->set("opencl", cd);
+    res->insert("device", appleID);
+    res->insertBoolean("supported", appleGPU.getSpecies());
+    if (appleGPU.getSpecies()) valid.insert(id);
+  }
+#endif
 
   // Match with existing GPUResources
   bool changed = false;
