@@ -673,6 +673,20 @@ void Unit::run() {
 
   // Run
   auto process = SmartPtr(new CoreProcess(core->getPath()));
+
+  // Pin to performance cores on hybrid CPUs
+  if (getConfig().getPinToPerfCores()) {
+    auto cpus = SystemInfo::instance().getPerformanceCPUs();
+
+    if (cpus.empty()) LOG_INFO(3, "No performance cores detected, not pinning");
+    else if (!gpus.size() && cpus.size() < runningCPUs)
+      LOG_INFO(3, "More CPUs allocated than performance cores, not pinning");
+    else {
+      LOG_INFO(3, "Pinning core to " << cpus.size() << " performance CPUs");
+      process->setAffinity(cpus);
+    }
+  }
+
   process->exec(args);
   processStarted(process);
   startLogCopy(logFile); // Redirect core output to log

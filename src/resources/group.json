@@ -2,6 +2,7 @@
   "on_idle":    false,
   "on_battery": true,
   "keep_awake": true,
+  "pin_to_perf_cores": false,
   "paused":     true,
   "finish":     false,
   "beta":       false,

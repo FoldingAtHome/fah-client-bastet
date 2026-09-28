@@ -2,6 +2,7 @@ Folding@home Client Changelog
 =============================
 
 ## v8.5.7
+ - Added ``pin_to_perf_cores`` group option. re:#349
  - Require ``https`` for allowed ``foldingathome.org`` origins.
  - Fix unescaped dots in the default allowed loopback origin expression.
  - Only allow loopback origins on ports listed in ``http-addresses``.

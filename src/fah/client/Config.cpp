@@ -87,6 +87,11 @@ bool Config::getOnBattery() const {return getBoolean("on_battery");}
 bool Config::getKeepAwake() const {return getBoolean("keep_awake");}
 
 
+bool Config::getPinToPerfCores() const {
+  return getBoolean("pin_to_perf_cores", false);
+}
+
+
 void Config::setPaused(bool paused) {
   insertBoolean("paused", paused);
   insertBoolean("finish", false);

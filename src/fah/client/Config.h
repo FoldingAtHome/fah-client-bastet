@@ -54,6 +54,7 @@ namespace FAH {
       bool getOnIdle() const;
       bool getOnBattery() const;
       bool getKeepAwake() const;
+      bool getPinToPerfCores() const;
       void setPaused(bool paused);
       bool getPaused() const;
       bool getFinish() const;
