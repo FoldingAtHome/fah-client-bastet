@@ -29,8 +29,7 @@
 #pragma once
 
 #include <cbang/json/Observable.h>
-#include <cbang/hw/ComputeDevice.h>
-#include <cbang/hw/PCIInfo.h>
+#include <cbang/hw/GPUDevice.h>
 
 
 namespace FAH {
@@ -41,19 +40,18 @@ namespace FAH {
       std::string id;
 
     public:
-      GPUResource(const std::string &id) : id(id) {}
+      GPUResource(const cb::GPUDevice &gpu);
 
       const std::string &getID() const {return id;}
-
-      void setPCI(const cb::PCIDevice &pci);
-
-      using cb::JSON::ObservableDict::set;
-      void set(const std::string &name, const cb::ComputeDevice &cd);
 
       bool isComputeDeviceSupported(
         const std::string &type, const Config &config) const;
       bool isSupported(const Config &config) const;
       void writeRequest(cb::JSON::Sink &sink, const Config &config) const;
+
+    protected:
+      void insertComputeDevice(
+        const std::string &name, const cb::ComputeDevice &cd);
     };
   }
 }

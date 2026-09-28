@@ -2,6 +2,7 @@ Folding@home Client Changelog
 =============================
 
 ## v8.5.7
+ - Uniform handling of non-PCI GPUs types. re:#455
  - Added ``pin_to_perf_cores`` group option. re:#349
  - Fixed Windows tray resource link re:#452
  - Require ``https`` for allowed ``foldingathome.org`` origins.

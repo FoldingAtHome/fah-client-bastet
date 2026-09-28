@@ -39,9 +39,7 @@
 #include <cbang/json/Reader.h>
 #include <cbang/time/Time.h>
 #include <cbang/log/Logger.h>
-#include <cbang/hw/OpenCLLibrary.h>
-#include <cbang/hw/CUDALibrary.h>
-#include <cbang/hw/HIPLibrary.h>
+#include <cbang/hw/GPUInfo.h>
 #include <cbang/util/WeakCallback.h>
 
 using namespace FAH::Client;
@@ -51,27 +49,6 @@ using namespace std;
 
 namespace {
   const unsigned updateFreq = Time::SEC_PER_DAY * 5;
-
-
-  template <typename LIB>
-  vector<ComputeDevice> get_gpus() {
-    vector<ComputeDevice> devices;
-
-    try {
-      auto &lib = LIB::instance();
-
-      for (auto &dev: lib) {
-        LOG_DEBUG(3, dev);
-
-        if (dev.isValid() && dev.gpu)
-          devices.push_back(dev);
-      }
-    } catch (const Exception &e) {
-      LOG_DEBUG(3, LIB::getName() << " not supported: " << e.getMessage());
-    }
-
-    return devices;
-  }
 }
 
 
@@ -150,74 +127,12 @@ void GPUResources::update() {
 
 void GPUResources::detect() {
   map<string, SmartPointer<GPUResource>> resources;
-
-  // Enumerate OpenCL
-  auto openclGPUs = get_gpus<OpenCLLibrary>();
-  for (auto &cd: openclGPUs) {
-    if (!cd.isPCIValid()) continue;
-    string id = "gpu:" + cd.getPCIID();
-
-    auto res = resources[id] = new GPUResource(id);
-    res->set("opencl", cd);
-  }
-
-#ifndef __APPLE__
-  // Enumerate CUDA and match with OpenCL
-  auto cudaGPUs = get_gpus<CUDALibrary>();
-  for (auto &cd: cudaGPUs) {
-    if (!cd.isPCIValid()) continue;
-    string id = "gpu:" + cd.getPCIID();
-
-    SmartPointer<GPUResource> res;
-    auto it = resources.find(id);
-    if (it != resources.end()) res = it->second;
-    else resources[id] = res = new GPUResource(id);
-
-    res->set("cuda", cd);
-  }
-#endif // __APPLE__
-
-  // Enumerate HIP and match with OpenCL/CUDA
-  auto hipGPUs = get_gpus<HIPLibrary>();
-  for (auto &cd: hipGPUs) {
-    if (!cd.isPCIValid()) continue;
-    string id = "gpu:" + cd.getPCIID();
-
-    SmartPointer<GPUResource> res;
-    auto it = resources.find(id);
-    if (it != resources.end()) res = it->second;
-    else resources[id] = res = new GPUResource(id);
-
-    res->set("hip", cd);
-  }
-
-  // Enumerate PCI bus
   std::set<string> valid;
-  PCIInfo info; // Don't use singleton
 
-  for (auto &dev: info) {
-    const auto &gpu = gpuIndex.find(dev.getVendorID(), dev.getDeviceID());
-    string id = "gpu:" + dev.getID();
-
-    SmartPointer<GPUResource> res;
-    auto it = resources.find(id);
-    if (it != resources.end()) res = it->second;
-    else if (!gpu.getType()) continue; // Ignore non-GPUs
-    else resources[id] = res = new GPUResource(id);
-
-    if (gpu.getSpecies()) valid.insert(id);
-
-    // NOTE, It's possible the device was found by OpenCL/CUDA/HIP but the
-    // driver did not report PCI info.
-
-    res->setPCI(dev);
-
-    // A GPU device is supported if GPUs.txt lists a non-zero species and
-    // at least one ComputeDevice is found for OpenCL/CUDA/HIP.
-    res->insertBoolean("supported", gpu.getSpecies() && it != resources.end());
-
-    if (!res->hasString("description") && !gpu.getDescription().empty())
-      res->insert("description", gpu.getDescription());
+  for (auto &gpu: GPUInfo(gpuIndex)) {
+    SmartPointer<GPUResource> res = new GPUResource(gpu);
+    resources[res->getID()] = res;
+    if (gpu.getSpecies()) valid.insert(res->getID());
   }
 
   // Match with existing GPUResources

@@ -44,33 +44,25 @@ namespace {
 }
 
 
-void GPUResource::setPCI(const PCIDevice &pci) {
-  insert("vendor", pci.getVendorID());
-  insert("device", pci.getDeviceID());
-  insert("type",   getGPUVendorName(pci.getVendorID()));
-}
-
-
-void GPUResource::set(const string &name, const ComputeDevice &cd) {
-  if (cd.vendorID != -1) {
-    if (!hasU32("vendor"))  insert("vendor", cd.vendorID);
-    if (!hasString("type")) insert("type",   getGPUVendorName(cd.vendorID));
+GPUResource::GPUResource(const GPUDevice &gpu) : id("gpu:" + gpu.getID()) {
+  if (gpu.getVendorID()) {
+    insert("vendor", gpu.getVendorID());
+    insert("type",   getGPUVendorName(gpu.getVendorID()));
   }
 
-  if (!cd.name.empty() && !hasString("description"))
-    insert("description", cd.name);
+  if (gpu.getDeviceID()) insert("device", gpu.getDeviceID());
 
-  if (!cd.uuid.empty() && !hasString("uuid")) insert("uuid", cd.uuid);
+  if (!gpu.getDescription().empty())
+    insert("description", gpu.getDescription());
 
-  if (cd.isValid()) {
-    JSON::ValuePtr d = new JSON::Dict;
-    d->insert("platform", cd.platformIndex);
-    d->insert("device",   cd.deviceIndex);
-    d->insert("compute",  cd.computeVersion.toString());
-    d->insert("driver",   cd.driverVersion.toString());
-    insert(name, d);
+  string uuid = gpu.getUUID();
+  if (!uuid.empty()) insert("uuid", uuid);
 
-  } else if (has(name)) erase(name);
+  insertBoolean("supported", gpu.isSupported());
+
+  insertComputeDevice("cuda",   gpu.getCUDA());
+  insertComputeDevice("hip",    gpu.getHIP());
+  insertComputeDevice("opencl", gpu.getOpenCL());
 }
 
 
@@ -103,4 +95,17 @@ void GPUResource::writeRequest(JSON::Sink &sink, const Config &config) const {
     sink.insert("opencl", *get("opencl"));
 
   sink.endDict();
+}
+
+
+void GPUResource::insertComputeDevice(
+  const string &name, const ComputeDevice &cd) {
+  if (!cd.isValid()) return;
+
+  JSON::ValuePtr d = new JSON::Dict;
+  d->insert("platform", cd.platformIndex);
+  d->insert("device",   cd.deviceIndex);
+  d->insert("compute",  cd.computeVersion.toString());
+  d->insert("driver",   cd.driverVersion.toString());
+  insert(name, d);
 }
