@@ -19,8 +19,9 @@ resLib = env.Library('fahclient-resources', res)
 Precious(resLib)
 
 # Platform-specific sources
+win_res = []
 if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-    lib_src += [env.RES('fah/client/win/SysTray.rc')]
+    win_res = [env.RES('fah/client/win/SysTray.rc')]
     lib_src += Glob('fah/client/win/*.cpp')
 
 elif env['PLATFORM'] == 'darwin': lib_src += Glob('fah/client/osx/*.cpp')
@@ -37,6 +38,6 @@ clientLib = env.Library('fahclient', lib_src)
 Precious(clientLib)
 
 # fah-client binary: the main entry linked against the library.
-client = env.Program('#/fah-client', ['client.cpp', clientLib, resLib])
+client = env.Program('#/fah-client', ['client.cpp', clientLib, resLib] + win_res)
 
 Return('client')
