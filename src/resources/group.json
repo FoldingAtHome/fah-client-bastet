@@ -8,6 +8,7 @@
   "beta":       false,
   "cuda":       true,
   "hip":       true,
+  "metal":      true,
   "key":        0,
   "cpus":       0,
   "gpus":       {}

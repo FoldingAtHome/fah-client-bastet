@@ -648,8 +648,9 @@ void Unit::run() {
     }
 
     // GPU platform
-    bool withCUDA = gpu.isComputeDeviceSupported("cuda", getConfig());
-    bool withHIP  = gpu.isComputeDeviceSupported("hip",  getConfig());
+    bool withCUDA  = gpu.isComputeDeviceSupported("cuda",  getConfig());
+    bool withHIP   = gpu.isComputeDeviceSupported("hip",   getConfig());
+    bool withMetal = gpu.isComputeDeviceSupported("metal", getConfig());
     args.push_back("-gpu-platform");
     args.push_back(withCUDA ? "cuda" : "opencl");
 
@@ -658,8 +659,9 @@ void Unit::run() {
     args.push_back(gpu.getString("type"));
 
     addGPUArgs(args, gpu, "opencl");
-    if (withCUDA) addGPUArgs(args, gpu, "cuda");
-    if (withHIP)  addGPUArgs(args, gpu, "hip");
+    if (withCUDA)  addGPUArgs(args, gpu, "cuda");
+    if (withHIP)   addGPUArgs(args, gpu, "hip");
+    if (withMetal) addGPUArgs(args, gpu, "metal");
 
     if (gpu.has("opencl")) {
       args.push_back("-gpu");

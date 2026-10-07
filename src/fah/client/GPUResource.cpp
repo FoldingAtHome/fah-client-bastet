@@ -63,6 +63,7 @@ GPUResource::GPUResource(const GPUDevice &gpu) : id("gpu:" + gpu.getID()) {
   insertComputeDevice("cuda",   gpu.getCUDA());
   insertComputeDevice("hip",    gpu.getHIP());
   insertComputeDevice("opencl", gpu.getOpenCL());
+  insertComputeDevice("metal",  gpu.getMetal());
 }
 
 
@@ -76,7 +77,8 @@ bool GPUResource::isSupported(const Config &config) const {
   return getBoolean("supported", false) && config.isGPUEnabled(getID()) &&
     (isComputeDeviceSupported("cuda",   config) ||
      isComputeDeviceSupported("hip",    config) ||
-     isComputeDeviceSupported("opencl", config));
+     isComputeDeviceSupported("opencl", config) ||
+     isComputeDeviceSupported("metal",  config));
 }
 
 
@@ -93,6 +95,8 @@ void GPUResource::writeRequest(JSON::Sink &sink, const Config &config) const {
     sink.insert("hip", *get("hip"));
   if (isComputeDeviceSupported("opencl", config))
     sink.insert("opencl", *get("opencl"));
+  if (isComputeDeviceSupported("metal", config))
+    sink.insert("metal", *get("metal"));
 
   sink.endDict();
 }
