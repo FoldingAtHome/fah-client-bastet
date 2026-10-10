@@ -149,7 +149,7 @@ void GPUResources::detect() {
   // Track unconfigured GPUs
   unconfiguredGPUs.clear();
   for (auto &id: valid)
-    if (!has(id)) unconfiguredGPUs.insert(id);
+    if (!get(id)->getBoolean("supported", false)) unconfiguredGPUs.insert(id);
 
   if (unconfiguredGPUs.size() && app.getUptime() < maxWaitTime)
     detectEvent->add(5); // Try again later
