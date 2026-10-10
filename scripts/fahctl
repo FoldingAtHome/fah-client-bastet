@@ -73,7 +73,7 @@ if args.group is not None and args.group not in groups:
 
 
 # Send command
-if args.command == 'state': print(data_str)
+if args.command == 'state': print(json.dumps(data, indent = 2))
 elif args.command == 'groups': print(json.dumps(groups))
 else:
   msg = dict(cmd = 'state', state = args.command)  # noqa: C408
