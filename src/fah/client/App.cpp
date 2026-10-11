@@ -488,7 +488,9 @@ void App::loadConfig() {
 void App::logWU(const Unit &wu) {
   getDB("wu_log", true).set(wu.getID(), wu.toString());
 
-  for (auto &remote: remotes)
+  // Sending can synchronously remove a remote from the live list.
+  const auto recipients = remotes;
+  for (const auto &remote: recipients)
     TRY_CATCH_ERROR(remote->logWU(wu));
 }
 
@@ -586,7 +588,9 @@ void App::notify(const list<JSON::ValuePtr> &change) {
   auto changes = SmartPtr(new JSON::List(change.begin(), change.end()));
   LOG_DEBUG(5, __func__ << ' ' << *changes);
 
-  for (auto &remote: remotes)
+  // Sending can synchronously remove a remote from the live list.
+  const auto recipients = remotes;
+  for (const auto &remote: recipients)
     remote->sendChanges(changes);
 }
 
