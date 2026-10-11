@@ -63,12 +63,6 @@ GPUResources::GPUResources(App &app) :
 GPUResources::~GPUResources() {}
 
 
-bool GPUResources::waitOnGPU(const string &id) const {
-  return !detected ||
-    (unconfiguredGPUs.count(id) && app.getUptime() < maxWaitTime);
-}
-
-
 void GPUResources::load(const JSON::Value &gpus) {
   gpuIndex.read(gpus);
   loaded = true;
@@ -146,12 +140,12 @@ void GPUResources::detect() {
     }
   }
 
-  // Track unconfigured GPUs
-  unconfiguredGPUs.clear();
+  // Retry if any GPU lacks a compute device, drivers may still be loading
+  bool retry = false;
   for (auto &id: valid)
-    if (!get(id)->getBoolean("supported", false)) unconfiguredGPUs.insert(id);
+    if (!get(id)->getBoolean("supported", false)) retry = true;
 
-  if (unconfiguredGPUs.size() && app.getUptime() < maxWaitTime)
+  if (retry && app.getUptime() < maxRetryTime)
     detectEvent->add(5); // Try again later
 
   detected = true;

@@ -91,14 +91,15 @@ bool Group::waitOnBattery() const {
 
 
 bool Group::waitOnGPU() const {
-  // Returns true if this group has enabled any GPUs which have not yet
-  // been detected as active and supported.
+  // Returns true if this group has enabled any GPUs and GPU detection has
+  // not yet run.  GPUs that are detected later are picked up when they appear.
+
+  if (app.getGPUs().isDetected()) return false;
 
   auto &gpus = *config->get("gpus");
 
   for (auto &id: gpus.keys())
-    if (config->isGPUEnabled(id) && app.getGPUs().waitOnGPU(id))
-      return true;
+    if (config->isGPUEnabled(id)) return true;
 
   return false;
 }

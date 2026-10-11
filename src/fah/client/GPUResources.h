@@ -47,8 +47,7 @@ namespace FAH {
       bool detected = false;
       cb::GPUIndex gpuIndex;
       int64_t lastGPUsFail = 0;
-      std::set<std::string> unconfiguredGPUs;
-      const unsigned maxWaitTime = 5 * 60;
+      const unsigned maxRetryTime = 5 * 60;
 
       cb::Event::EventPtr updateEvent;
       cb::Event::EventPtr detectEvent;
@@ -58,7 +57,7 @@ namespace FAH {
       GPUResources(App &app);
       ~GPUResources();
 
-      bool waitOnGPU(const std::string &id) const;
+      bool isDetected() const {return detected;}
 
     protected:
       void load(const cb::JSON::Value &gpus);
