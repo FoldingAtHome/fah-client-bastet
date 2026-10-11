@@ -6,9 +6,9 @@
 # dependencies = ["websocket-client"]
 # ///
 
-import sys
 import argparse
 import json
+import sys
 from urllib.parse import urlparse
 
 try:
@@ -33,16 +33,19 @@ Examples:
   fahctl fold
   fahctl finish
   fahctl pause
+  fahctl fold ""  # start folding in the Default group
 '''
 
 parser = argparse.ArgumentParser(description = __doc__,
-  formatter_class = argparse.RawDescriptionHelpFormatter, epilog = epilog)
+  formatter_class = argparse.RawTextHelpFormatter, epilog = epilog)
 
 parser.add_argument('command',
                     choices = ['fold', 'pause', 'finish', 'state', 'groups'],
                     help = 'The command to send to the client')
 parser.add_argument('group', nargs = '?', metavar='GROUP',
-                    help = 'Optional target resource group name')
+                    help='Optional target resource group name\n'
+                    'No specified group means all groups\n'
+                    'For the Default group, use "" (empty string)')
 parser.add_argument('-a', '--address', default = '127.0.0.1:7396',
                     help = 'Client address (default: %(default)s)')
 
@@ -56,7 +59,7 @@ url = f'ws://{host}:{port}/api/websocket'
 # Connect
 try:
   ws = create_connection(url)
-except Exception as e:
+except Exception as e:  # noqa: BLE001
   print(f'{e}: {url}', file = sys.stderr)
   sys.exit(1)
 
@@ -70,10 +73,10 @@ if args.group is not None and args.group not in groups:
 
 
 # Send command
-if args.command == 'state': print(data_str)
+if args.command == 'state': print(json.dumps(data, indent = 2))
 elif args.command == 'groups': print(json.dumps(groups))
 else:
-  msg = dict(cmd = 'state', state = args.command)
+  msg = dict(cmd = 'state', state = args.command)  # noqa: C408
   if args.group is not None: msg['group'] = args.group
   ws.send(json.dumps(msg))
 
