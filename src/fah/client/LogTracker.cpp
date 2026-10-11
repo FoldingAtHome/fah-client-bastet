@@ -85,9 +85,12 @@ void LogTracker::update() {
     }
   }
 
-  if (newLines->size())
-    for (auto &l: listeners)
+  if (newLines->size()) {
+    // Sending can synchronously remove a listener from the live set.
+    const auto recipients = listeners;
+    for (const auto &l: recipients)
       l->logUpdate(newLines, lastIndex);
+  }
 }
 
 
