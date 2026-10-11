@@ -58,7 +58,9 @@ url = f'ws://{host}:{port}/api/websocket'
 
 # Connect
 try:
-  ws = create_connection(url)
+  # Browsers send Origin, a command line tool has no web origin.  The
+  # default ``http://<host>:<port>`` is denied for non-loopback hosts.
+  ws = create_connection(url, suppress_origin = True)
 except Exception as e:  # noqa: BLE001
   print(f'{e}: {url}', file = sys.stderr)
   sys.exit(1)
