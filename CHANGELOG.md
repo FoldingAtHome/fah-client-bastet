@@ -2,6 +2,7 @@ Folding@home Client Changelog
 =============================
 
 ## v8.5.7
+ - Fix inflated PPD and TPF after a crash. @Br3ach re:#347
  - Fix possible remote disconnect crash during update. @Br3ach re:#460
  - Uniform handling of non-PCI GPUs types. re:#455
  - Added ``pin_to_perf_cores`` group option. re:#349

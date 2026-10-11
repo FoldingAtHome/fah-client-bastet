@@ -405,11 +405,19 @@ void Unit::dumpWU() {
 
 void Unit::save() {
   if (getState() < UNIT_CORE || getState() == UNIT_DONE) return;
+  lastSave = Time::now();
+
+  // Save as if the core stopped now so run time survives a crash.
+  // Must be a deep copy, a shallow copy would steal observable children.
+  auto state = copy(true);
+  state->insert("run_time", getRunTime());
+  state->erase("start_time");
+  state->erase("pid");
 
   JSON::BufferWriter writer;
 
   writer.beginDict();
-  writer.insert("state", *this);
+  writer.insert("state", *state);
   if (data.isSet()) writer.insert("data", *data);
   writer.endDict();
   writer.flush();
@@ -959,6 +967,9 @@ void Unit::monitorRun() {
 
     // Clear retries after running long enough
     if (retries && Time::SEC_PER_MIN * 2 < getRunTimeDelta()) retries = 0;
+
+    // Periodically save run time
+    if (Time::SEC_PER_MIN * 5 < Time::now() - lastSave) save();
   } CATCH_ERROR;
 
   triggerNext(1);

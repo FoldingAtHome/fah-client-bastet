@@ -83,6 +83,7 @@ namespace FAH {
       uint64_t processStartTime = 0; // Core process start time
       uint64_t lastSkewTimer    = 0; // For detecting clock skew
       int64_t  clockSkew        = 0; // Due to sleeping or clock changes
+      uint64_t lastSave         = 0; // For periodic saves while running
 
       uint64_t lastKnownDone                  = 0;
       uint64_t lastKnownTotal                 = 0;
