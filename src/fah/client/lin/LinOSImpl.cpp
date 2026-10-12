@@ -46,7 +46,7 @@ const char *LinOSImpl::getCPU() const {
   string machine(name.machine);
 
   if (machine.find("x86_64") != string::npos) return "amd64";
-  if (machine == "arch64" || machine == "arm64") return "arm64";
+  if (machine == "aarch64" || machine == "arm64") return "arm64";
 
   return OS::getCPU();
 }
