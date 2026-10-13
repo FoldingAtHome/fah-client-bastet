@@ -63,3 +63,6 @@ scons-env-options.py
 
 .vscode
 *.code-workspace
+
+# AppImage build output
+/out/

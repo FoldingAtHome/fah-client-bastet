@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Folding@home Client
+Comment=Folding@home client daemon; control it via https://app.foldingathome.org/
+Exec=fah-client
+Icon=fahlogo
+Categories=Science;Biology;
+Terminal=true
