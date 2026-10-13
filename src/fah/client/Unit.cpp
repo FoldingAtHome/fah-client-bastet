@@ -456,9 +456,19 @@ void Unit::next() {
       // shutdown is neither killed nor folding.
       if (process->isStopping()) return stopRun();
 
+      // Delay CPU growth to avoid restarts between GPU work units.
+      const auto now = std::chrono::steady_clock::now();
+      const bool growing = !hasGPUs() && getCPUs() > runningCPUs;
+      if (!growing) cpuGrowthDeadline = {};
+      else if (cpuGrowthDeadline == std::chrono::steady_clock::time_point{})
+        cpuGrowthDeadline = now + std::chrono::seconds(30);
+
+      const bool cpusChanged = getCPUs() != runningCPUs &&
+        (!growing || cpuGrowthDeadline <= now);
+
       // Only interrupt after minimum run time to give the core time to
       // install it's interrupt handlers.
-      if (isPaused() || getState() != UNIT_RUN || getCPUs() != runningCPUs) {
+      if (isPaused() || getState() != UNIT_RUN || cpusChanged) {
         const unsigned minRuntime = 5;
         auto delta = getRunTimeDelta();
         if (minRuntime <= delta) return stopRun();
@@ -503,6 +513,7 @@ void Unit::next() {
 
 
 void Unit::processStarted(const SmartPointer<CoreProcess> &process) {
+  cpuGrowthDeadline = {};
   auto pid = process->getPID();
   LOG_INFO(3, "Started FahCore on PID " << pid);
   this->process = process;

@@ -30,6 +30,8 @@
 
 #include "UnitState.h"
 
+#include <chrono>
+
 #include <cbang/json/Observable.h>
 #include <cbang/event/Event.h>
 #include <cbang/http/Enum.h>
@@ -79,6 +81,7 @@ namespace FAH {
       double   wait        = 0;
       int      cs          = -1;
       uint32_t runningCPUs = 0;
+      std::chrono::steady_clock::time_point cpuGrowthDeadline{};
 
       uint64_t processStartTime = 0; // Core process start time
       uint64_t lastSkewTimer    = 0; // For detecting clock skew
