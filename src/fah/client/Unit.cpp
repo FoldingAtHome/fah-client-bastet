@@ -467,7 +467,7 @@ void Unit::next() {
         (!growing || cpuGrowthDeadline <= now);
 
       // Only interrupt after minimum run time to give the core time to
-      // install it's interrupt handlers.
+      // install its interrupt handlers.
       if (isPaused() || getState() != UNIT_RUN || cpusChanged) {
         const unsigned minRuntime = 5;
         auto delta = getRunTimeDelta();
