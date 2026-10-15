@@ -212,7 +212,10 @@ bool Unit::isRunning() const {return process.isSet();}
 
 
 void Unit::setCPUs(uint32_t cpus) {
-  if (!hasU32("cpus") || cpus != getCPUs()) insert("cpus", cpus);
+  if (!hasU32("cpus") || cpus != getCPUs()) {
+    cpuGrowthDeadline = {};
+    insert("cpus", cpus);
+  }
 }
 
 
