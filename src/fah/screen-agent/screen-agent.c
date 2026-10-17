@@ -36,6 +36,9 @@
 #endif
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CGSession.h>
+#include <CoreGraphics/CGWindow.h>
+#include <CoreGraphics/CGWindowLevel.h>
 #include <xpc/xpc.h>
 #include <notify.h>
 #include <sysexits.h>
@@ -213,6 +216,62 @@ static void register_for_launch_events() {
 }
 
 
+static bool get_initial_screen_lock_state(bool *is_locked) {
+  CFDictionaryRef session = CGSessionCopyCurrentDictionary();
+  if (!session) return false;
+
+  // macOS exposes this session key, but does not document it in CGSession.h.
+  CFTypeRef value =
+    CFDictionaryGetValue(session, CFSTR("CGSSessionScreenIsLocked"));
+  if (!value) {
+    *is_locked = false;
+    CFRelease(session);
+    return true;
+  }
+
+  if (CFGetTypeID(value) == CFBooleanGetTypeID())
+    *is_locked = CFBooleanGetValue(value);
+  else if (CFGetTypeID(value) == CFNumberGetTypeID()) {
+    int locked;
+    if (!CFNumberGetValue((CFNumberRef)value, kCFNumberIntType, &locked)) {
+      CFRelease(session);
+      return false;
+    }
+    *is_locked = locked != 0;
+  } else {
+    CFRelease(session);
+    return false;
+  }
+
+  CFRelease(session);
+  return true;
+}
+
+
+static bool get_initial_screensaver_state(bool *is_active) {
+  CFArrayRef windows = CGWindowListCopyWindowInfo(
+    kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+  if (!windows) return false;
+
+  *is_active = false;
+  for (CFIndex i = 0; i < CFArrayGetCount(windows); i++) {
+    CFDictionaryRef window = CFArrayGetValueAtIndex(windows, i);
+    CFTypeRef value = CFDictionaryGetValue(window, kCGWindowLayer);
+    if (!value || CFGetTypeID(value) != CFNumberGetTypeID()) continue;
+
+    int layer;
+    if (CFNumberGetValue((CFNumberRef)value, kCFNumberIntType, &layer) &&
+        layer == kCGScreenSaverWindowLevel) {
+      *is_active = true;
+      break;
+    }
+  }
+
+  CFRelease(windows);
+  return true;
+}
+
+
 static void got_signal(int sig) {
   // dispatch callback, NOT a signal handler
   LOGDEBUG("%s %s", __FUNCTION__, sys_signame[sig]);
@@ -316,19 +375,23 @@ static void init(int argc, const char * argv[]) {
   install_signal_handlers();
   register_for_launch_events();
 
-  // TODO: maybe get initial values from CGSessionCopyCurrentDictionary
-  // https://stackoverflow.com/a/11511419
-  // this should always be correct for a fresh gui login
   screenIsLocked = false;
   screensaverIsActive = false;
   screenIdle = false;
 
-  // set up notifications
+  // Register first so transitions during initialization can be handled once
+  // the run loop starts.
   for (int i = 0; notes[i].in; i++)
     CFNotificationCenterAddObserver(nc, observer, notes[i].cb,
       notes[i].in, NULL, CFNotificationSuspensionBehaviorCoalesce);
 
+  if (!get_initial_screen_lock_state(&screenIsLocked))
+    LOGDEBUG("Unable to read initial screen-lock state; waiting for notifications");
+  if (!get_initial_screensaver_state(&screensaverIsActive))
+    LOGDEBUG("Unable to read initial screensaver state; waiting for notifications");
+
   create_timer();
+  update();
 }
 
 
