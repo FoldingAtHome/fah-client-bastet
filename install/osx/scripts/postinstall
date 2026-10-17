@@ -42,7 +42,7 @@ if [ "$OS_MAJOR" -ge 15 ]; then
     fi
 fi
 
-"$SCRIPTS"/organize-credits.sh &
+"$SCRIPTS"/organize-credits.sh
 
 # Start service
 chmod 0644 "$PLIST"
