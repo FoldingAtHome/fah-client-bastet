@@ -32,6 +32,7 @@ Folding@home Client Changelog
  - Allow killed core to restart from last checkpoint.  re:#448
  - Detect and restart a core that stops reporting progress.  re:#448, #435
  - Report usable memory rather than just free memory. re:#123
+ - Fix for AARCH64 reporting on Linux.  @Ncard00123 re:#464
 
 ## v8.5.6
  - Failing ``config.xml`` load logs error but is now non-fatal.
