@@ -74,7 +74,7 @@ using namespace std;
 
 
 namespace {
-  static const uint64_t maxViewerBytes = 2.5e7;
+  static const uint64_t maxViewerBytes = 5e7;
   static const double   csRetryDelay   = 5; // Seconds between CS attempts
 
 
