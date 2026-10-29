@@ -38,6 +38,9 @@ namespace FAH {
       uint64_t interruptTime  = 0;
       uint64_t lastStop       = 0;
       bool     killedByClient = false;
+#ifdef __linux__
+      int terminationSignal = 0;
+#endif
 
     public:
       CoreProcess(const std::string &path);
@@ -47,6 +50,12 @@ namespace FAH {
 
       // True if we killed the core because it failed to shutdown gracefully
       bool getKilledByClient() const {return killedByClient;}
+
+#ifdef __linux__
+      bool isRunning();
+      int wait(bool nonblocking = false);
+      int getTerminationSignal() const {return terminationSignal;}
+#endif
 
       void exec(const std::vector<std::string> &args);
       void stop();

@@ -32,6 +32,11 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/log/Logger.h>
 
+#ifdef __linux__
+#include <sys/wait.h>
+#include <cerrno>
+#endif
+
 using namespace FAH::Client;
 using namespace cb;
 using namespace std;
@@ -62,7 +67,37 @@ void CoreProcess::exec(const vector<string> &_args) {
   Subprocess::exec(args, Subprocess::NULL_STDOUT | Subprocess::NULL_STDERR |
     Subprocess::CREATE_PROCESS_GROUP | Subprocess::W32_HIDE_WINDOW,
     Subprocess::PRIORITY_IDLE);
+#ifdef __linux__
+  terminationSignal = 0;
+#endif
 }
+
+
+#ifdef __linux__
+bool CoreProcess::isRunning() {
+  if (running) wait(true);
+  return running;
+}
+
+
+int CoreProcess::wait(bool nonblocking) {
+  if (!running) return returnCode;
+
+  // cbang should expose the terminating signal. Until then, inspect it without
+  // reaping so Subprocess::wait() still owns flags, reaping and handle cleanup.
+  siginfo_t info = {};
+  int result;
+  do {
+    result = waitid(P_PID, getPID(), &info,
+      WEXITED | WNOWAIT | (nonblocking ? WNOHANG : 0));
+  } while (result < 0 && errno == EINTR);
+  if (result < 0) return Subprocess::wait(nonblocking);
+  if (!info.si_pid) return returnCode;
+  if (info.si_code == CLD_KILLED || info.si_code == CLD_DUMPED)
+    terminationSignal = info.si_status;
+  return Subprocess::wait(nonblocking);
+}
+#endif
 
 
 void CoreProcess::stop() {

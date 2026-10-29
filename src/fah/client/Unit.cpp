@@ -67,6 +67,7 @@
 
 #include <cinttypes>
 #include <cmath>
+#include <csignal>
 
 using namespace FAH::Client;
 using namespace cb;
@@ -618,6 +619,9 @@ void Unit::getCore() {
 void Unit::run() {
   if (process.isSet()) return; // Already running
 
+  // A failed save after the crash must not allow an unrecorded recovery launch.
+  if (getU32("crash_retries", 0)) save();
+
   // Make sure WU data exists
   if (!SystemUtilities::exists(getDirectory() + "/wudata_01.dat")) {
     LOG_ERROR("Missing WU data");
@@ -843,18 +847,36 @@ void Unit::finalizeRun() {
   ExitCode code = (ExitCode::enum_t)process->wait();
 
 #ifdef _WIN32
-  if (0xc0000000 <= (unsigned)code) {
+  const unsigned status = (unsigned)code;
+  // Common fatal SEH, heap, C++ exception and CRT abort statuses, not loader errors.
+  bool crashed = (0xc000008d <= status && status <= 0xc0000096) ||
+    status == 0xc0000005 || status == 0xc0000006 || status == 0xc000001d ||
+    status == 0xc0000025 || status == 0xc0000026 || status == 0xc00000fd ||
+    status == 0xc0000374 || status == 0xc0000409 || status == 0xe06d7363 ||
+    status == 0x40000015;
+  if (status == 0xc000013a && process->isStopping())
+    code = ExitCode::INTERRUPTED;
+  else if (0xc0000000 <= status) {
     LOG_ERROR("Core exited with Windows unhandled exception code "
                 << String::printf("0x%08x", (unsigned)code)
                 << ".  See https://bit.ly/2CXgWkZ for more information.");
     code = ExitCode::FAILED_1;
   }
+#elif defined(__linux__)
+  const int signal = process->getTerminationSignal();
+  bool crashed = signal == SIGSEGV || signal == SIGABRT || signal == SIGBUS ||
+    signal == SIGILL || signal == SIGFPE;
+  if (process->isStopping() && (signal == SIGINT || signal == SIGTERM))
+    code = ExitCode::INTERRUPTED;
+#else
+  bool crashed = process->getDumpedCore();
 #endif
 
   // A core we killed because it would not shutdown is not a crash.  Restart
   // it and let it resume from its last checkpoint.  The core validates the
   // checkpoint on startup and asks for a restart if it is invalid.
   if (process->getKilledByClient()) {
+    crashed = false;
     const unsigned maxStalls = 3;
 
     if (stalls <= maxStalls) {
@@ -867,7 +889,10 @@ void Unit::finalizeRun() {
       code = ExitCode::FAILED_1;
     }
 
-  } else if (process->getWasKilled()) {
+  } else if (process->getWasKilled() && code != ExitCode::INTERRUPTED) {
+#ifdef _WIN32
+    crashed = false;
+#endif
     LOG_ERROR("Core was killed");
     code = ExitCode::FAILED_1;
   }
@@ -900,6 +925,15 @@ void Unit::finalizeRun() {
   if (code == ExitCode::INTERRUPTED)  return;
   if (code == ExitCode::CORE_RESTART) return retry();
 
+  string filename = getDirectory() + "/wuresults_01.dat";
+  unsigned crashes = getU32("crash_retries", 0);
+  if (crashed && crashes < 3 && !SystemUtilities::exists(filename)) {
+    insert("crash_retries", crashes + 1);
+    LOG_WARNING("Core crashed; recovery attempt " << (crashes + 1)
+      << " of 3 in 2 seconds");
+    return setWait(2); // Independent of ordinary retries, which reset with progress.
+  }
+
   if (!bytesCopiedToLog)
     LOG_ERROR("The folding core did not produce any log output.  This "
       "indicates that the core is not functional on your system.  Check "
@@ -913,8 +947,6 @@ void Unit::finalizeRun() {
   }
 
   // Read result data
-  string filename = getDirectory() + "/wuresults_01.dat";
-
   if (SystemUtilities::exists(filename)) {
     string resultData = SystemUtilities::read(filename);
     string hash64 = Digest::base64(resultData, "sha256");
