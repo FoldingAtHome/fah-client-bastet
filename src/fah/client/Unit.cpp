@@ -1255,9 +1255,14 @@ void Unit::download() {
 
 
 void Unit::uploadResponse(const JSON::ValuePtr &data) {
-  LOG_INFO(1, "Credited");
-  logCredit(data);
   string status = data->selectString("results.status", "failed");
+
+  // The server does not return the credit, so log the client's estimate
+  if (status == "ok")
+    LOG_INFO(1, "Credited, estimated " << getCreditEstimate() << " points");
+  else LOG_INFO(1, "Credited");
+
+  logCredit(data);
   clean(status == "ok" ? "credited" : status);
 }
 
